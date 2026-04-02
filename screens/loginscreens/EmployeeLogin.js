@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Button } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Button, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
@@ -36,68 +36,79 @@ const EmployeeLogin = ({ setRole, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.circleContainerTop}>
-        <View style={styles.circleLarge}></View>
-        <View style={styles.circleSmall}></View>
-      </View>
-      <View style={styles.circleContainerBottom}>
-        <View style={styles.circleLarge}></View>
-        <View style={styles.circleSmall}></View>
-      </View>
-      <View style={styles.formContainer}>
-        <Image
-          source={{ uri: 'https://img.freepik.com/free-vector/selecting-team-concept-illustration_114360-5423.jpg?t=st=1717262181~exp=1717265781~hmac=48ec52b79b830bc0c0215cd4418ccab9c07eede31b6bc11fc530befc36c7218f&w=740' }}
-          style={styles.logo}
-        />
-        <View style={styles.header}>
-          <Text style={styles.headerText}>Employee Login</Text>
-        </View>
-        <View style={styles.inputContainer}>
-          <Controller
-            control={control}
-            name="username"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <>
-                <TextInput
-                  style={[styles.input, errors.username && { borderColor: 'red' }]}
-                  placeholder="Username"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                />
-                {errors.username && <Text style={styles.errorText}>{errors.username.message}</Text>}
-              </>
-            )}
-          />
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <>
-                <TextInput
-                  style={[styles.input, errors.password && { borderColor: 'red' }]}
-                  placeholder="Password"
-                  secureTextEntry
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                />
-                {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
-              </>
-            )}
-          />
-          {error ? <Text className="py-1.5 text-center text-red-500 text-[15px] font-medium">{error}</Text> : null}
-          {/* <Button title="Login" onPress={handleLogin} disabled={loading} /> */}
-          <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)} disabled={loading}>
-            <Text style={styles.buttonText}>Login</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.goBackButton} onPress={() => navigate.goBack()}>
-            <Text style={styles.goBackButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView 
+          contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.circleContainerTop}>
+            <View style={styles.circleLarge}></View>
+            <View style={styles.circleSmall}></View>
+          </View>
+          <View style={styles.circleContainerBottom}>
+            <View style={styles.circleLarge}></View>
+            <View style={styles.circleSmall}></View>
+          </View>
+          <View style={styles.formContainer}>
+            <Image
+              source={{ uri: 'https://img.freepik.com/free-vector/selecting-team-concept-illustration_114360-5423.jpg?t=st=1717262181~exp=1717265781~hmac=48ec52b79b830bc0c0215cd4418ccab9c07eede31b6bc11fc530befc36c7218f&w=740' }}
+              style={styles.logo}
+            />
+            <View style={styles.header}>
+              <Text style={styles.headerText}>Employee Login</Text>
+            </View>
+            <View style={styles.inputContainer}>
+              <Controller
+                control={control}
+                name="username"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <>
+                    <TextInput
+                      style={[styles.input, errors.username && { borderColor: 'red' }]}
+                      placeholder="Username"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      onBlur={onBlur}
+                      onChangeText={onChange}
+                      value={value}
+                    />
+                    {errors.username && <Text style={styles.errorText}>{errors.username.message}</Text>}
+                  </>
+                )}
+              />
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <>
+                    <TextInput
+                      style={[styles.input, errors.password && { borderColor: 'red' }]}
+                      placeholder="Password"
+                      secureTextEntry
+                      onBlur={onBlur}
+                      onChangeText={onChange}
+                      value={value}
+                    />
+                    {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
+                  </>
+                )}
+              />
+              {error ? <Text className="py-1.5 text-center text-red-500 text-[15px] font-medium">{error}</Text> : null}
+              {/* <Button title="Login" onPress={handleLogin} disabled={loading} /> */}
+              <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)} disabled={loading}>
+                <Text style={styles.buttonText}>Login</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.goBackButton} onPress={() => navigate.goBack()}>
+                <Text style={styles.goBackButtonText}>Go Back</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
@@ -39,121 +39,126 @@ const ProfileSetting = () => {
 
 
     return (
-        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
-            <View style={{ alignItems: 'center', paddingHorizontal: 20, paddingVertical: 40 }}>
-                <TouchableOpacity onPress={handleImageUpload} style={{ marginBottom: 20 }}>
-                    {profileImage ? (
-                        <Image source={{ uri: profileImage }} style={{ width: 150, height: 150, borderRadius: 75 }} />
-                    ) : (
-                        <View style={{ width: 150, height: 150, borderRadius: 75, backgroundColor: '#E5E7EB', justifyContent: 'center', alignItems: 'center' }}>
-                            <AntDesign name="plus" size={40} color="#6B7280" />
-                        </View>
-                    )}
-                </TouchableOpacity>
-
-                <TextInput
-                    placeholder="Name"
-                    style={styles.input}
-                    value={name}
-                    onChangeText={setName}
-                />
-                <TextInput
-                    placeholder="Designation"
-                    style={styles.input}
-                    value={designation}
-                    onChangeText={setDesignation}
-                />
-                <TextInput
-                    placeholder="Date of Birth"
-                    style={styles.input}
-                    value={dateOfBirth}
-                    onChangeText={setDateOfBirth}
-                />
-                <TextInput
-                    placeholder="Study"
-                    style={styles.input}
-                    value={study}
-                    onChangeText={setStudy}
-                />
-                <TextInput
-                    placeholder="Experience"
-                    style={styles.input}
-                    value={experience}
-                    onChangeText={setExperience}
-                />
-                <TextInput
-                    placeholder="Achievement"
-                    style={styles.input}
-                    value={achievement}
-                    onChangeText={setAchievement}
-                />
-                <TextInput
-                    placeholder="Salary"
-                    style={styles.input}
-                    value={salary}
-                    onChangeText={setSalary}
-                />
-                <TextInput
-                    placeholder="Documents"
-                    style={styles.input}
-                    value={documents}
-                    onChangeText={setDocuments}
-                />
-                <TextInput
-                    placeholder="Marks in 10th"
-                    style={styles.input}
-                    value={marks10}
-                    onChangeText={setMarks10}
-                />
-                <TextInput
-                    placeholder="Marks in 12th"
-                    style={styles.input}
-                    value={marks12}
-                    onChangeText={setMarks12}
-                />
-                <TextInput
-                    placeholder="Graduation Marks"
-                    style={styles.input}
-                    value={graduationMarks}
-                    onChangeText={setGraduationMarks}
-                />
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-                    <Text style={{ marginRight: 20 }}>Gender:</Text>
-                    <TouchableOpacity onPress={() => setGender('Male')} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 20 }}>
-                        <Text style={{ marginRight: 5 }}>Male</Text>
-                        <AntDesign name={gender === 'Male' ? 'checkcircle' : 'check'} size={24} color="#3B82F6" />
+        <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+        >
+            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
+                <View style={{ alignItems: 'center', paddingHorizontal: 20, paddingVertical: 40 }}>
+                    <TouchableOpacity onPress={handleImageUpload} style={{ marginBottom: 20 }}>
+                        {profileImage ? (
+                            <Image source={{ uri: profileImage }} style={{ width: 150, height: 150, borderRadius: 75 }} />
+                        ) : (
+                            <View style={{ width: 150, height: 150, borderRadius: 75, backgroundColor: '#E5E7EB', justifyContent: 'center', alignItems: 'center' }}>
+                                <AntDesign name="plus" size={40} color="#6B7280" />
+                            </View>
+                        )}
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setGender('Female')} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Text style={{ marginRight: 5 }}>Female</Text>
-                        <AntDesign name={gender === 'Female' ? 'checkcircle' : 'check'} size={24} color="#3B82F6" />
+
+                    <TextInput
+                        placeholder="Name"
+                        style={styles.input}
+                        value={name}
+                        onChangeText={setName}
+                    />
+                    <TextInput
+                        placeholder="Designation"
+                        style={styles.input}
+                        value={designation}
+                        onChangeText={setDesignation}
+                    />
+                    <TextInput
+                        placeholder="Date of Birth"
+                        style={styles.input}
+                        value={dateOfBirth}
+                        onChangeText={setDateOfBirth}
+                    />
+                    <TextInput
+                        placeholder="Study"
+                        style={styles.input}
+                        value={study}
+                        onChangeText={setStudy}
+                    />
+                    <TextInput
+                        placeholder="Experience"
+                        style={styles.input}
+                        value={experience}
+                        onChangeText={setExperience}
+                    />
+                    <TextInput
+                        placeholder="Achievement"
+                        style={styles.input}
+                        value={achievement}
+                        onChangeText={setAchievement}
+                    />
+                    <TextInput
+                        placeholder="Salary"
+                        style={styles.input}
+                        value={salary}
+                        onChangeText={setSalary}
+                    />
+                    <TextInput
+                        placeholder="Documents"
+                        style={styles.input}
+                        value={documents}
+                        onChangeText={setDocuments}
+                    />
+                    <TextInput
+                        placeholder="Marks in 10th"
+                        style={styles.input}
+                        value={marks10}
+                        onChangeText={setMarks10}
+                    />
+                    <TextInput
+                        placeholder="Marks in 12th"
+                        style={styles.input}
+                        value={marks12}
+                        onChangeText={setMarks12}
+                    />
+                    <TextInput
+                        placeholder="Graduation Marks"
+                        style={styles.input}
+                        value={graduationMarks}
+                        onChangeText={setGraduationMarks}
+                    />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                        <Text style={{ marginRight: 20 }}>Gender:</Text>
+                        <TouchableOpacity onPress={() => setGender('Male')} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 20 }}>
+                            <Text style={{ marginRight: 5 }}>Male</Text>
+                            <AntDesign name={gender === 'Male' ? 'checkcircle' : 'check'} size={24} color="#3B82F6" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setGender('Female')} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={{ marginRight: 5 }}>Female</Text>
+                            <AntDesign name={gender === 'Female' ? 'checkcircle' : 'check'} size={24} color="#3B82F6" />
+                        </TouchableOpacity>
+                    </View>
+                    <TextInput
+                        placeholder="Mobile No"
+                        style={styles.input}
+                        value={mobileNo}
+                        onChangeText={setMobileNo}
+                    />
+                    <TextInput
+                        placeholder="Address"
+                        style={[styles.input, { marginBottom: 40 }]}
+                        value={address}
+                        onChangeText={setAddress}
+                    />
+                    <TouchableOpacity
+                        style={styles.saveButton}
+                    >
+                        <Text style={styles.saveButtonText}>Save Changes</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.saveButton, { backgroundColor: '#10B981', marginTop: 15 }]}
+                        onPress={() => navigation.navigate("FaceRecognition", { mode: 'registration', employeeName: name || 'Employee' })}
+                    >
+                        <Text style={styles.saveButtonText}>Register Face</Text>
                     </TouchableOpacity>
                 </View>
-                <TextInput
-                    placeholder="Mobile No"
-                    style={styles.input}
-                    value={mobileNo}
-                    onChangeText={setMobileNo}
-                />
-                <TextInput
-                    placeholder="Address"
-                    style={[styles.input, { marginBottom: 40 }]}
-                    value={address}
-                    onChangeText={setAddress}
-                />
-                <TouchableOpacity
-                    style={styles.saveButton}
-                >
-                    <Text style={styles.saveButtonText}>Save Changes</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.saveButton, { backgroundColor: '#10B981', marginTop: 15 }]}
-                    onPress={() => navigation.navigate("FaceRecognition", { mode: 'registration', employeeName: name || 'Employee' })}
-                >
-                    <Text style={styles.saveButtonText}>Register Face</Text>
-                </TouchableOpacity>
-            </View>
-        </ScrollView>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
