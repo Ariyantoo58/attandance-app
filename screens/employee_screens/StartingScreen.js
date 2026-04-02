@@ -28,7 +28,7 @@ const StartingScreen = () => {
   };
 
   return (
-    <ScrollView className="pt-8 bg-blue-50 h-[120vh]">
+    <ScrollView className="pt-1 bg-blue-50 h-[120vh]">
       <View className="px-5 py-4 flex-row justify-between items-center">
         <View className="flex-row items-center space-x-3">
           <TouchableOpacity className="h-14 w-14 bg-white rounded-full p-[3px]" onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
@@ -55,9 +55,6 @@ const StartingScreen = () => {
             <Text className="absolute bg-[#00a2e4] text-white rounded-full h-4 w-4 text-center text-[10px] left-[25px]">
               {notifys}
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={34} color="#FF6B6B" />
           </TouchableOpacity>
         </View>
       </View>
@@ -129,9 +126,14 @@ const StartingScreen = () => {
         </View>
 
         {data.length > 0 ? (
-          <View className="mt-4 flex-row items-center space-x-4">
+          <ScrollView 
+            horizontal={true} 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={{ paddingRight: 20 }}
+            className="mt-4 flex-row"
+          >
             {data && data.map((list) => (
-              <View className="bg-white rounded-lg p-2.5 space-y-0.5 w-[80%]" key={list.id}>
+              <View className="bg-white rounded-lg p-2.5 space-y-0.5 w-[280px] mr-4" key={list.id}>
                 <Text className=" text-[15px] font-medium">
                   {list.title}
                 </Text>
@@ -142,7 +144,7 @@ const StartingScreen = () => {
                 <Text className="text-[11px] text-gray-400 font-medium pt-0.5">{list.description}</Text>
               </View>
             ))}
-          </View>
+          </ScrollView>
 
         ) : (
           <Text className="text-center mt-3 font-medium text-gray-500">No Task Available</Text>
@@ -150,7 +152,7 @@ const StartingScreen = () => {
       </View>
       {/* --------------------- --------------------------------------------------------*/}
       <View className="px-5">
-        <View className="flex-row items-center justify-between py-5">
+        <View className="flex-row items-center justify-between pt-5 pb-1">
           <Text className="font-semibold text-[18px]">
             Recent Activity
           </Text>
@@ -162,7 +164,7 @@ const StartingScreen = () => {
           </TouchableOpacity>
         </View>
         {recentData.length > 0 ? (
-          <SafeAreaView className="space-y-4">
+          <SafeAreaView className="space-y-2">
             {recentData && recentData.map((list) => (
               <TouchableOpacity key={list.id} className="bg-white p-2.5 rounded-lg flex-row items-center justify-between">
                 <View className="flex-row space-x-3 pl-1">

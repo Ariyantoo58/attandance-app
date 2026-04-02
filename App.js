@@ -36,6 +36,7 @@ import PaySlipSummary from './screens/hr_screens/employeePayslip/PaySlipSummary'
 import Attendance from './screens/hr_screens/overviewscreens/Attendance';
 import EmployeeDetails from './screens/hr_screens/employeedetails/EmployeeDetails';
 import FaceRecognitionScreen from './screens/employee_screens/FaceRecognitionScreen';
+import ManagerCustomDrawerContent from './screens/hr_screens/drawescreens/ManagerCustomDrawerContent';
 // import AutorityScreen from './screens/AutorityScreen'
 
 const Stack = createNativeStackNavigator();
@@ -155,30 +156,67 @@ function DrawerNavigator() {
     );
 }
 
+function ManagerTabNavigator({ navigation }) {
+    return (
+        <Tab.Navigator
+            screenOptions={({ route }) => ({
+                tabBarIcon: ({ focused, color, size }) => {
+                    let iconName;
+                    if (route.name === 'Overview') {
+                        iconName = focused ? 'speedometer' : 'speedometer-outline';
+                    } else if (route.name === 'Employees') {
+                        iconName = focused ? 'people' : 'people-outline';
+                    } else if (route.name === 'AttendanceHR') {
+                        iconName = focused ? 'calendar' : 'calendar-outline';
+                    } else if (route.name === 'Tasks') {
+                        iconName = focused ? 'briefcase' : 'briefcase-outline';
+                    }
+
+                    return (
+                        <View style={[styles.iconContainer, focused && { backgroundColor: '#2D3748' }]}>
+                            <Ionicons name={iconName} size={size} color={focused ? 'white' : color} />
+                        </View>
+                    );
+                },
+                tabBarActiveTintColor: '#2D3748',
+                tabBarInactiveTintColor: 'gray',
+                tabBarStyle: styles.tabBar,
+                headerShown: false,
+            })}
+        >
+            <Tab.Screen name="Overview" component={ManagerHomeScreen} />
+            <Tab.Screen name="Employees" component={EmployeeList} />
+            <Tab.Screen name="AttendanceHR" component={Attendance} options={{ title: 'Attendance' }} />
+            <Tab.Screen name="Tasks" component={ProjectTasks} />
+        </Tab.Navigator>
+    );
+}
+
 function ManagerDrawer() {
     return (
         <Drawer.Navigator
             useLegacyImplementation={false}
-            initialRouteName="Manager Home"
-            drawerContent={(props) => <CustomDrawerContent {...props} />}
+            initialRouteName="Dashboard"
+            drawerContent={(props) => <ManagerCustomDrawerContent {...props} />}
             screenOptions={{
                 headerShown: false,
-                drawerActiveTintColor: '#00a2e4',
-                drawerInactiveTintColor: 'black',
+                drawerActiveTintColor: '#2D3748',
+                drawerInactiveTintColor: '#4A5568',
                 drawerLabelStyle: {
                     marginLeft: 0,
+                    fontWeight: '600',
                 },
                 drawerItemStyle: {
-                    marginVertical: 0,
+                    marginVertical: 4,
                 },
             }}
         >
             <Drawer.Screen
-                name="Manager Home"
-                component={ManagerHomeScreen}
+                name="Dashboard"
+                component={ManagerTabNavigator}
                 options={{
-                    drawerIcon: ({ focused, color, size }) => (
-                        <Ionicons name="home" size={size} color={color} />
+                    drawerIcon: ({ color, size }) => (
+                        <Ionicons name="apps" size={size} color={color} />
                     ),
                 }}
             />
@@ -186,17 +224,35 @@ function ManagerDrawer() {
                 name="Employee List"
                 component={EmployeeList}
                 options={{
-                    drawerIcon: ({ focused, color, size }) => (
-                        <Ionicons name="people" size={size} color={color} />
+                    drawerIcon: ({ color, size }) => (
+                        <Ionicons name="people-circle" size={size} color={color} />
                     ),
                 }}
             />
             <Drawer.Screen
-                name="Setting"
+                name="Leave Applications"
+                component={Leave_Applications}
+                options={{
+                    drawerIcon: ({ color, size }) => (
+                        <Ionicons name="document-text" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Drawer.Screen
+                name="Attendance History"
+                component={Attendance}
+                options={{
+                    drawerIcon: ({ color, size }) => (
+                        <Ionicons name="calendar-clear" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Drawer.Screen
+                name="Settings"
                 component={ProfileSetting}
                 options={{
-                    drawerIcon: ({ focused, color, size }) => (
-                        <Ionicons name="settings" size={size} color={color} />
+                    drawerIcon: ({ color, size }) => (
+                        <Ionicons name="settings-outline" size={size} color={color} />
                     ),
                 }}
             />
@@ -238,19 +294,31 @@ function ManagerStackNavigator() {
 }
 
 function AppNavigator() {
+    const { isAuthenticated, loading, isHydrated, user } = useSelector(state => state.auth);
     const [role, setRole] = React.useState(roles.none);
-    const { isAuthenticated, loading, isHydrated } = useSelector(state => state.auth);
     // const dispatch = useDispatch();
+
+    React.useEffect(() => {
+        const userRole = user?.user?.role?.toLowerCase();
+        if (isAuthenticated && userRole) {
+            if (userRole === 'admin' || userRole === 'manager' || userRole === 'hr') {
+                setRole(roles.manager);
+                AsyncStorage.setItem('role', roles.manager);
+            } else {
+                setRole(roles.employee);
+                AsyncStorage.setItem('role', roles.employee);
+            }
+        }
+    }, [isAuthenticated, user]);
 
     React.useEffect(() => {
         if (isAuthenticated) {
             AsyncStorage.setItem('isAuthenticated', 'true');
-            AsyncStorage.setItem('role', role);
         } else {
             AsyncStorage.removeItem('isAuthenticated');
             AsyncStorage.removeItem('role');
         }
-    }, [isAuthenticated, role]);
+    }, [isAuthenticated]);
 
     React.useEffect(() => {
         const loadRole = async () => {

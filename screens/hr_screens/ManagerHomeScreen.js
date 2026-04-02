@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, FlatList, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
@@ -56,16 +56,14 @@ const ManagerHomeScreen = () => {
             <Ionicons name="notifications-circle-outline" size={38} color="white" style={styles.relative} />
             <Text style={styles.notificationBadge}>3</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => dispatch(logout())}>
-            <Ionicons name="log-out-outline" size={34} color="#FF6B6B" />
-          </TouchableOpacity>
         </View>
         <View style={styles.headerTextContainer}>
           <Text style={styles.headerText}>Hi {user?.user?.name || 'Admin'}</Text>
           <Text style={styles.headerText}>Good Morning</Text>
         </View>
       </View>
-      <View style={styles.contentContainer}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        <View style={styles.contentContainer}>
         <View style={styles.overviewHeader}>
           <Text style={styles.overviewTitle}>Overview</Text>
           <Text style={styles.date}>25 May 2024</Text>
@@ -73,6 +71,7 @@ const ManagerHomeScreen = () => {
         <FlatList
           data={OverviewAllSections}
           style={styles.flatList}
+          scrollEnabled={false}
           numColumns={3}
           renderItem={renderFlatListItem}
           keyExtractor={(item) => item.id.toString()}
@@ -129,7 +128,8 @@ const ManagerHomeScreen = () => {
             ))}
           </View>
         </View>
-      </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -141,13 +141,12 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingVertical: 20,
+    paddingVertical: 10,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 16,
   },
   relative: {
     position: 'relative',
@@ -176,7 +175,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     padding: 12,
-    height: '100vh'
+    flex: 1,
+    paddingBottom: 100
   },
   overviewHeader: {
     flexDirection: 'row',
