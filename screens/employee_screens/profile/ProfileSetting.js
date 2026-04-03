@@ -2,14 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { apiService } from '../../../services/api';
+import { updateUserProfile } from '../../../auth/authSlice';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ProfileSetting = () => {
     const navigation = useNavigation();
+    const dispatch = useDispatch();
     const { user } = useSelector(state => state.auth);
     const employeeId = user?.user?.employeeId;
+    const userRole = user?.user?.role?.toLowerCase();
 
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
@@ -70,7 +73,7 @@ const ProfileSetting = () => {
         } finally {
             setFetching(false);
         }
-    };
+    }, [employeeId]);
 
     const handleSave = async () => {
         if (!name) {
@@ -95,6 +98,7 @@ const ProfileSetting = () => {
                 address,
             };
             await apiService.updateEmployeeProfile(employeeId, updateData);
+            dispatch(updateUserProfile({ name, avatarUrl, designation, gender }));
             Alert.alert('Success', 'Profile updated successfully!');
             navigation.goBack();
         } catch (error) {
@@ -256,44 +260,48 @@ const ProfileSetting = () => {
                             )}
                         </TouchableOpacity>
 
-                        <Text style={styles.label}>Face Recognition Status</Text>
-                        <View style={styles.faceStatusContainer}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                <Ionicons 
-                                    name={faceStatus.registered ? "shield-checkmark" : "shield-outline"} 
-                                    size={24} 
-                                    color={faceStatus.registered ? "#10B981" : "#6B7280"} 
-                                />
-                                <View style={{ marginLeft: 12 }}>
-                                    <Text style={[styles.faceStatusText, { color: faceStatus.registered ? "#10B981" : "#111827" }]}>
-                                        {faceStatus.registered ? "Terverifikasi" : "Belum Terdaftar"}
-                                    </Text>
-                                    <Text style={{ fontSize: 12, color: '#6B7280' }}>
-                                        {faceStatus.registered ? "Data wajah aktif" : "Silakan daftarkan wajah Anda"}
-                                    </Text>
+                        {userRole === 'employee' && (
+                            <>
+                                <Text style={styles.label}>Face Recognition Status</Text>
+                                <View style={styles.faceStatusContainer}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                        <Ionicons 
+                                            name={faceStatus.registered ? "shield-checkmark" : "shield-outline"} 
+                                            size={24} 
+                                            color={faceStatus.registered ? "#10B981" : "#6B7280"} 
+                                        />
+                                        <View style={{ marginLeft: 12 }}>
+                                            <Text style={[styles.faceStatusText, { color: faceStatus.registered ? "#10B981" : "#111827" }]}>
+                                                {faceStatus.registered ? "Terverifikasi" : "Belum Terdaftar"}
+                                            </Text>
+                                            <Text style={{ fontSize: 12, color: '#6B7280' }}>
+                                                {faceStatus.registered ? "Data wajah aktif" : "Silakan daftarkan wajah Anda"}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    
+                                    {faceStatus.registered ? (
+                                        <TouchableOpacity 
+                                            onPress={handleResetFace}
+                                            style={styles.resetButton}
+                                        >
+                                            <Text style={styles.resetButtonText}>Reset</Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <TouchableOpacity
+                                            style={styles.registerButton}
+                                            onPress={() => navigation.navigate("FaceRecognition", { 
+                                                mode: 'registration', 
+                                                employeeId: employeeId,
+                                                employeeName: name || 'Employee' 
+                                            })}
+                                        >
+                                            <Text style={styles.registerButtonText}>Daftar</Text>
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
-                            </View>
-                            
-                            {faceStatus.registered ? (
-                                <TouchableOpacity 
-                                    onPress={handleResetFace}
-                                    style={styles.resetButton}
-                                >
-                                    <Text style={styles.resetButtonText}>Reset</Text>
-                                </TouchableOpacity>
-                            ) : (
-                                <TouchableOpacity
-                                    style={styles.registerButton}
-                                    onPress={() => navigation.navigate("FaceRecognition", { 
-                                        mode: 'registration', 
-                                        employeeId: employeeId,
-                                        employeeName: name || 'Employee' 
-                                    })}
-                                >
-                                    <Text style={styles.registerButtonText}>Daftar</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
+                            </>
+                        )}
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>

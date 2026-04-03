@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useCallback } from 'react'
 import { View, Text, Image, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useNavigation, DrawerActions } from '@react-navigation/native';
+import { useNavigation, DrawerActions, useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/auth/authSlice';
 import { AntDesign, EvilIcons, Ionicons } from '@expo/vector-icons';
@@ -18,11 +18,13 @@ const StartingScreen = () => {
   const [notifCount, setNotifCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (employeeId) {
-      loadDashboardData();
-    }
-  }, [employeeId]);
+  useFocusEffect(
+    useCallback(() => {
+      if (employeeId) {
+        loadDashboardData();
+      }
+    }, [employeeId])
+  );
 
   const loadDashboardData = async () => {
     try {

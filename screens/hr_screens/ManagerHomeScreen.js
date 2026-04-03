@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Image, FlatList, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation, DrawerActions } from '@react-navigation/native';
+import { useNavigation, DrawerActions, useFocusEffect } from '@react-navigation/native';
 import { OverviewAllSections as StaticOverview } from '@/services/hrservices/OverviewObj';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { EmployeesAttendance as StaticAttendance } from '@/services/hrservices/EmployeeAttendanceObj';
@@ -19,9 +19,11 @@ const ManagerHomeScreen = () => {
   const [recentLeaves, setRecentLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboard();
+    }, [])
+  );
 
   const loadDashboard = async () => {
     try {
@@ -161,13 +163,6 @@ const ManagerHomeScreen = () => {
           )}
         </View>
 
-        <TouchableOpacity 
-          style={{ backgroundColor: '#10B981', padding: 15, marginHorizontal: 8, marginTop: 15, borderRadius: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
-          onPress={() => navigation.navigate("FaceRecognition", { mode: 'attendance' })}
-        >
-          <Ionicons name="camera-outline" size={24} color="white" style={{ marginRight: 10 }} />
-          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Start Face Attendance</Text>
-        </TouchableOpacity>
 
         <View style={styles.attendanceContainer} >
           <Text style={styles.attendanceTitle}>Total Attendance (Today)</Text>

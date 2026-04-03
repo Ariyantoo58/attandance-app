@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
@@ -35,8 +35,8 @@ const ManagerLogin = ({ setRole }) => {
     console.log(setRole);
   };
 
-  const handleGoBack = () => {
-    navigate.goBack();
+  const handleSwitchLogin = () => {
+    navigate.navigate('EmployeeLogin');
   };
 
   return (
@@ -103,11 +103,15 @@ const ManagerLogin = ({ setRole }) => {
                 )}
               />
               {error ? <Text className="py-1.5 text-center text-red-500 text-[15px] font-medium">{error}</Text> : null}
-              <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
-                <Text style={styles.buttonText}>Login</Text>
+              <TouchableOpacity style={[styles.button, loading && {opacity: 0.7}]} onPress={handleSubmit(onSubmit)} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.buttonText}>Login</Text>
+                )}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.goBackButton} onPress={handleGoBack}>
-                <Text style={styles.goBackButtonText}>Go Back</Text>
+              <TouchableOpacity style={styles.goSwitchButton} onPress={handleSwitchLogin}>
+                <Text style={styles.goSwitchButtonText}>Switch to Employee Login</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -208,18 +212,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
   },
-  goBackButton: {
+  goSwitchButton: {
     height: 50,
-    backgroundColor: '#cccccc',
+    backgroundColor: 'transparent',
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#333333',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
-  goBackButtonText: {
+  goSwitchButtonText: {
     color: '#333333',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

@@ -35,6 +35,7 @@ const EmployeeEdit = () => {
     const [selectedPosition, setSelectedPosition] = useState(employee.positionId || null);
     const [gender, setGender] = useState(employee.gender || null);
     const [loading, setLoading] = useState(false);
+    const [faceStatus, setFaceStatus] = useState({ registered: false, message: '' });
 
     useEffect(() => {
         const fetchData = async () => {
@@ -55,9 +56,44 @@ const EmployeeEdit = () => {
             } catch (error) {
                 console.error('Failed to fetch positions:', error);
             }
+
+            try {
+                const status = await apiService.checkFaceStatus(employee.id);
+                if (status) {
+                    setFaceStatus(status);
+                }
+            } catch (error) {
+                console.error('Failed to fetch face status:', error);
+            }
         };
         fetchData();
     }, []);
+
+    const handleResetFace = async () => {
+        Alert.alert(
+            "Clear Face Data",
+            `Are you sure you want to clear face verification data for ${employeeName}?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                { 
+                    text: "Clear Data", 
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            await apiService.resetFaceData(employee.id);
+                            setFaceStatus({ registered: false, message: 'Data cleared' });
+                            Alert.alert("Success", "Employee face data cleared successfully.");
+                        } catch (error) {
+                            Alert.alert("Error", "Failed to clear face data.");
+                        } finally {
+                            setLoading(false);
+                        }
+                    } 
+                }
+            ]
+        );
+    };
 
     const onJoinDateChange = (event, selectedDate) => {
         setShowJoinPicker(Platform.OS === 'ios');
@@ -333,6 +369,21 @@ const EmployeeEdit = () => {
                             thumbColor={activeEmployee ? '#3FC28A' : '#f4f3f4'}
                         />
                     </View>
+
+                    {faceStatus.registered && (
+                        <View className="flex-row items-center justify-between mt-4 bg-red-50 p-4 rounded-lg border border-red-200 pb-4">
+                            <View>
+                                <Text className="font-bold text-red-800">Face Data Detected</Text>
+                                <Text className="text-xs text-red-600 mt-1">Has verification access</Text>
+                            </View>
+                            <TouchableOpacity 
+                                style={{ backgroundColor: '#EF4444', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 }} 
+                                onPress={handleResetFace}
+                            >
+                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13 }}>Reset Face</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     {loading ? (
                         <View className="bg-gray-700 rounded-lg p-4 mt-5">

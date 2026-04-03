@@ -55,6 +55,16 @@ const authSlice = createSlice({
       AsyncStorage.removeItem('isAuthenticated');
       AsyncStorage.removeItem('user');
     },
+    updateUserProfile(state, action) {
+      if (state.user && state.user.user) {
+        if (state.user.user.employee) {
+          state.user.user.employee = { ...state.user.user.employee, ...action.payload };
+        } else {
+          state.user.user = { ...state.user.user, ...action.payload };
+        }
+        AsyncStorage.setItem('user', JSON.stringify(state.user));
+      }
+    }
   },
   extraReducers: (builder) => {
     builder.addCase(loadAuthState.fulfilled, (state, action) => {
@@ -79,5 +89,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, updateUserProfile } = authSlice.actions;
 export default authSlice.reducer;
