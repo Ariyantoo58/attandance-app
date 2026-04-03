@@ -39,11 +39,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   backButton: {
-    padding: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#3B82F6',
-    width: 32,
-    borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   headerText: {
     textAlign: 'center',

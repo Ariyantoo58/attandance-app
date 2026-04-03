@@ -3,12 +3,12 @@ import { View, Text, Image, TouchableOpacity, ScrollView, Alert } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../../auth/authSlice';
+import { logout } from '@/auth/authSlice';
 import { AntDesign } from '@expo/vector-icons';
 import { EvilIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
-import { data, ShiftData, recentData, ShiftData2 } from '../../services/StartingScreenObj';
-import { AllNotifications } from '../../services/Notifications';
+import { data, ShiftData, recentData, ShiftData2 } from '@/services/StartingScreenObj';
+import { AllNotifications } from '@/services/Notifications';
 
 const StartingScreen = () => {
   const navigation = useNavigation();
@@ -28,7 +28,9 @@ const StartingScreen = () => {
   };
 
   return (
-    <ScrollView className="pt-1 bg-blue-50 h-[120vh]">
+    <View style={{ flex: 1, backgroundColor: '#eff6ff' }}>
+      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
       <View className="px-5 py-4 flex-row justify-between items-center">
         <View className="flex-row items-center space-x-3">
           <TouchableOpacity className="h-14 w-14 bg-white rounded-full p-[3px]" onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
@@ -121,7 +123,7 @@ const StartingScreen = () => {
             <Text className="text-gray-500 text-right text-[14px] font-medium pb-0.5 ">
               See more
             </Text>
-            <AntDesign name="rightcircleo" size={14} color="gray" className="ml-2" />
+            <AntDesign name="right" size={14} color="gray" className="ml-2" />
           </TouchableOpacity>
         </View>
 
@@ -160,11 +162,11 @@ const StartingScreen = () => {
             <Text className="text-gray-500 text-right text-[14px] font-medium pb-0.5 ">
               View all
             </Text>
-            <AntDesign name="rightcircleo" size={14} color="gray" className="ml-2" />
+            <AntDesign name="right" size={14} color="gray" className="ml-2" />
           </TouchableOpacity>
         </View>
         {recentData.length > 0 ? (
-          <SafeAreaView className="space-y-2">
+          <View className="space-y-2">
             {recentData && recentData.map((list) => (
               <TouchableOpacity key={list.id} className="bg-white p-2.5 rounded-lg flex-row items-center justify-between">
                 <View className="flex-row space-x-3 pl-1">
@@ -185,12 +187,16 @@ const StartingScreen = () => {
                 </View>
               </TouchableOpacity>
             ))}
-          </SafeAreaView>
+          </View>
         ) : (
-          <Text className="text-center mt-3 font-medium text-gray-500">No Activity Available</Text>
+          <View className="py-4">
+            <Text className="text-center font-medium text-gray-500">No Activity Available</Text>
+          </View>
         )}
       </View>
-    </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   )
 }
 

@@ -60,7 +60,10 @@ const TaskCreation = () => {
     return (
         <View style={styles.container} className="">
             <View style={styles.header} className="bg-gray-700 pt-11 pb-4 px-4">
-                <TouchableOpacity className="bg-white" style={styles.backButton} onPress={() => navigation.goBack()}>
+                <TouchableOpacity 
+                    style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' }} 
+                    onPress={() => navigation.goBack()}
+                >
                     <AntDesign name="left" size={18} color="black" />
                 </TouchableOpacity>
                 <Text style={styles.headerText}>Task Creation</Text>

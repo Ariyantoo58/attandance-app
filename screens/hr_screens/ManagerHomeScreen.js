@@ -3,11 +3,11 @@ import { View, Text, TouchableOpacity, Image, FlatList, StyleSheet, ScrollView }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
-import { OverviewAllSections } from '../../services/hrservices/OverviewObj';
+import { OverviewAllSections } from '@/services/hrservices/OverviewObj';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { EmployeesAttendance } from '../../services/hrservices/EmployeeAttendanceObj';
+import { EmployeesAttendance } from '@/services/hrservices/EmployeeAttendanceObj';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../../auth/authSlice';
+import { logout } from '@/auth/authSlice';
 
 const ManagerHomeScreen = () => {
   const navigation = useNavigation();
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     padding: 12,
     flex: 1,
-    paddingBottom: 100
+    paddingBottom: 100,
   },
   overviewHeader: {
     flexDirection: 'row',
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   itemContainer: {
     backgroundColor: 'white',
-    paddingVertical: 8,
+    paddingVertical: 12,
     marginLeft: 12,
     marginTop: 12,
     paddingHorizontal: 4,
@@ -210,10 +210,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     width: '30%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   iconContainer: {
     borderRadius: 50,
-    // padding: 16,
     marginBottom: 8,
     alignSelf: 'center',
     height: 60,
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
   attendanceContainer: {
     paddingHorizontal: 8,
     paddingTop: 22,
-    paddingBottom: 20
+    paddingBottom: 20,
   },
   attendanceTitle: {
     fontSize: 16,

@@ -15,7 +15,10 @@ const Leave_Applications = () => {
     return (
         <View className="py-4 bg-gray-800 h-[150vh]">
             <View className="flex-row items-center px-3 pb-5 pt-10">
-                <TouchableOpacity className="p-1 bg-white w-7 rounded-md" onPress={() => navigation.goBack()}>
+                <TouchableOpacity 
+                    style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' }} 
+                    onPress={() => navigation.goBack()}
+                >
                     <AntDesign name="left" size={18} color="black" />
                 </TouchableOpacity>
                 <Text className="text-center w-[89%] text-white font-semibold text-[18px]">Leave Application</Text>

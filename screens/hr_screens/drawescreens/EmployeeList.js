@@ -77,11 +77,17 @@ const EmployeeList = () => {
     return (
         <View style={styles.container} className="bg-gray-700">
             <View className="flex-row items-center justify-between px-3 pb-3 pt-2">
-                <TouchableOpacity className="p-1 bg-white w-7 rounded-md" onPress={() => navigation.goBack()}>
+                <TouchableOpacity 
+                    style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' }} 
+                    onPress={() => navigation.goBack()}
+                >
                     <AntDesign name="left" size={18} color="black" />
                 </TouchableOpacity>
                 <Text className="text-center text-white font-semibold text-[18px]">Employees List</Text>
-                <TouchableOpacity className="bg-white rounded-full p-0.5" onPress={() => navigation.navigate("AddNewEmployee")}>
+                <TouchableOpacity 
+                    style={{ width: 45, height: 45, borderRadius: 22.5, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' }} 
+                    onPress={() => navigation.navigate("AddNewEmployee")}
+                >
                     <Feather name="plus-circle" size={24} color="black" />
                 </TouchableOpacity>
             </View>

@@ -7,7 +7,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigation } from '@react-navigation/native';
 import { Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser } from '../../auth/authSlice';
+import { loginUser } from '@/auth/authSlice';
 
 const schema = yup.object().shape({
   username: yup.string().required('Username is required'),

@@ -70,11 +70,17 @@ const ProjectTasks = () => {
     return (
         <View style={styles.container} className="bg-gray-700">
             <View style={styles.header} className="px-3">
-                <TouchableOpacity className="bg-white rounded-md p-1" onPress={() => navigation.goBack()}>
+                <TouchableOpacity 
+                    style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' }} 
+                    onPress={() => navigation.goBack()}
+                >
                     <AntDesign name="left" size={18} color="black" />
                 </TouchableOpacity>
                 <Text style={styles.headerText}>Project Tasks</Text>
-                <TouchableOpacity className="bg-white rounded-full p-0.5" onPress={() => navigation.navigate("TaskCreation")}>
+                <TouchableOpacity 
+                    style={{ width: 45, height: 45, borderRadius: 22.5, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' }} 
+                    onPress={() => navigation.navigate("TaskCreation")}
+                >
                     <Feather name="plus-circle" size={24} color="black" />
                 </TouchableOpacity>
             </View>
@@ -85,7 +91,7 @@ const ProjectTasks = () => {
             <View style={styles.weekRow}>
                 {days.map((day, index) => (
                     <TouchableOpacity
-                        key={day}z
+                        key={day}
                         style={getDayContainerStyle(day)}
                         onPress={() => handleDateSelection(day, index)}
                     >
@@ -105,7 +111,7 @@ const ProjectTasks = () => {
                         <Text style={styles.assignedTeamText}>Assigned to: {task.assignedTeam}</Text>
                         <View style={styles.cardFooter}>
                             <View style={styles.footerItem}>
-                                <AntDesign name="clockcircleo" size={15} color="white" />
+                                <AntDesign name="clockcircle" size={15} color="white" />
                                 <Text style={styles.timeRange}>{task.timeRange}</Text>
                             </View>
                             <View style={styles.footerItem}>
