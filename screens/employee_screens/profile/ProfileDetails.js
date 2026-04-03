@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { AntDesign } from '@expo/vector-icons';
 import { apiService } from '../../../services/api';
 import { useSelector } from 'react-redux';
@@ -12,23 +12,29 @@ const ProfileDetails = () => {
     const [loading, setLoading] = useState(true);
     const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
 
-    useEffect(() => {
-        if (employeeId) {
+    useFocusEffect(
+        useCallback(() => {
+            let isActive = true;
+            const loadProfile = async () => {
+                if (!employeeId) return;
+                try {
+                    setLoading(true);
+                    const data = await apiService.getEmployeeProfile(employeeId);
+                    if (isActive && data) {
+                        setProfile(data);
+                    }
+                } catch (error) {
+                    console.error('Failed to load profile:', error);
+                } finally {
+                    if (isActive) {
+                        setLoading(false);
+                    }
+                }
+            };
             loadProfile();
-        }
-    }, [employeeId]);
-
-    const loadProfile = async () => {
-        try {
-            setLoading(true);
-            const data = await apiService.getEmployeeProfile(employeeId);
-            setProfile(data);
-        } catch (error) {
-            console.error('Failed to load profile:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+            return () => { isActive = false; };
+        }, [employeeId])
+    );
 
     if (loading) {
         return (
@@ -66,20 +72,31 @@ const ProfileDetails = () => {
                     <Text style={styles.profileDesignation}>{profile.position?.title || profile.designation || 'No Role'}</Text>
                 </View>
                 <View style={styles.profileDetails}>
+                    <Text style={styles.sectionTitle}>Personal Information</Text>
+                    <ProfileDetail label="Gender" value={profile.gender || '-'} />
                     <ProfileDetail label="Date of Birth" value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : '-'} />
-                    <ProfileDetail label="Join Date" value={profile.joinDate ? new Date(profile.joinDate).toLocaleDateString() : '-'} />
-                    <ProfileDetail label="Study" value={profile.study} />
-                    <ProfileDetail label="Experience" value={profile.experience} />
-                    <ProfileDetail label="Achievement" value={profile.achievement} />
-                    <ProfileDetail label="Salary" value={profile.salary?.toLocaleString('en-US', { style: 'currency', currency: 'USD' })} />
-                    <ProfileDetail label="Documents" value={profile.documents} />
-                    <ProfileDetail label="Marks in 10th" value={profile.marks10} />
-                    <ProfileDetail label="Marks in 12th" value={profile.marks12} />
-                    <ProfileDetail label="Graduation Marks" value={profile.graduationMarks} />
-                    <ProfileDetail label="Gender" value={profile.gender} />
-                    <ProfileDetail label="Mobile No" value={profile.phoneNumber} />
-                    <ProfileDetail label="Address" value={profile.address} />
+                    <ProfileDetail label="Mobile No" value={profile.phoneNumber || '-'} />
+                    <ProfileDetail label="Address" value={profile.address || '-'} />
                 </View>
+
+                <View style={[styles.profileDetails, { marginTop: 20 }]}>
+                    <Text style={styles.sectionTitle}>Employment Details</Text>
+                    <ProfileDetail label="Employee No" value={profile.employeeNumber || '-'} />
+                    <ProfileDetail label="Department" value={profile.department?.name || profile.departmentName || '-'} />
+                    <ProfileDetail label="Join Date" value={profile.joinDate ? new Date(profile.joinDate).toLocaleDateString() : '-'} />
+                    <ProfileDetail label="Salary" value={profile.salary?.toLocaleString() || '-'} />
+                </View>
+
+                <View style={[styles.profileDetails, { marginTop: 20 }]}>
+                    <Text style={styles.sectionTitle}>Education & Experience</Text>
+                    <ProfileDetail label="Highest Study" value={profile.study || '-'} />
+                    <ProfileDetail label="Experience" value={profile.experience || '-'} />
+                    <ProfileDetail label="Achievement" value={profile.achievement || '-'} />
+                    <ProfileDetail label="10th Marks" value={profile.marks10 || '-'} />
+                    <ProfileDetail label="12th Marks" value={profile.marks12 || '-'} />
+                    <ProfileDetail label="Graduation" value={profile.graduationMarks || '-'} />
+                </View>
+
             </ScrollView>
         </SafeAreaView>
     );
@@ -146,13 +163,22 @@ const styles = {
     },
     profileDetails: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 8,
+        borderRadius: 12,
         padding: 16,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.05,
         shadowRadius: 8,
-        elevation: 4,
+        elevation: 3,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1F2937',
+        marginBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+        paddingBottom: 8,
     },
     detailContainer: {
         flexDirection: 'row',

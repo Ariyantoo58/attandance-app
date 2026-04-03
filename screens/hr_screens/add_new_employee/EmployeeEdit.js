@@ -5,11 +5,17 @@ import { Ionicons, AntDesign } from '@expo/vector-icons';
 import { apiService } from '../../../services/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import RNPickerSelect from 'react-native-picker-select';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateUserProfile } from '../../../auth/authSlice';
 
 const EmployeeEdit = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { employee } = route.params;
+
+    const dispatch = useDispatch();
+    const { user } = useSelector(state => state.auth);
+    const loggedInEmployeeId = user?.user?.employeeId || user?.user?.employee?.id;
 
     const [employeeName, setEmployeeName] = useState(employee.name || '');
     const [designation, setDesignation] = useState(employee.designation || '');
@@ -75,8 +81,8 @@ const EmployeeEdit = () => {
             `Are you sure you want to clear face verification data for ${employeeName}?`,
             [
                 { text: "Cancel", style: "cancel" },
-                { 
-                    text: "Clear Data", 
+                {
+                    text: "Clear Data",
                     style: "destructive",
                     onPress: async () => {
                         try {
@@ -89,7 +95,7 @@ const EmployeeEdit = () => {
                         } finally {
                             setLoading(false);
                         }
-                    } 
+                    }
                 }
             ]
         );
@@ -136,10 +142,20 @@ const EmployeeEdit = () => {
             const response = await apiService.updateEmployeeProfile(employee.id, updateData);
 
             if (response && response.id) {
+                // If editing self, update the Redux state to reflect changes instantly (e.g. in Drawer)
+                if (employee.id === loggedInEmployeeId) {
+                    dispatch(updateUserProfile({
+                        name: employeeName,
+                        avatarUrl: avatarUrl,
+                        designation: designation,
+                        gender: gender,
+                    }));
+                }
+
                 Alert.alert("Success", "Employee details updated successfully");
-                navigation.navigate("ManagerDrawer", { 
-                    screen: "Dashboard", 
-                    params: { screen: "Employees" } 
+                navigation.navigate("ManagerDrawer", {
+                    screen: "Dashboard",
+                    params: { screen: "Employees" }
                 });
             } else {
                 throw new Error(response.message || 'Failed to update employee');
@@ -153,19 +169,18 @@ const EmployeeEdit = () => {
     };
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-            <ScrollView className="bg-white flex-1">
-                <View style={styles.header} className="bg-gray-700 px-5">
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Ionicons name="arrow-back-circle-outline" size={34} color="white" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerText} className="text-white">
-                        Edit Employee Details
-                    </Text>
-                </View>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F4F6', paddingTop: 40 }}>
+            <View style={styles.header}>
+                <TouchableOpacity style={styles.headerBackButton} onPress={() => navigation.goBack()}>
+                    <AntDesign name="left" size={18} color="white" />
+                </TouchableOpacity>
+                <Text style={styles.headerText}>Edit Employee</Text>
+                <View style={{ width: 32 }} />
+            </View>
 
-                <View className="px-5 pt-4 pb-10">
-                    <Text style={styles.label}>Full Name :</Text>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                <View style={styles.formCard}>
+                    <Text style={styles.label}>Full Name</Text>
                     <TextInput
                         style={styles.input}
                         value={employeeName}
@@ -173,7 +188,7 @@ const EmployeeEdit = () => {
                         placeholder="Enter full name"
                     />
 
-                    <Text style={styles.label}>Select Avatar :</Text>
+                    <Text style={styles.label}>Select Avatar</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarPicker}>
                         {[
                             'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611722.jpg',
@@ -181,10 +196,15 @@ const EmployeeEdit = () => {
                             'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611734.jpg',
                             'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611740.jpg',
                             'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611728.jpg',
-                            'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2151114515.jpg',
+                            'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611765.jpg',
+                            'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611768.jpg',
+                            'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611753.jpg',
+                            'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611759.jpg',
+                            'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611771.jpg',
+                            'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611777.jpg'
                         ].map((url, index) => (
-                            <TouchableOpacity 
-                                key={index} 
+                            <TouchableOpacity
+                                key={index}
                                 onPress={() => setAvatarUrl(url)}
                                 style={[
                                     styles.avatarOption,
@@ -199,7 +219,7 @@ const EmployeeEdit = () => {
                                 )}
                             </TouchableOpacity>
                         ))}
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             onPress={() => setAvatarUrl('')}
                             style={[
                                 styles.avatarOption,
@@ -207,11 +227,12 @@ const EmployeeEdit = () => {
                                 { backgroundColor: '#edf2f7', justifyContent: 'center', alignItems: 'center' }
                             ]}
                         >
-                            <Text style={{ fontSize: 10, color: '#4a5568', textAlign: 'center' }}>Initials Only</Text>
+                            <Ionicons name="person" size={24} color="#a0aec0" />
+                            <Text style={{ fontSize: 10, color: '#4a5568', textAlign: 'center', marginTop: 2 }}>Initials</Text>
                         </TouchableOpacity>
                     </ScrollView>
 
-                    <Text style={styles.label}>Employee Number :</Text>
+                    <Text style={styles.label}>Employee Number</Text>
                     <TextInput
                         style={styles.input}
                         value={employeeNumber}
@@ -219,8 +240,8 @@ const EmployeeEdit = () => {
                         placeholder="e.g. EMP1001"
                     />
 
-                    <Text style={styles.label}>Gender :</Text>
-                    <View style={styles.pickerContainer}>
+                    <Text style={styles.label}>Gender</Text>
+                    <View style={styles.pickerWrapper}>
                         <RNPickerSelect
                             onValueChange={(value) => setGender(value)}
                             items={[
@@ -234,8 +255,8 @@ const EmployeeEdit = () => {
                         />
                     </View>
 
-                    <Text style={styles.label}>Department :</Text>
-                    <View style={styles.pickerContainer}>
+                    <Text style={styles.label}>Department</Text>
+                    <View style={styles.pickerWrapper}>
                         <RNPickerSelect
                             onValueChange={(value) => setSelectedDepartment(value)}
                             items={departments}
@@ -245,8 +266,8 @@ const EmployeeEdit = () => {
                         />
                     </View>
 
-                    <Text style={styles.label}>Position :</Text>
-                    <View style={styles.pickerContainer}>
+                    <Text style={styles.label}>Position</Text>
+                    <View style={styles.pickerWrapper}>
                         <RNPickerSelect
                             onValueChange={(value) => setSelectedPosition(value)}
                             items={positions}
@@ -256,25 +277,25 @@ const EmployeeEdit = () => {
                         />
                     </View>
 
-                    <Text style={styles.label}>Designation (Title) :</Text>
+                    <Text style={styles.label}>Designation Title</Text>
                     <TextInput
                         style={styles.input}
                         value={designation}
                         onChangeText={setDesignation}
                     />
 
-                    <Text style={styles.label}>Salary :</Text>
+                    <Text style={styles.label}>Salary</Text>
                     <TextInput
                         style={styles.input}
                         value={salary}
                         onChangeText={setSalary}
                         keyboardType="numeric"
                     />
-                    
-                    <Text style={styles.label}>Join Date :</Text>
+
+                    <Text style={styles.label}>Join Date</Text>
                     <TouchableOpacity onPress={() => setShowJoinPicker(true)} style={styles.dateButton}>
-                        <Text>{joinDate.toLocaleDateString()}</Text>
-                        <Ionicons name="calendar-outline" size={20} color="gray" />
+                        <Text style={styles.dateText}>{joinDate.toLocaleDateString()}</Text>
+                        <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
                     {showJoinPicker && (
                         <DateTimePicker
@@ -285,10 +306,10 @@ const EmployeeEdit = () => {
                         />
                     )}
 
-                    <Text style={styles.label}>Date of Birth :</Text>
+                    <Text style={styles.label}>Date of Birth</Text>
                     <TouchableOpacity onPress={() => setShowBirthPicker(true)} style={styles.dateButton}>
-                        <Text>{birthDay.toLocaleDateString()}</Text>
-                        <Ionicons name="calendar-outline" size={20} color="gray" />
+                        <Text style={styles.dateText}>{birthDay.toLocaleDateString()}</Text>
+                        <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
                     {showBirthPicker && (
                         <DateTimePicker
@@ -299,7 +320,7 @@ const EmployeeEdit = () => {
                         />
                     )}
 
-                    <Text style={styles.label}>Phone Number :</Text>
+                    <Text style={styles.label}>Phone Number</Text>
                     <TextInput
                         style={styles.input}
                         value={number}
@@ -307,93 +328,58 @@ const EmployeeEdit = () => {
                         keyboardType="phone-pad"
                     />
 
-                    <Text style={styles.label}>Address :</Text>
+                    <Text style={styles.label}>Address</Text>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
                         value={address}
                         onChangeText={setAddress}
                         multiline
                     />
 
-                    <Text style={styles.label}>Study :</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={study}
-                        onChangeText={setStudy}
-                        placeholder="e.g. Bachelor of Science"
-                    />
+                    <Text style={styles.label}>Education & Experience</Text>
+                    <TextInput style={styles.input} value={study} onChangeText={setStudy} placeholder="Study" />
+                    <TextInput style={styles.input} value={experience} onChangeText={setExperience} placeholder="Experience" />
+                    <TextInput style={styles.input} value={achievement} onChangeText={setAchievement} placeholder="Achievement" />
+                    <TextInput style={styles.input} value={marks10} onChangeText={setMarks10} placeholder="10th Marks" />
+                    <TextInput style={styles.input} value={marks12} onChangeText={setMarks12} placeholder="12th Marks" />
+                    <TextInput style={styles.input} value={graduationMarks} onChangeText={setGraduationMarks} placeholder="Graduation Marks" />
 
-                    <Text style={styles.label}>Experience :</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={experience}
-                        onChangeText={setExperience}
-                        placeholder="e.g. 5 years in HR"
-                    />
-
-                    <Text style={styles.label}>Achievements :</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={achievement}
-                        onChangeText={setAchievement}
-                        placeholder="e.g. Employee of the Month"
-                    />
-
-                    <Text style={styles.label}>Academic Marks (10th) :</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={marks10}
-                        onChangeText={setMarks10}
-                    />
-
-                    <Text style={styles.label}>Academic Marks (12th) :</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={marks12}
-                        onChangeText={setMarks12}
-                    />
-
-                    <Text style={styles.label}>Graduation Marks :</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={graduationMarks}
-                        onChangeText={setGraduationMarks}
-                    />
-
-                    <View className="flex-row items-center justify-between mt-4">
-                        <Text style={styles.label}>Status Active :</Text>
+                    <View style={styles.statusRow}>
+                        <Text style={styles.label}>Status Active</Text>
                         <Switch
                             value={activeEmployee}
                             onValueChange={setActiveEmployee}
-                            trackColor={{ true: '#3fc2896c', false: '#ccc' }}
+                            trackColor={{ true: '#3fc2896c', false: '#eee' }}
                             thumbColor={activeEmployee ? '#3FC28A' : '#f4f3f4'}
                         />
                     </View>
 
                     {faceStatus.registered && (
-                        <View className="flex-row items-center justify-between mt-4 bg-red-50 p-4 rounded-lg border border-red-200 pb-4">
+                        <View style={styles.faceDataCard}>
                             <View>
-                                <Text className="font-bold text-red-800">Face Data Detected</Text>
-                                <Text className="text-xs text-red-600 mt-1">Has verification access</Text>
+                                <Text style={styles.faceDataTitle}>Face Data Detected</Text>
+                                <Text style={styles.faceDataSub}>Employee has verification access</Text>
                             </View>
-                            <TouchableOpacity 
-                                style={{ backgroundColor: '#EF4444', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 }} 
+                            <TouchableOpacity
+                                style={styles.resetButton}
                                 onPress={handleResetFace}
                             >
-                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13 }}>Reset Face</Text>
+                                <Text style={styles.resetButtonText}>Reset Face</Text>
                             </TouchableOpacity>
                         </View>
                     )}
 
-                    {loading ? (
-                        <View className="bg-gray-700 rounded-lg p-4 mt-5">
-                            <ActivityIndicator size="small" color="#fff" />
-                        </View>
-                    ) : (
-                        <TouchableOpacity className="p-4 mt-5 rounded-lg bg-gray-700" onPress={handleUpdate}>
-                            <Text className="text-center text-white text-[16px] font-medium">Update Details</Text>
-                        </TouchableOpacity>
-                    )}
+                    <TouchableOpacity 
+                        style={styles.updateButton} 
+                        onPress={handleUpdate}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <Text style={styles.updateButtonText}>Update Details</Text>
+                        )}
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -404,49 +390,59 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingTop: 50,
-        paddingBottom: 20
+        paddingHorizontal: 16,
+        paddingBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    headerBackButton: {
+        padding: 5,
+        backgroundColor: '#3B82F6',
+        borderRadius: 8,
     },
     headerText: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
-        marginLeft: 20,
+        color: '#111827',
+        textAlign: 'center',
+        flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
+        paddingBottom: 40,
+    },
+    formCard: {
+        padding: 20,
+        backgroundColor: 'white',
+        margin: 16,
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5,
     },
     label: {
-        marginTop: 12,
-        fontWeight: 'bold',
-        color: '#4A5568'
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#4B5563',
+        marginBottom: 8,
+        marginTop: 15,
     },
     input: {
+        paddingHorizontal: 15,
+        paddingVertical: 12,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
-        padding: 12,
-        marginTop: 5,
+        borderColor: '#D1D5DB',
         borderRadius: 10,
-        backgroundColor: '#F7FAFC'
-    },
-    dateButton: {
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        padding: 12,
-        marginTop: 5,
-        borderRadius: 10,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#F7FAFC'
-    },
-    pickerContainer: {
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        marginTop: 5,
-        borderRadius: 10,
-        backgroundColor: '#F7FAFC'
+        width: '100%',
+        backgroundColor: '#F9FAFB',
+        fontSize: 16,
+        color: '#1F2937',
+        marginBottom: 5
     },
     avatarPicker: {
-        marginTop: 10,
-        paddingBottom: 10,
-        flexDirection: 'row'
+        marginBottom: 10,
     },
     avatarOption: {
         width: 70,
@@ -455,23 +451,103 @@ const styles = StyleSheet.create({
         marginRight: 15,
         borderWidth: 2,
         borderColor: 'transparent',
-        position: 'relative'
     },
     avatarSelected: {
-        borderColor: '#4F8EF7'
+        borderColor: '#3B82F6',
     },
     avatarImage: {
         width: '100%',
         height: '100%',
-        borderRadius: 35
+        borderRadius: 35,
     },
     checkBadge: {
         position: 'absolute',
         bottom: -2,
         right: -2,
         backgroundColor: 'white',
-        borderRadius: 10
-    }
+        borderRadius: 10,
+    },
+    pickerWrapper: {
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 10,
+        backgroundColor: '#F9FAFB',
+        marginBottom: 5
+    },
+    dateButton: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 15,
+        paddingVertical: 12,
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 10,
+        backgroundColor: '#F9FAFB',
+        marginBottom: 5
+    },
+    dateText: {
+        fontSize: 16,
+        color: '#1F2937'
+    },
+    statusRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 10,
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6'
+    },
+    faceDataCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#FEF2F2',
+        padding: 15,
+        borderRadius: 12,
+        marginTop: 15,
+        borderWidth: 1,
+        borderColor: '#FEE2E2'
+    },
+    faceDataTitle: {
+        fontWeight: 'bold',
+        color: '#991B1B',
+        fontSize: 14
+    },
+    faceDataSub: {
+        fontSize: 12,
+        color: '#B91C1C',
+        marginTop: 2
+    },
+    resetButton: {
+        backgroundColor: '#EF4444',
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        borderRadius: 8
+    },
+    resetButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 13
+    },
+    updateButton: {
+        backgroundColor: '#3B82F6',
+        paddingVertical: 15,
+        borderRadius: 12,
+        marginTop: 30,
+        shadowColor: '#3B82F6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    updateButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        fontSize: 16,
+    },
 });
 
 const pickerSelectStyles = StyleSheet.create({

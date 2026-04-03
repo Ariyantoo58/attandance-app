@@ -168,6 +168,12 @@ const ProfileSetting = () => {
                                 'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611734.jpg',
                                 'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611740.jpg',
                                 'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611728.jpg',
+                                'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611765.jpg',
+                                'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611768.jpg',
+                                'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611753.jpg',
+                                'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611759.jpg',
+                                'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611771.jpg',
+                                'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611777.jpg',
                                 'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2151114515.jpg',
                             ].map((url, index) => (
                                 <TouchableOpacity 
@@ -194,7 +200,8 @@ const ProfileSetting = () => {
                                     { backgroundColor: '#edf2f7', justifyContent: 'center', alignItems: 'center' }
                                 ]}
                             >
-                                <Text style={{ fontSize: 10, color: '#4a5568', textAlign: 'center' }}>Initials</Text>
+                                <Ionicons name="person" size={24} color="#a0aec0" />
+                                <Text style={{ fontSize: 10, color: '#4a5568', textAlign: 'center', marginTop: 2 }}>Initials</Text>
                             </TouchableOpacity>
                         </ScrollView>
 

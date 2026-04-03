@@ -1,128 +1,200 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { AntDesign } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { apiService } from '../../../services/api';
 
 const EmployeeDetails = ({ route }) => {
-    const { employee } = route.params;
+    const { employee: initialEmployee } = route.params;
+    const [employee, setEmployee] = useState(initialEmployee);
     const navigation = useNavigation();
 
+    useFocusEffect(
+        useCallback(() => {
+            let isActive = true;
+            const fetchEmployeeData = async () => {
+                if (!employee?.id) return;
+                try {
+                    const data = await apiService.getEmployeeProfile(employee.id);
+                    if (isActive && data) {
+                        setEmployee({ ...employee, ...data });
+                    }
+                } catch (error) {
+                    console.error('Error fetching updated employee details:', error);
+                }
+            };
+            fetchEmployeeData();
+            return () => { isActive = false; };
+        }, [employee?.id])
+    );
+
+    const initials = employee.name 
+        ? employee.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) 
+        : '?';
+
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-            <ScrollView style={styles.container}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F4F6', paddingTop: 40 }}>
             <View style={styles.header}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <AntDesign name="left" size={24} color="black" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Employee Details</Text>
-                </View>
+                <TouchableOpacity style={styles.headerBackButton} onPress={() => navigation.goBack()}>
+                    <AntDesign name="left" size={18} color="white" />
+                </TouchableOpacity>
+                <Text style={styles.headerText}>Employee Details</Text>
                 <TouchableOpacity 
                     onPress={() => navigation.navigate("EmployeeEdit", { employee })}
-                    style={styles.editButton}
+                    style={styles.editHeaderButton}
                 >
                     <AntDesign name="edit" size={24} color="#3B82F6" />
                 </TouchableOpacity>
             </View>
-            
-            {employee.avatarUrl ? (
-                <Image source={{ uri: employee.avatarUrl }} style={styles.image} />
-            ) : (
-                <View style={[styles.image, styles.initialsContainer]}>
-                    <Text style={styles.initialsText}>
-                        {employee.name ? employee.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '?'}
+
+            <ScrollView contentContainerStyle={styles.container}>
+                <View style={styles.profileHeaderCard}>
+                    {employee.avatarUrl ? (
+                        <Image source={{ uri: employee.avatarUrl }} style={styles.profileImage} />
+                    ) : (
+                        <View style={[styles.profileImage, styles.initialsCard]}>
+                            <Text style={styles.initialsText}>{initials}</Text>
+                        </View>
+                    )}
+                    <Text style={styles.profileName}>{employee.name}</Text>
+                    <Text style={styles.profileDesignation}>
+                        {employee.designation || employee.position?.title || 'No Role'}
                     </Text>
                 </View>
-            )}
-            <Text style={styles.name}>{employee.name}</Text>
-            <Text style={styles.designation}>{employee.designation || employee.position?.title || 'No Position'}</Text>
-            <View style={styles.detailsContainer}>
-                <Text style={styles.detail}><Text style={styles.label}>Employee No:</Text> {employee.employeeNumber || '-'}</Text>
-                <Text style={styles.detail}><Text style={styles.label}>Gender:</Text> {employee.gender || '-'}</Text>
-                <Text style={styles.detail}><Text style={styles.label}>Date of Birth:</Text> {employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString() : '-'}</Text>
-                <Text style={styles.detail}><Text style={styles.label}>Join Date:</Text> {employee.joinDate ? new Date(employee.joinDate).toLocaleDateString() : '-'}</Text>
-                <Text style={styles.detail}><Text style={styles.label}>Department:</Text> {employee.department?.name || '-'}</Text>
-                <Text style={styles.detail}><Text style={styles.label}>Mobile No:</Text> {employee.phoneNumber || '-'}</Text>
-                <Text style={styles.detail}><Text style={styles.label}>Address:</Text> {employee.address || '-'}</Text>
-                <Text style={styles.detail}><Text style={styles.label}>Salary:</Text> {employee.salary ? `$ ${employee.salary}` : '-'}</Text>
-                
-                <View style={{ marginTop: 15, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 10 }}>
-                    <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Academic & Experience</Text>
-                    <Text style={styles.detail}><Text style={styles.label}>Study:</Text> {employee.study || '-'}</Text>
-                    <Text style={styles.detail}><Text style={styles.label}>Experience:</Text> {employee.experience || '-'}</Text>
-                    <Text style={styles.detail}><Text style={styles.label}>Achievement:</Text> {employee.achievement || '-'}</Text>
-                    <Text style={styles.detail}><Text style={styles.label}>10th Marks:</Text> {employee.marks10 || '-'}</Text>
-                    <Text style={styles.detail}><Text style={styles.label}>12th Marks:</Text> {employee.marks12 || '-'}</Text>
-                    <Text style={styles.detail}><Text style={styles.label}>Graduation:</Text> {employee.graduationMarks || '-'}</Text>
+
+                <View style={styles.detailsCard}>
+                    <DetailRow label="Employee No" value={employee.employeeNumber || '-'} />
+                    <DetailRow label="Department" value={employee.department?.name || '-'} />
+                    <DetailRow label="Gender" value={employee.gender || '-'} />
+                    <DetailRow label="Mobile No" value={employee.phoneNumber || '-'} />
+                    <DetailRow label="Address" value={employee.address || '-'} />
+                    <DetailRow label="Salary" value={employee.salary ? `$ ${employee.salary.toLocaleString()}` : '-'} />
+                    <DetailRow label="Birth Date" value={employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString() : '-'} />
+                    <DetailRow label="Join Date" value={employee.joinDate ? new Date(employee.joinDate).toLocaleDateString() : '-'} />
                 </View>
-            </View>
-        </ScrollView>
-    </SafeAreaView>
+
+                <View style={[styles.detailsCard, { marginTop: 20 }]}>
+                    <Text style={styles.sectionTitle}>Academic & Experience</Text>
+                    <DetailRow label="Study" value={employee.study || '-'} />
+                    <DetailRow label="Experience" value={employee.experience || '-'} />
+                    <DetailRow label="Achievement" value={employee.achievement || '-'} />
+                    <DetailRow label="10th Marks" value={employee.marks10 || '-'} />
+                    <DetailRow label="12th Marks" value={employee.marks12 || '-'} />
+                    <DetailRow label="Graduation" value={employee.graduationMarks || '-'} />
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
+const DetailRow = ({ label, value }) => (
+    <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>{label}</Text>
+        <Text style={styles.detailValue}>{value}</Text>
+    </View>
+);
+
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        padding: 20,
-        backgroundColor: '#fff',
+        paddingHorizontal: 16,
+        paddingVertical: 24,
     },
     header: {
-        flexDirection: 'row',
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        paddingHorizontal: 16,
+        paddingBottom: 10
+    },
+    headerBackButton: {
+        padding: 5,
+        backgroundColor: '#3B82F6',
+        borderRadius: 8,
+        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
+        marginRight: 16,
     },
-    backButton: {
-        marginRight: 20,
-    },
-    headerTitle: {
-        fontSize: 20,
+    headerText: {
+        fontSize: 18,
         fontWeight: 'bold',
+        textAlign: 'center',
+        flex: 1,
+        color: '#1F2937'
     },
-    editButton: {
+    editHeaderButton: {
         padding: 5,
     },
-    image: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        alignSelf: 'center',
-        marginBottom: 20,
+    profileHeaderCard: {
+        alignItems: 'center',
+        marginBottom: 24,
     },
-    initialsContainer: {
-        backgroundColor: '#4F8EF7',
+    profileImage: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        marginBottom: 12,
+        borderWidth: 3,
+        borderColor: 'white',
+    },
+    initialsCard: {
+        backgroundColor: '#3B82F6',
         alignItems: 'center',
         justifyContent: 'center',
     },
     initialsText: {
         color: 'white',
-        fontSize: 32,
+        fontSize: 40,
         fontWeight: 'bold',
     },
-    name: {
-        fontSize: 24,
+    profileName: {
+        fontSize: 22,
         fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 10,
+        color: '#1F2937',
     },
-    designation: {
-        fontSize: 18,
-        color: '#666',
-        textAlign: 'center',
-        marginBottom: 20,
-    },
-    detailsContainer: {
-        borderTopWidth: 1,
-        borderTopColor: '#eee',
-        paddingTop: 10,
-    },
-    detail: {
+    profileDesignation: {
         fontSize: 16,
-        marginBottom: 10,
+        color: '#6B7280',
+        marginTop: 4,
     },
-    label: {
+    detailsCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        padding: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    sectionTitle: {
+        fontSize: 17,
         fontWeight: 'bold',
+        color: '#1F2937',
+        marginBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+        paddingBottom: 8,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        backgroundColor: '#F9FAFB',
+        borderRadius: 8,
+    },
+    detailLabel: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#4B5563',
+    },
+    detailValue: {
+        fontSize: 15,
+        color: '#1F2937',
+        flex: 1,
+        textAlign: 'right',
+        marginLeft: 20
     },
 });
 
