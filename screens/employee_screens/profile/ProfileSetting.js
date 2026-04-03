@@ -17,7 +17,7 @@ const ProfileSetting = () => {
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
     const [faceStatus, setFaceStatus] = useState({ registered: false, message: '' });
-    
+
     const [avatarUrl, setAvatarUrl] = useState('');
     const [name, setName] = useState('');
     const [designation, setDesignation] = useState('');
@@ -47,9 +47,9 @@ const ProfileSetting = () => {
                 apiService.getEmployeeProfile(employeeId),
                 apiService.checkFaceStatus(employeeId)
             ]);
-            
+
             setFaceStatus(status);
-            
+
             if (profile) {
                 setName(profile.name || '');
                 setAvatarUrl(profile.avatarUrl || '');
@@ -115,8 +115,8 @@ const ProfileSetting = () => {
             "Apakah Anda yakin ingin menghapus data wajah yang terdaftar? Anda perlu mendaftar ulang untuk menggunakan absensi wajah.",
             [
                 { text: "Batal", style: "cancel" },
-                { 
-                    text: "Hapus", 
+                {
+                    text: "Hapus",
                     style: "destructive",
                     onPress: async () => {
                         try {
@@ -129,7 +129,7 @@ const ProfileSetting = () => {
                         } finally {
                             setLoading(false);
                         }
-                    } 
+                    }
                 }
             ]
         );
@@ -154,7 +154,7 @@ const ProfileSetting = () => {
                 <View style={{ width: 32 }} />
             </View>
 
-            <KeyboardAvoidingView 
+            <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1 }}
             >
@@ -173,11 +173,11 @@ const ProfileSetting = () => {
                                 'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611753.jpg',
                                 'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611759.jpg',
                                 'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611771.jpg',
-                                'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611777.jpg',
-                                'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2151114515.jpg',
+                                'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611777.jpg'
+                                // 'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2151114515.jpg',
                             ].map((url, index) => (
-                                <TouchableOpacity 
-                                    key={index} 
+                                <TouchableOpacity
+                                    key={index}
                                     onPress={() => setAvatarUrl(url)}
                                     style={[
                                         styles.avatarOption,
@@ -192,7 +192,7 @@ const ProfileSetting = () => {
                                     )}
                                 </TouchableOpacity>
                             ))}
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 onPress={() => setAvatarUrl('')}
                                 style={[
                                     styles.avatarOption,
@@ -272,10 +272,10 @@ const ProfileSetting = () => {
                                 <Text style={styles.label}>Face Recognition Status</Text>
                                 <View style={styles.faceStatusContainer}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                        <Ionicons 
-                                            name={faceStatus.registered ? "shield-checkmark" : "shield-outline"} 
-                                            size={24} 
-                                            color={faceStatus.registered ? "#10B981" : "#6B7280"} 
+                                        <Ionicons
+                                            name={faceStatus.registered ? "shield-checkmark" : "shield-outline"}
+                                            size={24}
+                                            color={faceStatus.registered ? "#10B981" : "#6B7280"}
                                         />
                                         <View style={{ marginLeft: 12 }}>
                                             <Text style={[styles.faceStatusText, { color: faceStatus.registered ? "#10B981" : "#111827" }]}>
@@ -286,9 +286,9 @@ const ProfileSetting = () => {
                                             </Text>
                                         </View>
                                     </View>
-                                    
+
                                     {faceStatus.registered ? (
-                                        <TouchableOpacity 
+                                        <TouchableOpacity
                                             onPress={handleResetFace}
                                             style={styles.resetButton}
                                         >
@@ -297,10 +297,10 @@ const ProfileSetting = () => {
                                     ) : (
                                         <TouchableOpacity
                                             style={styles.registerButton}
-                                            onPress={() => navigation.navigate("FaceRecognition", { 
-                                                mode: 'registration', 
+                                            onPress={() => navigation.navigate("FaceRecognition", {
+                                                mode: 'registration',
                                                 employeeId: employeeId,
-                                                employeeName: name || 'Employee' 
+                                                employeeName: name || 'Employee'
                                             })}
                                         >
                                             <Text style={styles.registerButtonText}>Daftar</Text>

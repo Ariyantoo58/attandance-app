@@ -369,8 +369,8 @@ const EmployeeEdit = () => {
                         </View>
                     )}
 
-                    <TouchableOpacity 
-                        style={styles.updateButton} 
+                    <TouchableOpacity
+                        style={styles.updateButton}
                         onPress={handleUpdate}
                         disabled={loading}
                     >

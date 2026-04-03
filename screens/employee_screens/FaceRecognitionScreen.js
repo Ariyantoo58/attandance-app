@@ -241,11 +241,13 @@ export default function FaceRecognitionScreen() {
                 </View>
             </View>
 
-            <CameraView 
-                style={styles.camera} 
-                facing="front" 
-                ref={cameraRef}
-            >
+            <View style={styles.cameraContainer}>
+                <CameraView 
+                    style={StyleSheet.absoluteFill} 
+                    facing="front" 
+                    ref={cameraRef}
+                />
+                
                 <View style={styles.scanOverlay}>
                     <View style={styles.scanBox}>
                         <Animated.View style={[styles.scanLine, { transform: [{ translateY: scannerTranslateY }] }]} />
@@ -262,13 +264,14 @@ export default function FaceRecognitionScreen() {
                         </Animated.View>
                     )}
                 </View>
+
                 {isProcessing && (
                     <View style={styles.loadingOverlay}>
                         <ActivityIndicator size="large" color="#ffffff" />
                         <Text style={styles.loadingText}>Menganalisa Wajah...</Text>
                     </View>
                 )}
-            </CameraView>
+            </View>
 
             <View style={styles.bottomContainer}>
                 <TouchableOpacity 
@@ -351,8 +354,9 @@ const styles = StyleSheet.create({
         height: 12,
         borderRadius: 6,
     },
-    camera: {
+    cameraContainer: {
         flex: 1,
+        overflow: 'hidden',
     },
     scanOverlay: {
         ...StyleSheet.absoluteFillObject,
