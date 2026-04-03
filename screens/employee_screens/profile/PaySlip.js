@@ -23,15 +23,21 @@ const PaySlip = () => {
         try {
             setLoading(true);
             const data = await apiService.getPayroll(employeeId);
-            setPayroll(data);
+            if (Array.isArray(data)) {
+                setPayroll(data);
+            } else {
+                setPayroll([]);
+            }
         } catch (error) {
             console.error('Failed to load payroll:', error);
+            setPayroll([]);
         } finally {
             setLoading(false);
         }
     };
 
-    const totalEarning = payroll.reduce((acc, curr) => acc + curr.netSalary, 0);
+    const validatedPayroll = Array.isArray(payroll) ? payroll : [];
+    const totalEarning = validatedPayroll.reduce((acc, curr) => acc + (curr.netSalary || 0), 0);
     const currentYear = new Date().getFullYear();
 
     return (
@@ -76,12 +82,18 @@ const PaySlip = () => {
                 {loading ? (
                     <ActivityIndicator size="small" color="#00a2e4" className="mt-10" />
                 ) : (
-                    payroll && payroll.map((list) => (
-                        <View className="flex-row items-center justify-between py-4 border-b border-gray-300" key={list.id}>
-                            <Text className="text-[16px] font-medium">{list.month}/{list.year}</Text>
-                            <Text className="text-[16px] font-medium">${list.netSalary.toLocaleString()}</Text>
+                    validatedPayroll && validatedPayroll.length > 0 ? (
+                        validatedPayroll.map((list) => (
+                            <View className="flex-row items-center justify-between py-4 border-b border-gray-300" key={list.id}>
+                                <Text className="text-[16px] font-medium">{list.month}/{list.year}</Text>
+                                <Text className="text-[16px] font-medium">${(list.netSalary || 0).toLocaleString()}</Text>
+                            </View>
+                        ))
+                    ) : (
+                        <View className="mt-10 items-center">
+                            <Text className="text-gray-500">No payroll history found.</Text>
                         </View>
-                    ))
+                    )
                 )}
             </SafeAreaView>
         </ScrollView>

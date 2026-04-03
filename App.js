@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
 import StartingScreen from './screens/employee_screens/StartingScreen';
 import EmployeeLogin from './screens/loginscreens/EmployeeLogin';
 import ManagerLogin from './screens/loginscreens/ManagerLogin';
@@ -76,13 +76,14 @@ function TabNavigator({ navigation }) {
 
                     return (
                         <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
-                            <Ionicons name={iconName} size={size} color={focused ? 'white' : color} />
+                            <Ionicons name={iconName} size={22} color={focused ? '#00a2e4' : color} />
                         </View>
                     );
                 },
                 tabBarActiveTintColor: '#00a2e4',
                 tabBarInactiveTintColor: 'gray',
                 tabBarStyle: styles.tabBar,
+                tabBarShowLabel: false,
                 headerShown: false,
                 headerLeft: () => (
                     <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
@@ -174,14 +175,15 @@ function ManagerTabNavigator({ navigation }) {
                     }
 
                     return (
-                        <View style={[styles.iconContainer, focused && { backgroundColor: '#2D3748' }]}>
-                            <Ionicons name={iconName} size={size} color={focused ? 'white' : color} />
+                        <View style={[styles.iconContainer, focused && styles.managerFocusedIcon]}>
+                            <Ionicons name={iconName} size={22} color={focused ? '#2D3748' : color} />
                         </View>
                     );
                 },
                 tabBarActiveTintColor: '#2D3748',
                 tabBarInactiveTintColor: 'gray',
                 tabBarStyle: styles.tabBar,
+                tabBarShowLabel: false,
                 headerShown: false,
             })}
         >
@@ -377,22 +379,15 @@ export default function App() {
 
 const styles = StyleSheet.create({
     tabBar: {
-        height: 60,
+        height: Platform.OS === 'ios' ? 88 : 65,
         backgroundColor: 'white',
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        borderRadius: 0,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 10,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.5,
-        elevation: 5,
-        paddingBottom: 3
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+        paddingTop: 10,
     },
     customTabBarButton: {
         justifyContent: 'center',
@@ -412,20 +407,26 @@ const styles = StyleSheet.create({
         borderRadius: 35,
     },
     iconContainer: {
-        padding: 5,
-        borderRadius: 15,
+        width: 56,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     focusedIcon: {
-        backgroundColor: '#00a2e4',
+        backgroundColor: '#EBF8FF', // Very light blue
+    },
+    managerFocusedIcon: {
+        backgroundColor: '#EDF2F7', // Very light gray/slate
     },
     shadow: {
-        shadowColor: '#7F5DF0',
+        shadowColor: '#000',
         shadowOffset: {
             width: 0,
-            height: 10,
+            height: 4,
         },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.5,
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
         elevation: 5,
     },
 });

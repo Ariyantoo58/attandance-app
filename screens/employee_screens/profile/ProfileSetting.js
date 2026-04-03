@@ -184,7 +184,7 @@ const ProfileSetting = () => {
                                         avatarUrl === url && styles.avatarSelected
                                     ]}
                                 >
-                                    <Image source={{ uri: url }} style={styles.avatarImage} />
+                                    <Image source={{ uri: url }} style={styles.avatarImage} resizeMode="cover" />
                                     {avatarUrl === url && (
                                         <View style={styles.checkBadge}>
                                             <Ionicons name="checkmark-circle" size={20} color="#3FC28A" />
@@ -371,6 +371,8 @@ const styles = {
         marginRight: 15,
         borderWidth: 2,
         borderColor: 'transparent',
+        overflow: 'hidden',
+        backgroundColor: '#f3f4f6'
     },
     avatarSelected: {
         borderColor: '#3B82F6',

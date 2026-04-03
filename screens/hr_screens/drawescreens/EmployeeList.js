@@ -65,6 +65,7 @@ const EmployeeList = () => {
                 <Image 
                     source={{ uri: item.avatarUrl }} 
                     style={styles.image} 
+                    resizeMode="cover"
                 />
             );
         }
@@ -172,6 +173,8 @@ const styles = StyleSheet.create({
         height: 60,
         borderRadius: 30,
         marginRight: 10,
+        overflow: 'hidden',
+        backgroundColor: '#f3f4f6'
     },
     initialsContainer: {
         backgroundColor: '#4F8EF7',
