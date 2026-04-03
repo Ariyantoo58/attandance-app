@@ -1,12 +1,34 @@
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { EvilIcons } from '@expo/vector-icons';
-import { TaskData } from '../../../services/DailyTaskObj';
+import { apiService } from '../../../services/api';
+import { useSelector } from 'react-redux';
 
 const DailyTask = () => {
   const [filter, setFilter] = useState('All');
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
 
-  const filteredTasks = TaskData.filter(task =>
+  useEffect(() => {
+    if (employeeId) {
+      loadTasks();
+    }
+  }, [employeeId]);
+
+  const loadTasks = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getTasks(employeeId);
+      setTasks(data);
+    } catch (error) {
+      console.error('Failed to load tasks:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredTasks = tasks.filter(task =>
     filter === 'All' ? true : task.status === filter
   );
 

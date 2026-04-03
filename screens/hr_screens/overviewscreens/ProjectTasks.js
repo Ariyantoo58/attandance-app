@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { AntDesign, MaterialIcons } from '@expo/vector-icons';
-import { initialTasks } from '../../../services/hrservices/ProjectTask';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
-
+import { apiService } from '../../../services/api';
+import moment from 'moment';
 
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -26,13 +26,36 @@ const getFormattedDate = () => {
 const ProjectTasks = () => {
     const navigation = useNavigation();
     const weekDates = getCurrentWeekDates();
-    const [tasks, setTasks] = useState(initialTasks);
+    const [allTasks, setAllTasks] = useState([]);
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState('');
+
+    useEffect(() => {
+        loadTasks();
+    }, []);
+
+    const loadTasks = async () => {
+        try {
+            setLoading(true);
+            const data = await apiService.getAllTasks();
+            setAllTasks(data);
+            setTasks(data);
+        } catch (error) {
+            console.error('Failed to load tasks:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleDateSelection = (day) => {
         setSelectedDate(day);
-        const filteredTasks = day ? initialTasks.filter(task => task.date === day) : initialTasks;
-        setTasks(filteredTasks);
+        if (!day) {
+            setTasks(allTasks);
+        } else {
+            const filtered = allTasks.filter(t => moment(t.date).format('D') === day.toString());
+            setTasks(filtered);
+        }
     };
 
     const getDayContainerStyle = (day) => ({
@@ -43,12 +66,12 @@ const ProjectTasks = () => {
 
     const getStatusStyle = (status) => {
         switch (status) {
-            case 'Urgent':
-                return { color: 'orange' };
-            case 'Running':
-                return { color: 'green' };
-            case 'Pending':
-                return { color: 'red' };
+            case 'PENDING':
+                return { color: '#F75353' }; // Red
+            case 'IN_PROGRESS':
+                return { color: '#38A169' }; // Green
+            case 'COMPLETED':
+                return { color: '#3182CE' }; // Blue
             default:
                 return { color: '#fff' };
         }
@@ -56,12 +79,12 @@ const ProjectTasks = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'Urgent':
-                return 'orange';
-            case 'Running':
-                return 'green';
-            case 'Pending':
-                return 'red';
+            case 'PENDING':
+                return '#F75353';
+            case 'IN_PROGRESS':
+                return '#38A169';
+            case 'COMPLETED':
+                return '#3182CE';
             default:
                 return 'gray';
         }
@@ -101,29 +124,37 @@ const ProjectTasks = () => {
                 ))}
             </View>
             <ScrollView style={styles.cardsContainer}>
-                {tasks.map((task) => (
-                    <View key={task.id} style={styles.card} className="border-l-[3px] bordr-[0.2px] border-white">
-                        <View className="flex-row items-center pb-2 border-b border-gray-400">
-                            <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(task.status) }]} />
-                            <Text style={[styles.status, getStatusStyle(task.status)]}>{task.status}</Text>
-                        </View>
-                        <Text style={styles.taskName}>{task.taskName}</Text>
-                        <Text style={styles.assignedTeamText}>Assigned to: {task.assignedTeam}</Text>
-                        <View style={styles.cardFooter}>
-                            <View style={styles.footerItem}>
-                                <AntDesign name="clockcircle" size={15} color="white" />
-                                <Text style={styles.timeRange}>{task.timeRange}</Text>
+                {loading ? (
+                    <ActivityIndicator size="large" color="white" style={{ marginTop: 50 }} />
+                ) : tasks.length > 0 ? (
+                    tasks.map((task) => (
+                        <View key={task.id} style={styles.card} className="border-l-[3px] bordr-[0.2px] border-white">
+                            <View className="flex-row items-center pb-2 border-b border-gray-400">
+                                <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(task.status) }]} />
+                                <Text style={[styles.status, getStatusStyle(task.status)]}>{task.status}</Text>
                             </View>
-                            <View style={styles.footerItem}>
-                                <MaterialIcons name="groups" size={22} color="white" />
-                                <Text style={styles.peopleCount}>{task.peopleCount}</Text>
+                            <Text style={styles.taskName}>{task.title}</Text>
+                            <Text style={styles.assignedTeamText}>Assigned to: {task.employee?.name || 'Unassigned'}</Text>
+                            <View style={styles.cardFooter}>
+                                <View style={styles.footerItem}>
+                                    <AntDesign name="clockcircle" size={15} color="white" />
+                                    <Text style={styles.timeRange}>{moment(task.date).format('DD MMM')}</Text>
+                                </View>
+                                <View style={styles.footerItem}>
+                                    <MaterialIcons name="flag" size={18} color="white" />
+                                    <Text style={styles.peopleCount}>{task.priority}</Text>
+                                </View>
+                                <TouchableOpacity onPress={() => alert('Delete Task')}>
+                                    <MaterialIcons name="delete-outline" size={24} color="white" />
+                                </TouchableOpacity>
                             </View>
-                            <TouchableOpacity onPress={() => alert('Delete Task')}>
-                                <MaterialIcons name="delete-outline" size={24} color="white" />
-                            </TouchableOpacity>
                         </View>
+                    ))
+                ) : (
+                    <View style={{ marginTop: 50, alignItems: 'center' }}>
+                         <Text style={{ color: 'gray' }}>No tasks found</Text>
                     </View>
-                ))}
+                )}
             </ScrollView>
         </View>
     );

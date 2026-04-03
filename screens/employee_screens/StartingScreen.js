@@ -1,20 +1,52 @@
-import React from 'react'
-import { View, Text, Image, TouchableOpacity, ScrollView, Alert } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, Text, Image, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/auth/authSlice';
-import { AntDesign } from '@expo/vector-icons';
-import { EvilIcons } from '@expo/vector-icons';
-import { Ionicons } from '@expo/vector-icons';
-import { data, ShiftData, recentData, ShiftData2 } from '@/services/StartingScreenObj';
-import { AllNotifications } from '@/services/Notifications';
+import { AntDesign, EvilIcons, Ionicons } from '@expo/vector-icons';
+import { apiService } from '@/services/api';
 
 const StartingScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.auth);
-  const notifys = AllNotifications.length;
+  const employeeId = user?.user?.employeeId;
+  
+  const [tasks, setTasks] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [notifCount, setNotifCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (employeeId) {
+      loadDashboardData();
+    }
+  }, [employeeId]);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [tasksData, attendanceData, notifsData] = await Promise.all([
+        apiService.getTasks(employeeId),
+        apiService.getAttendanceHistory(employeeId),
+        apiService.getNotifications(employeeId)
+      ]);
+      setTasks(tasksData);
+      setAttendance(attendanceData);
+      setNotifCount(notifsData.filter(n => !n.isRead).length);
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const todayAttendance = attendance.find(a => 
+    new Date(a.date).toDateString() === new Date().toDateString()
+  );
+
+  const formatTime = (date) => date ? new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
 
   const handleLogout = () => {
     Alert.alert(
@@ -33,18 +65,26 @@ const StartingScreen = () => {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
       <View className="px-5 py-4 flex-row justify-between items-center">
         <View className="flex-row items-center space-x-3">
-          <TouchableOpacity className="h-14 w-14 bg-white rounded-full p-[3px]" onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
-            <Image
-              source={{ uri: 'https://img.freepik.com/free-photo/front-view-man-posing_23-2148364843.jpg?t=st=1717328137~exp=1717331737~hmac=6c62d659733e221d1e95715bd236563bea66bccef2e710377b3e11597780177b&w=360' }}
-              className="h-full w-full object-cover rounded-full"
-            />
+          <TouchableOpacity className="h-14 w-14 bg-white rounded-full p-[3px] overflow-hidden" onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
+            {user?.user?.employee?.avatarUrl ? (
+              <Image
+                source={{ uri: user.user.employee.avatarUrl }}
+                className="h-full w-full object-cover rounded-full"
+              />
+            ) : (
+              <View className="h-full w-full bg-[#00a2e4] rounded-full items-center justify-center">
+                <Text className="text-white text-xl font-bold">
+                  {user?.user?.employee?.name ? user.user.employee.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '??'}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           <View className="space-y-1">
             <Text className="text-[18px] font-semibold">
-              {user?.user?.name || 'Vishal Rawat'}
+              {user?.user?.employee?.name || user?.user?.name || 'User'}
             </Text>
             <Text className="text-gray-500 font-semibold text-[13px]">
-              5 June 2024
+              {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
             </Text>
           </View>
         </View>
@@ -54,138 +94,87 @@ const StartingScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate("Notification")}>
             <Ionicons name="notifications-circle-outline" size={38} color="#00a2e4" className="relative" />
-            <Text className="absolute bg-[#00a2e4] text-white rounded-full h-4 w-4 text-center text-[10px] left-[25px]">
-              {notifys}
-            </Text>
+            {notifCount > 0 && (
+              <Text className="absolute bg-red-500 text-white rounded-full h-4 w-4 text-center text-[10px] left-[25px]">
+                {notifCount}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
-      {/* --------------------- -----------------------------------------------------*/}
+      {/* --------------------- Shift Data ---------------------------------------*/}
       <View className="px-5 pb-6 mt-1 space-y-3">
         <View className="flex-row justify-between items-center space-x-3">
-          {ShiftData.map((shift) => (
-            <View className="flex-1 h-[12vh] bg-white rounded-lg " key={shift.id}>
-              <View className="p-2.5 flex-row items-center space-x-1">
-                <Image
-                  source={shift.image}
-                  className="h-6 w-6 object-cover"
-                />
-                <Text className="text-gray-500 font-semibold">
-                  {shift.check}
-                </Text>
-              </View>
-              <View className="pl-3 -my-1">
-                <Text className="text-[20px] font-semibold">
-                  {shift.time}
-                </Text>
-              </View>
-              <View className="px-3 flex-row justify-between items-center mt-2">
-                <Text className="font-medium text-gray-500">
-                  {shift.InTime}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-        <View className="flex-row justify-between items-center space-x-3">
-          {ShiftData2.map((shift) => (
-            <View className="flex-1 h-[12vh] bg-white rounded-lg " key={shift.id}>
-              <View className="p-2.5 flex-row items-center space-x-1">
-                <Image
-                  source={shift.image}
-                  className="h-6 w-6 object-cover"
-                />
-                <Text className="text-gray-500 font-semibold">
-                  {shift.check}
-                </Text>
-              </View>
-              <View className="pl-3 -my-1">
-                <Text className="text-[20px] font-semibold">
-                  {shift.time}
-                </Text>
-              </View>
-              <View className="px-3 flex-row justify-between items-center mt-2">
-                <Text className="font-medium text-gray-500">
-                  {shift.InTime}
-                </Text>
-              </View>
-            </View>
-          ))}
+          <View className="flex-1 h-[12vh] bg-white rounded-lg p-3">
+            <Text className="text-gray-500 font-semibold text-[12px]">Clock In</Text>
+            <Text className="text-[20px] font-semibold mt-1">{formatTime(todayAttendance?.clockIn)}</Text>
+            <Text className="text-gray-400 text-[11px] mt-1">Today</Text>
+          </View>
+          <View className="flex-1 h-[12vh] bg-white rounded-lg p-3">
+            <Text className="text-gray-500 font-semibold text-[12px]">Clock Out</Text>
+            <Text className="text-[20px] font-semibold mt-1">{formatTime(todayAttendance?.clockOut)}</Text>
+            <Text className="text-gray-400 text-[11px] mt-1">Today</Text>
+          </View>
         </View>
       </View>
-      {/* --------------------- --------------------------------------------------------*/}
+      {/* --------------------- Tasks -------------------------------------------*/}
       <View className="px-5">
         <View className="flex-row items-center justify-between">
-          <Text className="font-semibold text-[18px]">
-            Today's Task
-          </Text>
+          <Text className="font-semibold text-[18px]">Today's Task</Text>
           <TouchableOpacity className="flex-row items-center space-x-1" onPress={() => navigation.navigate("Task")}>
-            <Text className="text-gray-500 text-right text-[14px] font-medium pb-0.5 ">
-              See more
-            </Text>
+            <Text className="text-gray-500 text-right text-[14px] font-medium pb-0.5 ">See more</Text>
             <AntDesign name="right" size={14} color="gray" className="ml-2" />
           </TouchableOpacity>
         </View>
 
-        {data.length > 0 ? (
-          <ScrollView 
-            horizontal={true} 
-            showsHorizontalScrollIndicator={false} 
-            contentContainerStyle={{ paddingRight: 20 }}
-            className="mt-4 flex-row"
-          >
-            {data && data.map((list) => (
-              <View className="bg-white rounded-lg p-2.5 space-y-0.5 w-[280px] mr-4" key={list.id}>
-                <Text className=" text-[15px] font-medium">
-                  {list.title}
-                </Text>
+        {loading ? (
+          <ActivityIndicator size="small" color="#00a2e4" className="mt-5" />
+        ) : tasks.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }} className="mt-4 flex-row">
+            {tasks.map((item) => (
+              <View className="bg-white rounded-lg p-2.5 space-y-0.5 w-[280px] mr-4 border-l-4 border-[#00a2e4]" key={item.id}>
+                <Text className=" text-[15px] font-medium">{item.title}</Text>
                 <View className="flex-row items-center space-x-0.5">
                   <EvilIcons name="calendar" size={22} color="#00a2e4" />
-                  <Text className="pt-0.5 text-[15px] font-medium text-[#00a2e4]">{list.date}</Text>
+                  <Text className="pt-0.5 text-[15px] font-medium text-[#00a2e4]">{new Date(item.date).toLocaleDateString()}</Text>
                 </View>
-                <Text className="text-[11px] text-gray-400 font-medium pt-0.5">{list.description}</Text>
+                <Text className="text-[11px] text-gray-400 font-medium pt-0.5" numberOfLines={1}>{item.description}</Text>
               </View>
             ))}
           </ScrollView>
-
         ) : (
-          <Text className="text-center mt-3 font-medium text-gray-500">No Task Available</Text>
+          <Text className="text-center mt-5 font-medium text-gray-500">No Task Available</Text>
         )}
       </View>
-      {/* --------------------- --------------------------------------------------------*/}
+      {/* --------------------- Recent Activity ---------------------------------*/}
       <View className="px-5">
         <View className="flex-row items-center justify-between pt-5 pb-1">
-          <Text className="font-semibold text-[18px]">
-            Recent Activity
-          </Text>
+          <Text className="font-semibold text-[18px]">Recent Activity</Text>
           <TouchableOpacity className="flex-row items-center space-x-1" onPress={() => navigation.navigate("Attendance")}>
-            <Text className="text-gray-500 text-right text-[14px] font-medium pb-0.5 ">
-              View all
-            </Text>
+            <Text className="text-gray-500 text-right text-[14px] font-medium pb-0.5 ">View all</Text>
             <AntDesign name="right" size={14} color="gray" className="ml-2" />
           </TouchableOpacity>
         </View>
-        {recentData.length > 0 ? (
+        {loading ? (
+          <ActivityIndicator size="small" color="#00a2e4" className="mt-5" />
+        ) : attendance.length > 0 ? (
           <View className="space-y-2">
-            {recentData && recentData.map((list) => (
-              <TouchableOpacity key={list.id} className="bg-white p-2.5 rounded-lg flex-row items-center justify-between">
+            {attendance.slice(0, 5).map((item) => (
+              <View key={item.id} className="bg-white p-2.5 rounded-lg flex-row items-center justify-between">
                 <View className="flex-row space-x-3 pl-1">
-                  <View className="h-10 w-10 p-1.5 rounded-lg bg-[#00a3e417]">
-                    <Image
-                      source={list.image}
-                      className="h-full w-full object-cover"
-                    />
+                  <View className="h-10 w-10 p-1.5 rounded-lg bg-[#f0f9ff] justify-center items-center">
+                    <Ionicons name="time-outline" size={20} color="#00a2e4" />
                   </View>
                   <View className="space-y-0.5">
-                    <Text className="text-[15px] font-semibold">{list.title}</Text>
-                    <Text className="text-[11px] font-medium text-gray-400">{list.date}</Text>
+                    <Text className="text-[15px] font-semibold">{item.status}</Text>
+                    <Text className="text-[11px] font-medium text-gray-400">{new Date(item.date).toLocaleDateString()}</Text>
                   </View>
                 </View>
                 <View className="space-y-0.5 pr-1">
-                  <Text className="font-semibold">{list.time}</Text>
-                  <Text className="text-right text-[12px] font-medium text-gray-400">{list.attendance}</Text>
+                  <Text className="font-semibold">{formatTime(item.clockIn)}</Text>
+                  <Text className="text-right text-[12px] font-medium text-gray-400">{item.location || 'Office'}</Text>
                 </View>
-              </TouchableOpacity>
+              </View>
             ))}
           </View>
         ) : (

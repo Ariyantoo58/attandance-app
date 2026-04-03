@@ -1,14 +1,38 @@
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import React from 'react'
 import { useNavigation } from '@react-navigation/native';
-import { AntDesign } from '@expo/vector-icons';
+import { AntDesign, EvilIcons } from '@expo/vector-icons';
 import { Wallet } from '../../../assets/index';
-import { EvilIcons } from '@expo/vector-icons';
-import { SalarySlip } from '../../../services/SalaryObj';
+import { apiService } from '../../../services/api';
+import { useSelector } from 'react-redux';
 
 const PaySlip = () => {
     const navigation = useNavigation();
+    const [payroll, setPayroll] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
+
+    useEffect(() => {
+        if (employeeId) {
+            loadPayroll();
+        }
+    }, [employeeId]);
+
+    const loadPayroll = async () => {
+        try {
+            setLoading(true);
+            const data = await apiService.getPayroll(employeeId);
+            setPayroll(data);
+        } catch (error) {
+            console.error('Failed to load payroll:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const totalEarning = payroll.reduce((acc, curr) => acc + curr.netSalary, 0);
+    const currentYear = new Date().getFullYear();
 
     return (
         <ScrollView className="pt-12 px-5 bg-blue-50 h-full">
@@ -30,32 +54,35 @@ const PaySlip = () => {
                     </View>
                     <View className="py-1">
                         <Text className="text-[22px] pl-1.5 font-semibold text-[#00a2e4]">
-                            $1520
+                            ${totalEarning.toLocaleString()}
                         </Text>
                     </View>
                 </View>
                 <View className="flex-row items-center space-x-5 py-2 px-3 rounded-lg bg-blue-50">
                     <View className="flex-row">
                         <EvilIcons name="calendar" size={24} color={"#00a2e4"} />
-                        <Text className="font-medium text-[#00a2e4] mt-[1px]">2024</Text>
+                        <Text className="font-medium text-[#00a2e4] mt-[1px]">{currentYear}</Text>
                     </View>
-                    <AntDesign name="down" size={15} color="#00a2e4" className="" />
+                    <AntDesign name="down" size={15} color="#00a2e4" />
                 </View>
             </View>
             {/* ---------------------------------------- -----------------------------*/}
-            <SafeAreaView className="">
+            <SafeAreaView>
                 <Text className="py-5 font-semibold text-[17px]">Earning History</Text>
                 <View className="flex-row items-center justify-between">
-                    <Text className="text-[13px] text-gray-500 font-medium">Month</Text>
+                    <Text className="text-[13px] text-gray-500 font-medium">Month/Year</Text>
                     <Text className="text-[13px] text-gray-500 font-medium">Amount</Text>
                 </View>
-                {SalarySlip && SalarySlip.map((list) => (
-                    <View className="flex-row items-center justify-between py-4 border-b border-gray-300" key={list.id}>
-                        <Text className="text-[16px] font-medium">{list.Month}</Text>
-                        <Text className="text-[16px] font-medium">{list.amount}</Text>
-                    </View>
-
-                ))}
+                {loading ? (
+                    <ActivityIndicator size="small" color="#00a2e4" className="mt-10" />
+                ) : (
+                    payroll && payroll.map((list) => (
+                        <View className="flex-row items-center justify-between py-4 border-b border-gray-300" key={list.id}>
+                            <Text className="text-[16px] font-medium">{list.month}/{list.year}</Text>
+                            <Text className="text-[16px] font-medium">${list.netSalary.toLocaleString()}</Text>
+                        </View>
+                    ))
+                )}
             </SafeAreaView>
         </ScrollView>
     )

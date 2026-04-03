@@ -37,6 +37,7 @@ import Attendance from './screens/hr_screens/overviewscreens/Attendance';
 import EmployeeDetails from './screens/hr_screens/employeedetails/EmployeeDetails';
 import FaceRecognitionScreen from './screens/employee_screens/FaceRecognitionScreen';
 import ManagerCustomDrawerContent from './screens/hr_screens/drawescreens/ManagerCustomDrawerContent';
+import EmployeeEdit from './screens/hr_screens/add_new_employee/EmployeeEdit';
 // import AutorityScreen from './screens/AutorityScreen'
 
 const Stack = createNativeStackNavigator();
@@ -288,6 +289,7 @@ function ManagerStackNavigator() {
             <Stack.Screen name="PaySlipSummary" component={PaySlipSummary} />
             <Stack.Screen name="Attendance" component={Attendance} />
             <Stack.Screen name="EmployeeDetails" component={EmployeeDetails} />
+            <Stack.Screen name="EmployeeEdit" component={EmployeeEdit} />
             <Stack.Screen name="FaceRecognition" component={FaceRecognitionScreen} />
         </Stack.Navigator>
     );

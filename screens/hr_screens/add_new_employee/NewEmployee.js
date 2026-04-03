@@ -1,146 +1,156 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Switch, ScrollView, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Switch, ScrollView, Alert, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { AntDesign } from '@expo/vector-icons';
-import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { apiService } from '../../../services/api';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import RNPickerSelect from 'react-native-picker-select';
 
 const AddNewEmployee = () => {
     const navigation = useNavigation();
-    const [employeeId, setEmployeeId] = useState('');
     const [employeeName, setEmployeeName] = useState('');
-    const [designation, setDesignation] = useState('');
-    const [salary, setSalary] = useState('');
-    const [joinDate, setJoinDate] = useState('');
-    const [birthDay, setBirthDay] = useState('');
-    const [activeEmployee, setActiveEmployee] = useState(true);
-    const [number, setNumber] = useState('');
-    const [address, setAddress] = useState('');
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [role, setRole] = useState('EMPLOYEE');
     const [loading, setLoading] = useState(false);
 
+    const roles = [
+        { label: 'Employee', value: 'EMPLOYEE' },
+        { label: 'Manager', value: 'MANAGER' },
+        { label: 'HR', value: 'HR' },
+        { label: 'Admin', value: 'ADMIN' },
+    ];
+
     const handleSubmit = async () => {
-        if (!employeeId || !employeeName || !designation || !salary || !joinDate || !birthDay || !number || !address) {
-            Alert.alert('Error', 'Please fill out all fields.');
+        if (!employeeName || !username || !password || !email) {
+            Alert.alert('Error', 'Full Name, Email, Username and Password are required.');
             return;
         }
         setLoading(true);
         try {
-            const AddNewEmployee = {
-                employeeId,
-                employeeName,
-                designation,
-                salary,
-                joinDate,
-                birthDay,
-                activeEmployee,
-                number,
-                address,
+            const employeeData = {
+                name: employeeName,
+                username,
+                password,
+                email,
+                role,
+                status: 'ACTIVE',
+                employeeNumber: `EMP${Math.floor(1000 + Math.random() * 9000)}` 
             };
-            const response = await axios.post('http://192.168.0.57:8080/saveEmployee', AddNewEmployee);
+            const response = await apiService.createEmployee(employeeData);
 
-            console.log(response);
-            clearFormFields();
-            Alert.alert("Employee Created");
+            if (response && response.id) {
+                console.log("Creation successful:", response);
+                Alert.alert("Success", "User account has been created!", [
+                    { 
+                        text: "Add Details Later", 
+                        onPress: () => {
+                            clearFormFields();
+                            navigation.navigate("ManagerDrawer", { 
+                                screen: "Dashboard", 
+                                params: { screen: "Employees" } 
+                            });
+                        },
+                        style: "cancel"
+                    },
+                    { 
+                        text: "Fill Details Now", 
+                        onPress: () => {
+                            clearFormFields();
+                            navigation.replace("EmployeeEdit", { employee: response });
+                        }
+                    }
+                ]);
+            } else {
+                console.error("Creation failed with response:", response);
+                throw new Error(response.message || 'Failed to create user');
+            }
         } catch (error) {
             console.error('Failed to add employee', error);
-            Alert.alert('Error', 'Failed to add employee. Please try again later.');
+            Alert.alert('Error', error.message || 'Failed to add employee.');
         } finally {
             setLoading(false);
         }
     };
 
     const clearFormFields = () => {
-        setEmployeeId('');
         setEmployeeName('');
-        setDesignation('');
-        setSalary('');
-        setJoinDate('');
-        setBirthDay('');
-        setActiveEmployee(true);
-        setNumber('');
-        setAddress('');
+        setUsername('');
+        setPassword('');
+        setEmail('');
+        setRole('EMPLOYEE');
     };
 
     return (
-        <ScrollView className="overflow-y-auto h-[100vh]">
+        <ScrollView className="bg-white flex-1">
             <View style={styles.header} className="bg-gray-700 px-5">
                 <Ionicons onPress={() => navigation.goBack()} name="arrow-back-circle-outline" size={34} color="white" />
                 <Text style={styles.headerText} className="text-white">
-                    <AntDesign name="adduser" size={24} color="white" /> Add New Employee
+                     Add New User
                 </Text>
             </View>
-            <ScrollView className="px-5 bg-white h-[93vh] -mt-2">
-                <Text style={styles.label}>Employee ID :</Text>
-                <TextInput
-                    style={styles.input}
-                    value={employeeId}
-                    onChangeText={setEmployeeId}
-                    keyboardType="numeric"
-                />
-                <Text style={styles.label}>Employee Name :</Text>
+            
+            <View className="px-5 pt-4">
+                <Text className="text-gray-500 mb-4">Step 1: Create login account for employee</Text>
+                
+                <Text style={styles.label}>Full Name :</Text>
                 <TextInput
                     style={styles.input}
                     value={employeeName}
                     onChangeText={setEmployeeName}
+                    placeholder="Enter full name"
                 />
-                <Text style={styles.label}>Designation :</Text>
+
+                <Text style={styles.label}>Email Address :</Text>
                 <TextInput
                     style={styles.input}
-                    value={designation}
-                    onChangeText={setDesignation}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="e.g. employee@company.com"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                 />
-                <Text style={styles.label}>Salary :</Text>
+
+                <Text style={styles.label}>Username :</Text>
                 <TextInput
                     style={styles.input}
-                    value={salary}
-                    onChangeText={setSalary}
-                    keyboardType="numeric"
+                    value={username}
+                    onChangeText={setUsername}
+                    placeholder="e.g. ari.oke"
+                    autoCapitalize="none"
                 />
-                <Text style={styles.label}>Join Date (YYYY-MM-DD) :</Text>
+
+                <Text style={styles.label}>Password :</Text>
                 <TextInput
                     style={styles.input}
-                    value={joinDate}
-                    onChangeText={setJoinDate}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Min. 6 chars"
+                    secureTextEntry
                 />
-                <Text style={styles.label}>Date of Birth (YYYY-MM-DD) :</Text>
-                <TextInput
-                    style={styles.input}
-                    value={birthDay}
-                    onChangeText={setBirthDay}
-                />
-                <Text style={styles.label}>Phone Number :</Text>
-                <TextInput
-                    style={styles.input}
-                    value={number}
-                    onChangeText={setNumber}
-                    keyboardType="phone-pad"
-                />
-                <Text style={styles.label}>Address :</Text>
-                <TextInput
-                    style={styles.input}
-                    value={address}
-                    onChangeText={setAddress}
-                />
-                <View className="flex-row space-x-4 justify-between pr-3 pb-1">
-                    <Text style={styles.label}>Active Employee :</Text>
-                    <Switch
-                        value={activeEmployee}
-                        onValueChange={setActiveEmployee}
-                        trackColor={{ true: '#3fc2896c', false: '#ccc' }}
-                        thumbColor={activeEmployee ? '#3FC28A' : '#f4f3f4'}
-                        style={{ transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }] }}
+
+                <Text style={styles.label}>System Role :</Text>
+                <View style={styles.pickerContainer}>
+                    <RNPickerSelect
+                        onValueChange={(value) => setRole(value)}
+                        items={roles}
+                        placeholder={{ label: 'Select Role...', value: null }}
+                        value={role}
+                        style={pickerSelectStyles}
                     />
                 </View>
+
                 {loading ? (
-                    <View className="bg-gray-700 rounded-lg p-1 mt-3">
-                        <ActivityIndicator size="large" color="#fff" />
+                    <View className="bg-gray-700 rounded-lg p-4 mt-8">
+                        <ActivityIndicator size="small" color="#fff" />
                     </View>
                 ) : (
-                    <TouchableOpacity className="p-4 mt-3 rounded-lg bg-gray-700" onPress={handleSubmit}>
-                        <Text className="text-center text-white text-[16px] font-medium">Submit</Text>
+                    <TouchableOpacity className="p-4 mt-8 rounded-lg bg-gray-700 shadow-md" onPress={handleSubmit}>
+                        <Text className="text-center text-white text-[16px] font-medium">Save & Continue</Text>
                     </TouchableOpacity>
                 )}
-            </ScrollView>
+            </View>
         </ScrollView>
     );
 };
@@ -168,6 +178,39 @@ const styles = StyleSheet.create({
         padding: 5,
         marginVertical: 5,
         borderRadius: 10,
+    },
+    dateButton: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        padding: 10,
+        marginVertical: 5,
+        borderRadius: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    pickerContainer: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        marginVertical: 5,
+        borderRadius: 10,
+    },
+});
+
+const pickerSelectStyles = StyleSheet.create({
+    inputIOS: {
+        fontSize: 16,
+        paddingVertical: 12,
+        paddingHorizontal: 10,
+        color: 'black',
+        paddingRight: 30,
+    },
+    inputAndroid: {
+        fontSize: 16,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        color: 'black',
+        paddingRight: 30,
     },
 });
 

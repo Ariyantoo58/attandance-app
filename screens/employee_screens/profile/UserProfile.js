@@ -28,29 +28,37 @@ const UserProfile = () => {
       </View>
       {/* ---------------------------- */}
       <View className="p-5 -top-8">
-        <View className="h-32 w-32 bg-white rounded-full p-1.5 z-10 left-[40%] absolute">
-          <Image
-            source={{ uri: 'https://img.freepik.com/free-photo/front-view-man-posing_23-2148364843.jpg?t=st=1717328137~exp=1717331737~hmac=6c62d659733e221d1e95715bd236563bea66bccef2e710377b3e11597780177b&w=360' }}
-            className="h-full w-full object-cover rounded-full"
-          />
+        <View className="h-32 w-32 bg-white rounded-full p-1.5 z-10 left-[40%] absolute overflow-hidden">
+          {user?.user?.employee?.avatarUrl ? (
+            <Image
+              source={{ uri: user.user.employee.avatarUrl }}
+              className="h-full w-full object-cover rounded-full"
+            />
+          ) : (
+            <View className="h-full w-full bg-[#00a2e4] rounded-full items-center justify-center">
+              <Text className="text-white text-3xl font-bold">
+                {user?.user?.employee?.name ? user.user.employee.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '??'}
+              </Text>
+            </View>
+          )}
         </View>
-        <View className="bg-white rounded-lg space-y-1 py-8 top-[15%] z-0 relative">
-          <Text className="text-center mt-10 text-[25px] font-semibold text-[#00a2e4]">
-            Vishal Rawat
+        <View className="bg-white rounded-lg space-y-1 py-10 top-[15%] z-0 relative">
+          <Text className="text-center mt-12 text-[25px] font-semibold text-[#00a2e4]">
+            {user?.user?.employee?.name || user?.user?.username || 'User'}
           </Text>
           <View className="py-2 flex-row items-center justify-center px-2">
             <Text className="text-center text-[15px] font-medium text-gray-500">
-              Backend Developer
+              {user?.user?.employee?.designation || user?.user?.employee?.position?.title || user?.user?.role || 'Team Member'}
             </Text>
           </View>
           <TouchableOpacity className="bg-[#00a2e4] py-3 rounded-lg mx-4" onPress={() => navigation.navigate("PaySlip")}>
             <View className="flex-row items-center space-x-2 justify-center">
               <Ionicons name="wallet-outline" size={24} color="white" />
               <Text className="text-[18px] text-white font-semibold">
-                Earning :
+                Monthly Salary :
               </Text>
               <Text className="text-white text-[16px] font-medium">
-                $1520
+                ${user?.user?.employee?.salary || '0'}
               </Text>
             </View>
           </TouchableOpacity>

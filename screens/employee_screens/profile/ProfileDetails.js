@@ -1,30 +1,44 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { AntDesign } from '@expo/vector-icons';
+import { apiService } from '../../../services/api';
+import { useSelector } from 'react-redux';
 
 const ProfileDetails = () => {
     const navigation = useNavigation();
+    const [profile, setProfile] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
 
-    const profile = {
-        image: 'https://img.freepik.com/free-photo/smiling-young-male-professional-standing-with-arms-crossed-while-making-eye-contact-against-isolated-background_662251-838.jpg?t=st=1717610140~exp=1717613740~hmac=8541be04d476941a3796eb89ccff5717a63dc001a70b1c619cc322ee986b7f33&w=740',
-        name: 'John Doe',
-        designation: 'Software Engineer',
-        dateOfBirth: '1990-01-01',
-        joinDate: '2020-01-01',
-        study: 'B.Tech in Computer Science',
-        experience: '5 years',
-        achievement: 'Employee of the Year 2021',
-        salary: '$100,000',
-        documents: 'Passport, Driving License',
-        marks10: '95%',
-        marks12: '90%',
-        graduationMarks: '85%',
-        gender: 'Male',
-        mobileNo: '+1234567890',
-        address: '123 Main Street, City, Country'
+    useEffect(() => {
+        if (employeeId) {
+            loadProfile();
+        }
+    }, [employeeId]);
+
+    const loadProfile = async () => {
+        try {
+            setLoading(true);
+            const data = await apiService.getEmployeeProfile(employeeId);
+            setProfile(data);
+        } catch (error) {
+            console.error('Failed to load profile:', error);
+        } finally {
+            setLoading(false);
+        }
     };
+
+    if (loading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#3B82F6" />
+            </View>
+        );
+    }
+
+    if (!profile) return null;
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F4F6', paddingTop: 40 }}>
@@ -33,26 +47,37 @@ const ProfileDetails = () => {
                     <AntDesign name="left" size={18} color="white" />
                 </TouchableOpacity>
                 <Text style={styles.headerText}>Profile Details</Text>
+                <TouchableOpacity onPress={() => navigation.navigate("ProfileSetting")} style={styles.editHeaderButton}>
+                    <AntDesign name="edit" size={24} color="#3B82F6" />
+                </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={styles.container} className="-mt-2">
                 <View style={styles.profileHeader}>
-                    <Image source={{ uri: profile.image }} style={styles.profileImage} />
+                    {profile.avatarUrl ? (
+                         <Image source={{ uri: profile.avatarUrl }} style={styles.profileImage} />
+                    ) : (
+                        <View style={[styles.profileImage, styles.initialsContainer]}>
+                            <Text style={styles.initialsText}>
+                                {profile.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '??'}
+                            </Text>
+                        </View>
+                    )}
                     <Text style={styles.profileName}>{profile.name}</Text>
-                    <Text style={styles.profileDesignation}>{profile.designation}</Text>
+                    <Text style={styles.profileDesignation}>{profile.position?.title || profile.designation || 'No Role'}</Text>
                 </View>
                 <View style={styles.profileDetails}>
-                    <ProfileDetail label="Date of Birth" value={profile.dateOfBirth} />
-                    <ProfileDetail label="Join Date" value={profile.joinDate} />
+                    <ProfileDetail label="Date of Birth" value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : '-'} />
+                    <ProfileDetail label="Join Date" value={profile.joinDate ? new Date(profile.joinDate).toLocaleDateString() : '-'} />
                     <ProfileDetail label="Study" value={profile.study} />
                     <ProfileDetail label="Experience" value={profile.experience} />
                     <ProfileDetail label="Achievement" value={profile.achievement} />
-                    <ProfileDetail label="Salary" value={profile.salary} />
+                    <ProfileDetail label="Salary" value={profile.salary?.toLocaleString('en-US', { style: 'currency', currency: 'USD' })} />
                     <ProfileDetail label="Documents" value={profile.documents} />
                     <ProfileDetail label="Marks in 10th" value={profile.marks10} />
                     <ProfileDetail label="Marks in 12th" value={profile.marks12} />
                     <ProfileDetail label="Graduation Marks" value={profile.graduationMarks} />
                     <ProfileDetail label="Gender" value={profile.gender} />
-                    <ProfileDetail label="Mobile No" value={profile.mobileNo} />
+                    <ProfileDetail label="Mobile No" value={profile.phoneNumber} />
                     <ProfileDetail label="Address" value={profile.address} />
                 </View>
             </ScrollView>
@@ -87,6 +112,9 @@ const styles = {
         textAlign: 'center',
         flex: 1,
     },
+    editHeaderButton: {
+        padding: 5,
+    },
     profileHeader: {
         alignItems: 'center',
         marginBottom: 24,
@@ -96,6 +124,16 @@ const styles = {
         height: 128,
         borderRadius: 64,
         marginBottom: 12,
+    },
+    initialsContainer: {
+        backgroundColor: '#3B82F6',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    initialsText: {
+        color: 'white',
+        fontSize: 48,
+        fontWeight: 'bold',
     },
     profileName: {
         fontSize: 24,

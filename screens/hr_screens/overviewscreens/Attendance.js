@@ -1,25 +1,57 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet, Image, ActivityIndicator, Alert } from 'react-native';
 import moment from 'moment';
+import { apiService } from '../../../services/api';
 
 const Attendance = () => {
-  const employees = [
-    { id: 1, name: 'Employee 1', designation: 'Developer', attendance: 'present', image: 'https://via.placeholder.com/100' },
-    { id: 2, name: 'Employee 2', designation: 'Designer', attendance: 'half-day', image: 'https://via.placeholder.com/100' },
-    { id: 3, name: 'Employee 3', designation: 'Manager', attendance: 'absent', image: 'https://via.placeholder.com/100' },
-  ];
-
+  const [dailyLogs, setDailyLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState('January');
+  const [selectedMonth, setSelectedMonth] = useState(moment().format('MMMM'));
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [history, setHistory] = useState([]);
 
-  const toggleHistoryModal = (employee) => {
-    setSelectedEmployee(employee);
-    setShowHistoryModal(!showHistoryModal);
+  useEffect(() => {
+    loadDaily();
+  }, []);
+
+  const loadDaily = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getDailyAttendance();
+      setDailyLogs(data);
+    } catch (error) {
+      console.error('Failed to load attendance:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleHistoryModal = async (employee) => {
+    if (employee) {
+      try {
+        const h = await apiService.getAttendanceHistory(employee.id);
+        const monthData = h.filter(log => moment(log.date).format('MMMM') === selectedMonth);
+        setHistory(monthData);
+        setSelectedEmployee(employee);
+        setShowHistoryModal(true);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to load history');
+      }
+    } else {
+      setShowHistoryModal(false);
+      setSelectedEmployee(null);
+    }
   };
 
   const handleMonthPress = (month) => {
     setSelectedMonth(month);
+    if (selectedEmployee) {
+       // Refresh history for selected month
+       apiService.getAttendanceHistory(selectedEmployee.id).then(h => {
+         setHistory(h.filter(log => moment(log.date).format('MMMM') === month));
+       });
+    }
   };
 
   const getDaysInMonth = (month) => {
@@ -30,30 +62,53 @@ const Attendance = () => {
 
   const renderCalendarDays = (month) => {
     const daysInMonth = getDaysInMonth(month);
-    return [...Array(daysInMonth).keys()].map(day => (
-      <View key={day} style={[styles.daySquare, { backgroundColor: getStatusColor(['present', 'half-day', 'absent'][Math.floor(Math.random() * 3)]) }]}>
-        <Text style={styles.dayText}>{day + 1}</Text>
-      </View>
-    ));
+    return [...Array(daysInMonth).keys()].map(day => {
+      const dateStr = moment().month(month).date(day + 1).format('YYYY-MM-DD');
+      const log = history.find(l => moment(l.date).format('YYYY-MM-DD') === dateStr);
+      
+      let color = '#EDF2F7'; // Default gray
+      if (log) {
+        if (log.status === 'PRESENT') color = '#38A169'; // Green
+        else if (log.status === 'LATE') color = '#DD6B20'; // Orange
+      }
+
+      return (
+        <View key={day} style={[styles.daySquare, { backgroundColor: color }]}>
+          <Text style={styles.dayText}>{day + 1}</Text>
+        </View>
+      );
+    });
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Employee Attendance</Text>
-      <ScrollView style={styles.employeeList}>
-        {employees.map(employee => (
-          <View key={employee.id} style={styles.employeeCard}>
-            <Image source={{ uri: employee.image }} style={styles.employeeImage} />
-            <View style={styles.employeeInfo}>
-              <Text style={styles.employeeName}>{employee.name}</Text>
-              <Text style={styles.employeeDesignation}>{employee.designation}</Text>
+      <Text style={styles.header}>Daily Attendance ({moment().format('DD MMM YYYY')})</Text>
+      {loading ? (
+          <ActivityIndicator size="large" color="#007bff" style={{ marginTop: 50 }} />
+      ) : (
+        <ScrollView style={styles.employeeList}>
+          {dailyLogs.length > 0 ? dailyLogs.map(log => (
+            <View key={log.id} style={styles.employeeCard}>
+              <Image 
+                source={{ uri: log.employee?.avatarUrl || 'https://img.freepik.com/free-photo/front-view-man-posing_23-2148364843.jpg' }} 
+                style={styles.employeeImage} 
+              />
+              <View style={styles.employeeInfo}>
+                <Text style={styles.employeeName}>{log.employee?.name}</Text>
+                <Text style={styles.employeeDesignation}>
+                    In: {log.clockIn ? moment(log.clockIn).format('HH:mm') : '-'} | 
+                    Out: {log.clockOut ? moment(log.clockOut).format('HH:mm') : '-'}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.historyButton} onPress={() => toggleHistoryModal(log.employee)}>
+                <Text style={styles.historyButtonText}>History</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.historyButton} onPress={() => toggleHistoryModal(employee)}>
-              <Text style={styles.historyButtonText}>History</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-      </ScrollView>
+          )) : (
+            <Text style={{ textAlign: 'center', marginTop: 20 }}>No logs for today</Text>
+          )}
+        </ScrollView>
+      )}
       <Modal
         visible={showHistoryModal}
         animationType="slide"

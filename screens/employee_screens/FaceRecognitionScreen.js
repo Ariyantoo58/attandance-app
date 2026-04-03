@@ -5,11 +5,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { API_BASE_URL } from '../../config';
+import { apiService } from '../../services/api';
 
 export default function FaceRecognitionScreen() {
     const navigation = useNavigation();
     const route = useRoute();
     const { user } = useSelector(state => state.auth);
+    const { employeeId } = route.params || {};
     const [permission, requestPermission] = useCameraPermissions();
     const [photos, setPhotos] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -140,7 +142,7 @@ export default function FaceRecognitionScreen() {
                         name: 'photo.jpg',
                         type: 'image/jpeg',
                     });
-                    formData.append('name', employeeName);
+                    formData.append('employeeId', employeeId || user?.user?.employeeId);
                     
                     const response = await fetch(`${API_BASE_URL}/face-recognition/register`, {
                         method: 'POST',
@@ -171,7 +173,6 @@ export default function FaceRecognitionScreen() {
                     name: 'photo.jpg',
                     type: 'image/jpeg',
                 });
-                
                 const response = await fetch(`${API_BASE_URL}/face-recognition/recognize`, {
                     method: 'POST',
                     body: formData,
@@ -179,10 +180,21 @@ export default function FaceRecognitionScreen() {
                         'Content-Type': 'multipart/form-data',
                     },
                 });
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     if (data.recognized) {
+                        // Otomatis catat kehadiran jika wajah dikenali
+                        const employeeId = user?.user?.employeeId;
+                        if (employeeId) {
+                            try {
+                                await apiService.clockIn(employeeId, "Office", "Mobile Device");
+                            } catch (attendanceError) {
+                                console.error("Attendance API Error:", attendanceError);
+                                // Silently fail or alert if already clocked in but face recognized
+                            }
+                        }
+
                         Alert.alert("Success!", `Absen Berhasil. Halo, ${data.name}! (Kecocokan: ${data.similarity})`, [
                             { text: "OK", onPress: () => navigation.goBack() }
                         ]);

@@ -1,14 +1,36 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { TimeOffData } from '../../../services/TimeOffObj';
+import { apiService } from '../../../services/api';
 import { useNavigation } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
 
 const TimeOff = () => {
   const navigate = useNavigation();
   const [filter, setFilter] = useState('All');
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
 
-  const filteredTasks = TimeOffData.filter(task =>
+  useEffect(() => {
+    if (employeeId) {
+      loadTimeOff();
+    }
+  }, [employeeId]);
+
+  const loadTimeOff = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getTimeOffRequests(employeeId);
+      setTasks(data);
+    } catch (error) {
+      console.error('Failed to load timeoff:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredTasks = tasks.filter(task =>
     filter === 'All' ? true : task.status === filter
   );
 

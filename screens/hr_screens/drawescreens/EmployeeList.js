@@ -1,15 +1,34 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { employees } from '../../../services/hrservices/EmployeeListObj';
-import { AntDesign } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { Feather } from '@expo/vector-icons';
+import { apiService } from '../../../services/api';
+import { AntDesign, Feather } from '@expo/vector-icons';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const EmployeeList = () => {
     const navigation = useNavigation();
-    const [data, setData] = useState(employees);
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadEmployees();
+        }, [])
+    );
+
+    const loadEmployees = async () => {
+        try {
+            setLoading(true);
+            const employees = await apiService.getAllEmployees();
+            setData(employees);
+        } catch (error) {
+            console.error('Failed to load employees:', error);
+            Alert.alert('Error', 'Failed to load employee list');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleDelete = (item) => {
         Alert.alert(
@@ -30,46 +49,70 @@ const EmployeeList = () => {
         );
     };
 
-    const deleteEmployee = (itemToDelete) => {
-        const updatedData = data.filter(item => item.id !== itemToDelete.id);
-        setData(updatedData);
+    const deleteEmployee = async (itemToDelete) => {
+        try {
+            await apiService.removeEmployee(itemToDelete.id);
+            Alert.alert("Success", "Employee removed");
+            loadEmployees();
+        } catch (error) {
+            Alert.alert("Error", "Failed to delete employee");
+        }
+    };
+
+    const renderAvatar = (item) => {
+        if (item.avatarUrl) {
+            return (
+                <Image 
+                    source={{ uri: item.avatarUrl }} 
+                    style={styles.image} 
+                />
+            );
+        }
+        
+        const initials = item.name 
+            ? item.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+            : '?';
+            
+        return (
+            <View style={[styles.image, styles.initialsContainer]}>
+                <Text style={styles.initialsText}>{initials}</Text>
+            </View>
+        );
     };
 
     const renderItem = ({ item }) => (
-        <ScrollView className="">
+        <ScrollView>
             <View style={styles.itemContainer}>
-                <Image source={{ uri: item.imageUrl }} style={styles.image} />
+                {renderAvatar(item)}
                 <View style={styles.infoContainer}>
                     <Text style={styles.name}>{item.name}</Text>
-                    <Text style={styles.designation}>{item.designation} - {item.position}</Text>
+                    <Text style={styles.designation}>{item.designation || item.position?.title || 'No Role'} - {item.department?.name || 'All'}</Text>
                 </View>
-                <TouchableOpacity>
-                    <Menu>
-                        <MenuTrigger >
-                            <Ionicons name="ellipsis-horizontal" size={25} color="#333" />
-                        </MenuTrigger>
-                        <MenuOptions customStyles={menuStyles.options}>
-                            <MenuOption onSelect={() => alert(`Edit ${item.name}`)}>
-                                <TouchableOpacity style={menuStyles.option}>
-                                    <Ionicons name="create-outline" size={20} color="#4F8EF7" />
-                                    <Text style={menuStyles.text}>Edit</Text>
-                                </TouchableOpacity>
-                            </MenuOption>
-                            <MenuOption >
-                                <TouchableOpacity style={menuStyles.option} onPress={() => handleDelete(item)}>
-                                    <Ionicons name="trash-outline" size={20} color="#F75353" />
-                                    <Text style={menuStyles.text}>Delete</Text>
-                                </TouchableOpacity>
-                            </MenuOption>
-                            <MenuOption >
-                                <TouchableOpacity style={menuStyles.option} onPress={() => navigation.navigate("EmployeeDetails", { employee: item })}>
-                                    <Ionicons name="eye-outline" size={20} color="#6C7A89" />
-                                    <Text style={menuStyles.text}>View Details</Text>
-                                </TouchableOpacity>
-                            </MenuOption>
-                        </MenuOptions>
-                    </Menu>
-                </TouchableOpacity>
+                <Menu>
+                    <MenuTrigger >
+                        <Ionicons name="ellipsis-horizontal" size={25} color="#333" />
+                    </MenuTrigger>
+                    <MenuOptions customStyles={menuStyles.options}>
+                        <MenuOption onSelect={() => navigation.navigate("EmployeeEdit", { employee: item })}>
+                            <View style={menuStyles.option}>
+                                <Ionicons name="create-outline" size={20} color="#4F8EF7" />
+                                <Text style={menuStyles.text}>Edit</Text>
+                            </View>
+                        </MenuOption>
+                        <MenuOption onSelect={() => handleDelete(item)}>
+                            <View style={menuStyles.option}>
+                                <Ionicons name="trash-outline" size={20} color="#F75353" />
+                                <Text style={menuStyles.text}>Delete</Text>
+                            </View>
+                        </MenuOption>
+                        <MenuOption onSelect={() => navigation.navigate("EmployeeDetails", { employee: item })}>
+                            <View style={menuStyles.option}>
+                                <Ionicons name="eye-outline" size={20} color="#6C7A89" />
+                                <Text style={menuStyles.text}>View Details</Text>
+                            </View>
+                        </MenuOption>
+                    </MenuOptions>
+                </Menu>
             </View>
         </ScrollView>
     );
@@ -91,11 +134,15 @@ const EmployeeList = () => {
                     <Feather name="plus-circle" size={24} color="black" />
                 </TouchableOpacity>
             </View>
-            <FlatList
-                data={data}
-                renderItem={renderItem}
-                keyExtractor={item => item.id}
-            />
+            {loading ? (
+                <ActivityIndicator size="large" color="white" style={{ marginTop: 50 }} />
+            ) : (
+                <FlatList
+                    data={data}
+                    renderItem={renderItem}
+                    keyExtractor={item => item.id}
+                />
+            )}
         </View>
     );
 };
@@ -125,6 +172,16 @@ const styles = StyleSheet.create({
         height: 60,
         borderRadius: 30,
         marginRight: 10,
+    },
+    initialsContainer: {
+        backgroundColor: '#4F8EF7',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    initialsText: {
+        color: 'white',
+        fontSize: 20,
+        fontWeight: 'bold',
     },
     infoContainer: {
         flex: 1,

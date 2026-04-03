@@ -1,11 +1,33 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import React from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { AntDesign } from '@expo/vector-icons';
-import { AllNotifications } from '../../../services/Notifications';
+import { apiService } from '../../../services/api';
+import { useSelector } from 'react-redux';
 
 const Notification = () => {
   const navigation = useNavigation();
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
+
+  useEffect(() => {
+    if (employeeId) {
+      loadNotifications();
+    }
+  }, [employeeId]);
+
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getNotifications(employeeId);
+      setNotifications(data);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollViewContent} className="px-3 bg-blue-50">
@@ -16,13 +38,19 @@ const Notification = () => {
         <Text style={styles.headerText}>Notifications</Text>
       </View>
 
-      {AllNotifications && AllNotifications.map(notification => (
-        <View key={notification.id} style={styles.notificationCard}>
-          <Text style={styles.notificationTitle}>{notification.title}</Text>
-          <Text style={styles.notificationDate}>{notification.date} at {notification.time}</Text>
-          <Text style={styles.notificationMessage}>{notification.message}</Text>
-        </View>
-      ))}
+      {loading ? (
+        <ActivityIndicator size="large" color="#3B82F6" className="mt-10" />
+      ) : (
+        notifications && notifications.map(notification => (
+          <View key={notification.id} style={styles.notificationCard}>
+            <Text style={styles.notificationTitle}>{notification.title}</Text>
+            <Text style={styles.notificationDate}>
+              {new Date(notification.createdAt).toLocaleDateString()} at {new Date(notification.createdAt).toLocaleTimeString()}
+            </Text>
+            <Text style={styles.notificationMessage}>{notification.message}</Text>
+          </View>
+        ))
+      )}
     </ScrollView>
   );
 };

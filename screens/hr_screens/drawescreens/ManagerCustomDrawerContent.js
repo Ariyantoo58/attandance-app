@@ -10,21 +10,36 @@ function ManagerCustomDrawerContent(props) {
     const navigate = useNavigation();
     const dispatch = useDispatch();
     const { user } = useSelector(state => state.auth);
+    const profile = user?.user?.employee || user?.user || {};
+    const name = profile.name || 'Admin User';
+    const initials = name && typeof name === 'string' ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '??';
 
     return (
         <DrawerContentScrollView {...props} style={styles.container}>
             <View style={styles.headerContainer}>
                 <TouchableOpacity 
                     style={styles.profileSection} 
-                    onPress={() => navigate.navigate("Setting")}
+                    onPress={() => {
+                        if (profile.id) {
+                            props.navigation.navigate("EmployeeDetails", { employee: profile });
+                        } else {
+                            props.navigation.navigate("Settings");
+                        }
+                    }}
                 >
-                    <Image
-                        source={{ uri: 'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg' }}
-                        style={styles.profilePic}
-                    />
+                    {profile.avatarUrl ? (
+                        <Image
+                            source={{ uri: profile.avatarUrl }}
+                            style={styles.profilePic}
+                        />
+                    ) : (
+                        <View style={[styles.profilePic, styles.initialsContainer]}>
+                            <Text style={styles.initialsText}>{initials}</Text>
+                        </View>
+                    )}
                     <View style={styles.profileTextContainer}>
                         <Text style={styles.username}>
-                            {user?.user?.name || 'HR Manager'}
+                            {name}
                         </Text>
                         <View style={styles.roleBadge}>
                             <MaterialCommunityIcons name="shield-check" size={12} color="white" />
@@ -57,7 +72,7 @@ const styles = StyleSheet.create({
     },
     headerContainer: {
         backgroundColor: '#2D3748', // Matching ManagerHomeScreen header
-        paddingTop: 40,
+        paddingTop: 60,
         paddingBottom: 30,
         paddingHorizontal: 20,
         borderBottomLeftRadius: 0,
@@ -73,6 +88,16 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         borderWidth: 2,
         borderColor: '#4A5568',
+    },
+    initialsContainer: {
+        backgroundColor: '#4F8EF7',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    initialsText: {
+        color: 'white',
+        fontSize: 20,
+        fontWeight: 'bold',
     },
     profileTextContainer: {
         marginLeft: 15,

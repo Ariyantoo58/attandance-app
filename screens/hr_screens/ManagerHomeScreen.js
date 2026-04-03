@@ -1,18 +1,61 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image, FlatList, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Image, FlatList, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
-import { OverviewAllSections } from '@/services/hrservices/OverviewObj';
+import { OverviewAllSections as StaticOverview } from '@/services/hrservices/OverviewObj';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { EmployeesAttendance } from '@/services/hrservices/EmployeeAttendanceObj';
+import { EmployeesAttendance as StaticAttendance } from '@/services/hrservices/EmployeeAttendanceObj';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/auth/authSlice';
+import { apiService } from '@/services/api';
 
 const ManagerHomeScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.auth);
+  
+  const [summary, setSummary] = useState(null);
+  const [recentLeaves, setRecentLeaves] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      const [summaryData, leavesData] = await Promise.all([
+        apiService.getHrSummary(),
+        apiService.getRecentLeaves()
+      ]);
+      setSummary(summaryData);
+      setRecentLeaves(leavesData);
+    } catch (error) {
+      console.error('Failed to load HR dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const overviewItems = StaticOverview.map(item => {
+    if (!summary) return item;
+    let count = item.count;
+    if (item.title === 'Employee List') count = summary.employeeCount;
+    if (item.title === 'Leave Requests') count = summary.pendingLeaves;
+    if (item.title === 'Attendance') count = summary.todayAttendance;
+    if (item.title === 'Project Task') count = summary.activeTasks;
+    if (item.title === 'Team') count = summary.teamCount;
+    if (item.title === 'PaySlip') count = summary.pendingPayroll;
+    return { ...item, count };
+  });
+
+  const attendanceItems = StaticAttendance.map(item => {
+    if (!summary) return item;
+    // Map existing logic or use summary
+    return item;
+  });
 
   const getColorById = (id) => {
     switch (id) {
@@ -66,16 +109,22 @@ const ManagerHomeScreen = () => {
         <View style={styles.contentContainer}>
         <View style={styles.overviewHeader}>
           <Text style={styles.overviewTitle}>Overview</Text>
-          <Text style={styles.date}>25 May 2024</Text>
+          <Text style={styles.date}>{new Date().toLocaleDateString()}</Text>
         </View>
-        <FlatList
-          data={OverviewAllSections}
-          style={styles.flatList}
-          scrollEnabled={false}
-          numColumns={3}
-          renderItem={renderFlatListItem}
-          keyExtractor={(item) => item.id.toString()}
-        />
+        
+        {loading ? (
+          <ActivityIndicator size="large" color="#4A5568" style={{ marginVertical: 30 }} />
+        ) : (
+          <FlatList
+            data={overviewItems}
+            style={styles.flatList}
+            scrollEnabled={false}
+            numColumns={3}
+            renderItem={renderFlatListItem}
+            keyExtractor={(item) => item.id.toString()}
+          />
+        )}
+
         <View style={styles.recentLeaveApplicationsContainer}>
           <View style={styles.recentLeaveHeader}>
             <Text style={styles.recentLeaveTitle}>Recent Leave Applications</Text>
@@ -83,28 +132,35 @@ const ManagerHomeScreen = () => {
               <Text className="font-medium" style={styles.seeAll}>See All</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.leaveApplicationItem}>
-            <View style={styles.leaveApplicationInfo}>
-              <Image
-                source={{ uri: 'https://img.freepik.com/free-photo/young-bearded-man-with-striped-shirt_273609-5677.jpg?t=st=1717936186~exp=1717939786~hmac=d2ea4877e478dba15ea3036dee1564a031bff3801c22df51b51fba1947283dff&w=996' }}
-                style={styles.leaveApplicationImage}
-              />
-              <View style={styles.leaveApplicationText}>
-                <Text style={styles.leaveApplicantName}>Alex Smith</Text>
-                <Text style={styles.leaveDates}>15 Jan - 22 Jan 2024</Text>
-                <Text style={styles.leaveType}>Sick Leave Request</Text>
+
+          {loading ? (
+             <ActivityIndicator size="small" color="#4A5568" style={{ marginVertical: 10 }} />
+          ) : recentLeaves.length > 0 ? (
+            recentLeaves.map((item) => (
+              <View style={styles.leaveApplicationItem} key={item.id}>
+                <View style={styles.leaveApplicationInfo}>
+                  <Image
+                    source={{ uri: item.employee?.avatarUrl || 'https://img.freepik.com/free-photo/young-bearded-man-with-striped-shirt_273609-5677.jpg' }}
+                    style={styles.leaveApplicationImage}
+                  />
+                  <View style={styles.leaveApplicationText}>
+                    <Text style={styles.leaveApplicantName}>{item.employee?.name}</Text>
+                    <Text style={styles.leaveDates}>{new Date(item.fromdate).toLocaleDateString()} - {new Date(item.todate).toLocaleDateString()}</Text>
+                    <Text style={styles.leaveType}>{item.title}</Text>
+                  </View>
+                </View>
+                <View style={styles.leaveActions}>
+                  <TouchableOpacity style={styles.approveButton} onPress={() => {/* Handle Approve */}}>
+                    <Text style={styles.approveButtonText}>Approve</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-            <View style={styles.leaveActions}>
-              <TouchableOpacity style={styles.cancelButton}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.approveButton}>
-                <Text style={styles.approveButtonText}>Approve</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            ))
+          ) : (
+            <Text style={{ textAlign: 'center', marginVertical: 10, color: 'gray' }}>No pending requests</Text>
+          )}
         </View>
+
         <TouchableOpacity 
           style={{ backgroundColor: '#10B981', padding: 15, marginHorizontal: 8, marginTop: 15, borderRadius: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
           onPress={() => navigation.navigate("FaceRecognition", { mode: 'attendance' })}
@@ -114,12 +170,12 @@ const ManagerHomeScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.attendanceContainer} >
-          <Text style={styles.attendanceTitle}>Total Attendance</Text>
+          <Text style={styles.attendanceTitle}>Total Attendance (Today)</Text>
           <View style={styles.attendanceList}>
-            {EmployeesAttendance.map((list) => (
+            {overviewItems.slice(0, 3).map((list) => (
               <View style={styles.attendanceItem} key={list.id}>
-                <View className={`h-16 w-16 flex-row items-center justify-center ${list.count > 50 ? 'bg-green-100' : list.count > 10 ? 'bg-orange-100' : 'bg-red-100'} mx-auto rounded-full`}>
-                  <Text className={`text-[17px] ${list.count > 50 ? 'text-green-600' : list.count > 10 ? 'text-orange-400' : 'text-red-500'} font-medium`}>
+                <View className={`h-16 w-16 flex-row items-center justify-center ${list.count > 0 ? 'bg-green-100' : 'bg-gray-100'} mx-auto rounded-full`}>
+                  <Text className={`text-[17px] ${list.count > 0 ? 'text-green-600' : 'text-gray-400'} font-medium`}>
                     {list.count}
                   </Text>
                 </View>

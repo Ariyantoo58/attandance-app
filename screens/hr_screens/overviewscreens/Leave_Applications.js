@@ -1,15 +1,53 @@
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native'
-import React, { useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native'
+import React, { useState, useEffect } from 'react';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { leaveApplications } from '../../../services/hrservices/LeaveApplications';
+import { apiService } from '../../../services/api';
+import { useSelector } from 'react-redux';
 
 const Leave_Applications = () => {
     const navigation = useNavigation();
+    const { user } = useSelector(state => state.auth);
     const [filter, setFilter] = useState('Waiting');
+    const [requests, setRequests] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const filteredTasks = leaveApplications.filter(task =>
-        filter === 'Waiting' ? true : task.application === filter
+    useEffect(() => {
+        loadRequests();
+    }, []);
+
+    const loadRequests = async () => {
+        try {
+            setLoading(true);
+            const data = await apiService.getAllTimeOffRequests();
+            setRequests(data);
+        } catch (error) {
+            console.error('Failed to load leave requests:', error);
+            Alert.alert('Error', 'Failed to load requests');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateStatus = async (id, status) => {
+        try {
+            await apiService.updateTimeOffStatus(id, status, user?.id);
+            Alert.alert('Success', `Request marked as ${status}`);
+            loadRequests();
+        } catch (error) {
+            Alert.alert('Error', 'Failed to update status');
+        }
+    };
+
+    const getStatusQuery = (f) => {
+        if (f === 'Waiting') return 'SUBMITTED';
+        if (f === 'Approved') return 'ACCEPTED';
+        if (f === 'Cancelled') return 'REJECTED';
+        return f;
+    };
+
+    const filteredTasks = requests.filter(task =>
+        task.status === getStatusQuery(filter)
     );
 
     return (
@@ -35,29 +73,41 @@ const Leave_Applications = () => {
                         </TouchableOpacity>
                     ))}
                 </View>
-                {filteredTasks.map((list) => (
-                    <View style={styles.leaveApplicationItem} key={list.id}>
-                        <View style={styles.leaveApplicationInfo}>
-                            <Image
-                                source={{ uri: list.img }}
-                                style={styles.leaveApplicationImage}
-                            />
-                            <View style={styles.leaveApplicationText}>
-                                <Text style={styles.leaveApplicantName}>{list.name}</Text>
-                                <Text style={styles.leaveDates}>{list.date}</Text>
-                                <Text style={styles.leaveType}>{list.type}</Text>
+                {loading ? (
+                    <ActivityIndicator size="large" color="#2D3748" style={{ marginTop: 50 }} />
+                ) : filteredTasks.length > 0 ? (
+                    filteredTasks.map((task) => (
+                        <View style={styles.leaveApplicationItem} key={task.id}>
+                            <View style={styles.leaveApplicationInfo}>
+                                <Image
+                                    source={{ uri: task.employee?.avatarUrl || 'https://img.freepik.com/free-photo/front-view-man-posing_23-2148364843.jpg' }}
+                                    style={styles.leaveApplicationImage}
+                                />
+                                <View style={styles.leaveApplicationText}>
+                                    <Text style={styles.leaveApplicantName}>{task.employee?.name}</Text>
+                                    <Text style={styles.leaveDates}>{new Date(task.fromdate).toLocaleDateString()} - {new Date(task.todate).toLocaleDateString()}</Text>
+                                    <Text style={styles.leaveType}>{task.title}</Text>
+                                </View>
+                            </View>
+                            <View style={styles.leaveActions}>
+                                {task.status === 'SUBMITTED' && (
+                                    <>
+                                        <TouchableOpacity style={styles.cancelButton} onPress={() => handleUpdateStatus(task.id, 'REJECTED')}>
+                                            <Text style={styles.cancelButtonText}>Reject</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={styles.approveButton} onPress={() => handleUpdateStatus(task.id, 'ACCEPTED')}>
+                                            <Text style={styles.approveButtonText}>Approve</Text>
+                                        </TouchableOpacity>
+                                    </>
+                                )}
                             </View>
                         </View>
-                        <View style={styles.leaveActions}>
-                            <TouchableOpacity style={styles.cancelButton}>
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.approveButton}>
-                                <Text style={styles.approveButtonText}>Approve</Text>
-                            </TouchableOpacity>
-                        </View>
+                    ))
+                ) : (
+                    <View style={{ marginTop: 50, alignItems: 'center' }}>
+                        <Text style={{ color: 'gray' }}>No requests in this category</Text>
                     </View>
-                ))}
+                )}
             </ScrollView>
         </View >
     )
