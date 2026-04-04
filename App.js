@@ -38,6 +38,7 @@ import EmployeeDetails from './screens/hr_screens/employeedetails/EmployeeDetail
 import FaceRecognitionScreen from './screens/employee_screens/FaceRecognitionScreen';
 import ManagerCustomDrawerContent from './screens/hr_screens/drawescreens/ManagerCustomDrawerContent';
 import EmployeeEdit from './screens/hr_screens/add_new_employee/EmployeeEdit';
+import TaskDetail from './screens/common/TaskDetail';
 // import AutorityScreen from './screens/AutorityScreen'
 
 const Stack = createNativeStackNavigator();
@@ -273,6 +274,8 @@ function EmployeeStackNavigator() {
             <Stack.Screen name="ProfileDetails" component={ProfileDetails} />
             <Stack.Screen name="ProfileSetting" component={ProfileSetting} />
             <Stack.Screen name="FaceRecognition" component={FaceRecognitionScreen} />
+            <Stack.Screen name="TaskDetail" component={TaskDetail} />
+            <Stack.Screen name="TaskCreation" component={TaskCreation} />
         </Stack.Navigator>
     );
 }
@@ -293,6 +296,7 @@ function ManagerStackNavigator() {
             <Stack.Screen name="EmployeeDetails" component={EmployeeDetails} />
             <Stack.Screen name="EmployeeEdit" component={EmployeeEdit} />
             <Stack.Screen name="FaceRecognition" component={FaceRecognitionScreen} />
+            <Stack.Screen name="TaskDetail" component={TaskDetail} />
         </Stack.Navigator>
     );
 }

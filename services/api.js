@@ -96,6 +96,18 @@ export const apiService = {
     const response = await apiClient.patch(`/tasks/update-status/${taskId}`, { status });
     return response.data;
   },
+  updateTaskProgress: async (taskId, progress) => {
+    const response = await apiClient.patch(`/tasks/update-progress/${taskId}`, { progress });
+    return response.data;
+  },
+  updateTask: async (taskId, data) => {
+    const response = await apiClient.patch(`/tasks/${taskId}`, data);
+    return response.data;
+  },
+  assignTask: async (data) => {
+    const response = await apiClient.post('/tasks', data);
+    return response.data;
+  },
 
   // Payroll
   getPayroll: async (employeeId) => {
@@ -156,8 +168,8 @@ export const apiService = {
     const response = await apiClient.get('/attendance/daily', { params: { date } });
     return response.data;
   },
-  getAllTasks: async () => {
-    const response = await apiClient.get('/tasks/all');
+  getAllTasks: async (params) => {
+    const response = await apiClient.get('/tasks/all', { params });
     return response.data;
   },
   createEmployee: async (data) => {
