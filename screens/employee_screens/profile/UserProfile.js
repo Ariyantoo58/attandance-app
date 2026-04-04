@@ -20,7 +20,7 @@ const UserProfile = () => {
   };
 
   return (
-    <ScrollView className="pt-10 bg-blue-50 h-full">
+    <ScrollView contentContainerStyle={{ paddingBottom: 100 }} className="pt-10 bg-blue-50">
       <View className="flex-row items-center justify-between p-4">
         <TouchableOpacity className="flex-row items-center space-x-1 bg-blue-400 rounded-md py-1 px-1" onPress={() => navigation.goBack()}>
           <AntDesign name="left" size={18} color="white" />

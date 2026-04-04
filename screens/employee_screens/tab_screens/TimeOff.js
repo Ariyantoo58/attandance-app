@@ -63,7 +63,7 @@ const TimeOff = () => {
   };
 
   return (
-    <ScrollView className="pt-12 px-5 h-full bg-blue-50">
+    <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className="pt-12 px-5 bg-blue-50">
       <View className="flex-row items-center justify-between">
         <Text className="text-[20px] font-semibold">Time Off</Text>
         <TouchableOpacity className="bg-white rounded-full p-0.5" onPress={() => navigate.navigate("Send_Timeoff_Form")}>

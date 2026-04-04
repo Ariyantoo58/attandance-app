@@ -64,7 +64,7 @@ const StartingScreen = () => {
   return (
     <View style={{ flex: 1, backgroundColor: '#eff6ff' }}>
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
       <View className="px-5 py-4 flex-row justify-between items-center">
         <View className="flex-row items-center space-x-3">
           <TouchableOpacity className="h-14 w-14 bg-white rounded-full p-[3px] overflow-hidden" onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>

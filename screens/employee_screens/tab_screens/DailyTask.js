@@ -59,7 +59,7 @@ const DailyTask = () => {
   };
 
   return (
-    <ScrollView className="pt-12 px-5 h-full bg-blue-50">
+    <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className="pt-12 px-5 bg-blue-50">
       <Text className="text-[20px] font-semibold">Task</Text>
       <View className="flex-row items-center justify-between py-4">
         {['All', 'Pending', 'InProgress', 'Complete'].map(status => (
