@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Platform, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Platform, StyleSheet, ActivityIndicator } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import RNPickerSelect from 'react-native-picker-select';
+import { apiService } from '../../../services/api';
+import { useSelector } from 'react-redux';
+import { Alert } from 'react-native';
 
 const Send_Timeoff_Form = () => {
     const navigation = useNavigation();
@@ -16,26 +19,47 @@ const Send_Timeoff_Form = () => {
     const [selectedField, setSelectedField] = useState('');
     const [showDateTimePicker, setShowDateTimePicker] = useState(false);
     const [mode, setMode] = useState('date');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Attempt to get employeeId from nested or flat user object
+    const authState = useSelector(state => state.auth.user);
+    const employeeId = authState?.employeeId || authState?.user?.employeeId;
+    const userRole = authState?.role || authState?.user?.role;
 
-    const handleSend = () => {
-        const requestData = {
-            type,
-            reason,
-            isFullDay,
-            startDate,
-            endDate,
-            halfDayTime
-        };
+    const handleSend = async () => {
+        if (!type || !reason || !startDate || !endDate) {
+            Alert.alert("Error", "Please fill all required fields.");
+            return;
+        }
 
-        console.log(requestData);
-        setType("");
-        setReason("");
-        setIsFullDay("");
-        setStartDate("");
-        setEndDate("");
-        setHalfDayTime("");
+        try {
+            setIsSubmitting(true);
+            const requestData = {
+                employeeId,
+                title: `Leave Request: ${type}`,
+                description: `${reason}${isFullDay ? ` (${isFullDay}${halfDayTime ? ` - ${new Date(halfDayTime).toLocaleTimeString()}` : ''})` : ''}`,
+                fromdate: startDate,
+                todate: endDate,
+                type: type.toUpperCase().replace(" ", "_")
+            };
 
-        navigation.goBack();
+            await apiService.requestTimeOff(requestData);
+            Alert.alert("Success", "Leave request submitted successfully.");
+            
+            setType("");
+            setReason("");
+            setIsFullDay("");
+            setStartDate("");
+            setEndDate("");
+            setHalfDayTime("");
+
+            navigation.goBack();
+        } catch (error) {
+            console.error("Failed to submit leave request:", error);
+            Alert.alert("Error", "Failed to submit request. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const openDateTimePicker = (field, mode) => {
@@ -125,8 +149,16 @@ const Send_Timeoff_Form = () => {
                     <Text>{endDate ? endDate : 'Select Date'}</Text>
                 </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
-                <Text style={styles.sendButtonText}>Submit</Text>
+            <TouchableOpacity 
+                onPress={handleSend} 
+                style={[styles.sendButton, isSubmitting && { opacity: 0.7 }]} 
+                disabled={isSubmitting}
+            >
+                {isSubmitting ? (
+                    <ActivityIndicator color="white" />
+                ) : (
+                    <Text style={styles.sendButtonText}>Submit</Text>
+                )}
             </TouchableOpacity>
             {showDateTimePicker && (
                 <DateTimePicker

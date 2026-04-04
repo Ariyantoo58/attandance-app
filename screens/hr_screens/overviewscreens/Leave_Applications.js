@@ -7,7 +7,8 @@ import { useSelector } from 'react-redux';
 
 const Leave_Applications = () => {
     const navigation = useNavigation();
-    const { user } = useSelector(state => state.auth);
+    const authState = useSelector(state => state.auth.user);
+    const userId = authState?.id || authState?.user?.id;
     const [filter, setFilter] = useState('Waiting');
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -31,7 +32,7 @@ const Leave_Applications = () => {
 
     const handleUpdateStatus = async (id, status) => {
         try {
-            await apiService.updateTimeOffStatus(id, status, user?.id);
+            await apiService.updateTimeOffStatus(id, status, userId);
             Alert.alert('Success', `Request marked as ${status}`);
             loadRequests();
         } catch (error) {
@@ -49,6 +50,16 @@ const Leave_Applications = () => {
     const filteredTasks = requests.filter(task =>
         task.status === getStatusQuery(filter)
     );
+
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+        });
+    };
 
     return (
         <View className="py-4 bg-gray-800 h-[150vh]">
@@ -85,7 +96,10 @@ const Leave_Applications = () => {
                                 />
                                 <View style={styles.leaveApplicationText}>
                                     <Text style={styles.leaveApplicantName}>{task.employee?.name}</Text>
-                                    <Text style={styles.leaveDates}>{new Date(task.fromdate).toLocaleDateString()} - {new Date(task.todate).toLocaleDateString()}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <AntDesign name="calendar" size={10} color="#A0AEC0" />
+                                        <Text style={styles.leaveDates}> {formatDate(task.fromdate)} - {formatDate(task.todate)}</Text>
+                                    </View>
                                     <Text style={styles.leaveType}>{task.title}</Text>
                                 </View>
                             </View>

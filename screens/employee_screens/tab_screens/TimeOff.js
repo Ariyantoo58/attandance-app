@@ -34,16 +34,29 @@ const TimeOff = () => {
     filter === 'All' ? true : task.status === filter
   );
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
   const getStatusStyle = (status) => {
     switch (status) {
-      case 'Pending':
-        return { backgroundColor: 'orange' };
-      case 'Accepted':
-        return { backgroundColor: '#008000' };
+      case 'SUBMITTED':
       case 'Submited':
         return { backgroundColor: '#0000FF' };
+      case 'ACCEPTED':
+      case 'Accepted':
+        return { backgroundColor: '#008000' };
+      case 'REJECTED':
       case 'Rejected':
-        return { backgroundColor: '#FFA500' };
+        return { backgroundColor: '#FF0000' };
+      case 'PENDING':
+        return { backgroundColor: 'orange' };
       default:
         return { backgroundColor: 'gray' };
     }
@@ -58,13 +71,13 @@ const TimeOff = () => {
         </TouchableOpacity>
       </View>
       <View className="flex-row items-center justify-between py-4">
-        {['All', 'Accepted', 'Submited', 'Rejected'].map(status => (
+        {['All', 'SUBMITTED', 'ACCEPTED', 'REJECTED'].map(status => (
           <TouchableOpacity
             key={status}
             onPress={() => setFilter(status)}
-            className={`rounded-md px-4 py-2 ${filter === status ? 'bg-blue-200' : 'bg-blue-50'}`}
+            className={`rounded-md px-3 py-2 ${filter === status ? 'bg-blue-200' : 'bg-blue-50'}`}
           >
-            <Text className="text-[#00a2e4] font-medium">{status}</Text>
+            <Text className="text-[#00a2e4] font-medium text-[12px]">{status === 'SUBMITTED' ? 'Sent' : status === 'ACCEPTED' ? 'Approved' : status === 'REJECTED' ? 'Rejected' : 'All'}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -75,8 +88,12 @@ const TimeOff = () => {
             <View className="bg-white p-2.5 w-full rounded-tr-md rounded-br-md flex-row items-center justify-between">
               <View className="">
                 <Text className="text-[16px] font-medium">{item.title}</Text>
-                <Text className="text-[12px] pt-1  text-gray-500">{item.fromdate}</Text>
-                <Text className="text-[12px] text-gray-500">{item.todate}</Text>
+                <View className="flex-row items-center pt-1">
+                  <Feather name="calendar" size={10} color="gray" />
+                  <Text className="text-[11px] text-gray-500 ml-1">
+                    {formatDate(item.fromdate)} - {formatDate(item.todate)}
+                  </Text>
+                </View>
               </View>
               <View>
                 <Text className={`py-1 px-3 font-medium rounded-md text-white`} style={getStatusStyle(item.status)}>
