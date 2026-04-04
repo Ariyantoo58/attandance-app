@@ -190,7 +190,7 @@ const History = () => {
                         <Text style={styles.monthText}>{new Date(item.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
                         <View style={styles.locationTag}>
                           <Ionicons name="location" size={12} color="#6B7280" />
-                          <Text style={styles.locationText}>{item.location || 'Office'}</Text>
+                          <Text style={styles.locationText}>{item.clockInLocation || item.clockOutLocation || 'Office'}</Text>
                         </View>
                       </View>
                       <View style={[styles.statusBadge, { backgroundColor: item.clockOut ? '#def7ec' : '#fef3c7' }]}>

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Image, Animated, Easing, Dimensions, Platform } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,11 +16,19 @@ export default function FaceRecognitionScreen() {
     const { user } = useSelector(state => state.auth);
     const { employeeId } = route.params || {};
     const [permission, requestPermission] = useCameraPermissions();
+    const [locationPermission, setLocationPermission] = useState(null);
     const [photos, setPhotos] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const cameraRef = useRef(null);
     const scanAnim = useRef(new Animated.Value(0)).current;
     const guideAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        (async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            setLocationPermission(status === 'granted');
+        })();
+    }, []);
 
     useEffect(() => {
         const guideLoop = Animated.loop(
@@ -176,6 +185,21 @@ export default function FaceRecognitionScreen() {
                 });
                 const currentEmployeeId = user?.employeeId || user?.id;
                 if (currentEmployeeId) formData.append('employeeId', currentEmployeeId);
+
+                // Get Location
+                let latitude = null;
+                let longitude = null;
+                try {
+                    const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                    latitude = location.coords.latitude;
+                    longitude = location.coords.longitude;
+                    formData.append('latitude', latitude.toString());
+                    formData.append('longitude', longitude.toString());
+                } catch (locError) {
+                    console.log("Location Error:", locError);
+                    // Continue without location if it fails, or maybe enforce it?
+                    // User said "merekam lokasi", so we should ideally have it.
+                }
 
                 const data = await apiService.recognizeFace(formData);
                 if (data.recognized) {

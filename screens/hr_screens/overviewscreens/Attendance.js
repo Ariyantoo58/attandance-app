@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet, Image, ActivityIndicator, Alert, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet, Image, ActivityIndicator, Alert, Dimensions, Platform } from 'react-native';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import moment from 'moment';
@@ -14,10 +15,35 @@ const Attendance = () => {
   const [selectedMonth, setSelectedMonth] = useState(moment().format('MMMM'));
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [history, setHistory] = useState([]);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedHistoryDay, setSelectedHistoryDay] = useState(moment().format('YYYY-MM-DD'));
+
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+  const [region, setRegion] = useState({
+    latitude: -6.200000, 
+    longitude: 106.816666, 
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
 
   useEffect(() => {
     loadDaily();
   }, []);
+
+  useEffect(() => {
+    if (dailyLogs.length > 0) {
+      const logsWithLoc = dailyLogs.filter(l => (l.clockInLat && l.clockInLng) || (l.clockOutLat && l.clockOutLng));
+      if (logsWithLoc.length > 0) {
+        const firstLoc = logsWithLoc[0];
+        setRegion({
+          ...region,
+          latitude: firstLoc.clockInLat || firstLoc.clockOutLat,
+          longitude: firstLoc.clockInLng || firstLoc.clockOutLng,
+        });
+      }
+    }
+  }, [dailyLogs]);
 
   const loadDaily = async () => {
     try {
@@ -85,9 +111,17 @@ const Attendance = () => {
       }
 
       days.push(
-        <View key={day} style={[styles.daySquare, { backgroundColor: color }]}>
+        <TouchableOpacity 
+          key={day} 
+          style={[
+            styles.daySquare, 
+            { backgroundColor: color },
+            selectedHistoryDay === dateStr && styles.selectedDayBorder
+          ]}
+          onPress={() => setSelectedHistoryDay(dateStr)}
+        >
           <Text style={[styles.dayText, { color: textColor }]}>{day + 1}</Text>
-        </View>
+        </TouchableOpacity>
       );
     }
     return days;
@@ -102,14 +136,102 @@ const Attendance = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.header}>Daily Attendance</Text>
-        <Text style={styles.dateSubheader}>{moment().format('DD MMM YYYY')}</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.header}>Daily Attendance</Text>
+            <Text style={styles.dateSubheader}>{moment().format('DD MMM YYYY')}</Text>
+          </View>
+          <View style={styles.tabsContainer}>
+            <TouchableOpacity 
+                style={[styles.tabBtn, viewMode === 'list' && styles.activeTabBtn]} 
+                onPress={() => setViewMode('list')}
+            >
+                <Ionicons name="list" size={20} color={viewMode === 'list' ? '#FFFFFF' : '#6B7280'} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+                style={[styles.tabBtn, viewMode === 'map' && styles.activeTabBtn]} 
+                onPress={() => setViewMode('map')}
+            >
+                <Ionicons name="map" size={20} color={viewMode === 'map' ? '#FFFFFF' : '#6B7280'} />
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       {loading ? (
           <View style={styles.centerBox}>
             <ActivityIndicator size="large" color="#3B82F6" />
           </View>
+      ) : viewMode === 'map' ? (
+        <View style={styles.fullMapContainer}>
+          <MapView
+            style={styles.fullMap}
+            region={region}
+          >
+            {dailyLogs.map(log => {
+                const results = [];
+                const isSame = log.clockInLat === log.clockOutLat && log.clockInLng === log.clockOutLng;
+                
+                if (log.clockInLat && log.clockOutLat) {
+                    results.push(
+                        <Polyline 
+                            key={`${log.id}-path`}
+                            coordinates={[
+                                { latitude: log.clockInLat, longitude: log.clockInLng },
+                                { latitude: log.clockOutLat + (isSame ? 0.0001 : 0), longitude: log.clockOutLng + (isSame ? 0.0001 : 0) }
+                            ]}
+                            strokeColor="#3B82F6"
+                            strokeWidth={2}
+                            lineDashPattern={[5, 5]}
+                        />
+                    );
+                }
+
+                if (log.clockInLat && log.clockInLng) {
+                    results.push(
+                        <Marker
+                            key={`${log.id}-in`}
+                            coordinate={{ latitude: log.clockInLat, longitude: log.clockInLng }}
+                            title={`${log.employee?.name} (In)`}
+                            description={`Time: ${moment(log.clockIn).format('HH:mm')}`}
+                            zIndex={1}
+                        >
+                            <View style={styles.customMarker}>
+                                <Image source={{ uri: log.employee?.avatarUrl || 'https://i.pravatar.cc/150?u=' + log.employee?.id }} style={[styles.markerImage, { borderColor: '#10B981' }]} />
+                                <View style={[styles.markerPointer, { borderTopColor: '#10B981' }]} />
+                            </View>
+                        </Marker>
+                    );
+                }
+
+                if (log.clockOutLat && log.clockOutLng) {
+                    results.push(
+                        <Marker
+                            key={`${log.id}-out`}
+                            coordinate={{ 
+                                latitude: log.clockOutLat + (isSame ? 0.0002 : 0), 
+                                longitude: log.clockOutLng + (isSame ? 0.0002 : 0) 
+                            }}
+                            title={`${log.employee?.name} (Out)`}
+                            description={`Time: ${moment(log.clockOut).format('HH:mm')}`}
+                            zIndex={2}
+                        >
+                            <View style={styles.customMarker}>
+                                <Image source={{ uri: log.employee?.avatarUrl || 'https://i.pravatar.cc/150?u=' + log.employee?.id }} style={[styles.markerImage, { borderColor: '#EF4444' }]} />
+                                <View style={[styles.markerPointer, { borderTopColor: '#EF4444' }]} />
+                            </View>
+                        </Marker>
+                    );
+                }
+                return results;
+            })}
+          </MapView>
+          
+          <View style={styles.mapStatsBtn}>
+             <Ionicons name="people" size={16} color="#3B82F6" />
+             <Text style={styles.mapStatsText}>{dailyLogs.filter(l => (l.clockInLat || l.clockOutLat)).length} People Tracked</Text>
+          </View>
+        </View>
       ) : (
         <ScrollView 
             showsVerticalScrollIndicator={false}
@@ -126,19 +248,33 @@ const Attendance = () => {
                 style={styles.employeeImage} 
               />
               <View style={styles.employeeInfo}>
-                <Text style={styles.employeeName}>{log.employee?.name}</Text>
-                <View style={styles.timeRow}>
-                    <MaterialCommunityIcons name="clock-in" size={14} color="#10B981" />
-                    <Text style={styles.timeText}> {log.clockIn ? moment(log.clockIn).format('HH:mm') : '--:--'}</Text>
-                    <Text style={styles.timeSeparator}> | </Text>
-                    <MaterialCommunityIcons name="clock-out" size={14} color="#EF4444" />
-                    <Text style={styles.timeText}> {log.clockOut ? moment(log.clockOut).format('HH:mm') : '--:--'}</Text>
+                <View style={styles.cardHeader}>
+                    <Text style={styles.employeeName} numberOfLines={1}>{log.employee?.name}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: log.clockIn ? '#D1FAE5' : '#FEE2E2' }]}>
+                        <Text style={[styles.statusText, { color: log.clockIn ? '#059669' : '#DC2626' }]}>
+                            {log.clockIn ? 'Present' : 'Absent'}
+                        </Text>
+                    </View>
                 </View>
-              </View>
-              <View style={[styles.statusBadge, { backgroundColor: log.clockIn ? '#D1FAE5' : '#FEE2E2' }]}>
-                <Text style={[styles.statusText, { color: log.clockIn ? '#059669' : '#DC2626' }]}>
-                    {log.clockIn ? 'Present' : 'Absent'}
-                </Text>
+                
+                <View style={styles.locationInfo}>
+                    <Ionicons name="location-outline" size={12} color="#6B7280" />
+                    <Text style={styles.locationLabelText} numberOfLines={1} ellipsizeMode="tail"> 
+                      {log.clockInLocation || 'No data'} {log.clockOutLocation ? `• ${log.clockOutLocation}` : ''}
+                    </Text>
+                </View>
+
+                <View style={styles.timeRow}>
+                    <View style={styles.timePill}>
+                         <MaterialCommunityIcons name="clock-in" size={12} color="#10B981" />
+                         <Text style={styles.timeText}> {log.clockIn ? moment(log.clockIn).format('HH:mm') : '--:--'}</Text>
+                    </View>
+                    <View style={styles.timePillSeparator} />
+                    <View style={styles.timePill}>
+                         <MaterialCommunityIcons name="clock-out" size={12} color="#EF4444" />
+                         <Text style={styles.timeText}> {log.clockOut ? moment(log.clockOut).format('HH:mm') : '--:--'}</Text>
+                    </View>
+                </View>
               </View>
             </TouchableOpacity>
           )) : (
@@ -215,8 +351,137 @@ const Attendance = () => {
                     </View>
                 </View>
               </View>
+
+              <View style={styles.historyMapSection}>
+                <Text style={styles.activityTitle}>Location Details - {moment(selectedHistoryDay).format('DD MMM')}</Text>
+                <View style={styles.detailMapContainer}>
+                   {(() => {
+                      const dayLog = history.find(l => moment(l.date).format('YYYY-MM-DD') === selectedHistoryDay);
+                      if (dayLog && (dayLog.clockInLat || dayLog.clockOutLat)) {
+                        return (
+                          <MapView
+                            style={styles.detailMap}
+                            initialRegion={{
+                              latitude: dayLog.clockInLat || dayLog.clockOutLat,
+                              longitude: dayLog.clockInLng || dayLog.clockOutLng,
+                              latitudeDelta: 0.01,
+                              longitudeDelta: 0.01,
+                            }}
+                          >
+                             {(() => {
+                               const isSameHPoint = dayLog.clockInLat === dayLog.clockOutLat && dayLog.clockInLng === dayLog.clockOutLng;
+                               if (dayLog.clockInLat && dayLog.clockOutLat) {
+                                 return (
+                                   <Polyline 
+                                     coordinates={[
+                                       { latitude: dayLog.clockInLat, longitude: dayLog.clockInLng },
+                                       { latitude: dayLog.clockOutLat + (isSameHPoint ? 0.0001 : 0), longitude: dayLog.clockOutLng + (isSameHPoint ? 0.0001 : 0) }
+                                     ]}
+                                     strokeColor="#3B82F6"
+                                     strokeWidth={3}
+                                     lineDashPattern={[5, 10]}
+                                   />
+                                 );
+                               }
+                               return null;
+                             })()}
+                             {dayLog.clockInLat && (
+                                <Marker
+                                  coordinate={{ latitude: dayLog.clockInLat, longitude: dayLog.clockInLng }}
+                                  title="Clock In"
+                                  description={moment(dayLog.clockIn).format('HH:mm')}
+                                  pinColor="#10B981"
+                                  zIndex={1}
+                                />
+                             )}
+                             {dayLog.clockOutLat && (
+                                <Marker
+                                  coordinate={{ 
+                                    latitude: dayLog.clockOutLat + (dayLog.clockInLat === dayLog.clockOutLat ? 0.0001 : 0), 
+                                    longitude: dayLog.clockOutLng + (dayLog.clockInLng === dayLog.clockOutLng ? 0.0001 : 0) 
+                                  }}
+                                  title="Clock Out"
+                                  description={moment(dayLog.clockOut).format('HH:mm')}
+                                  pinColor="#EF4444"
+                                  zIndex={2}
+                                />
+                             )}
+                          </MapView>
+                        );
+                      }
+                      return (
+                        <View style={styles.noMapData}>
+                          <Ionicons name="map-outline" size={40} color="#D1D5DB" />
+                          <Text style={styles.noMapDataText}>No location data for this day</Text>
+                        </View>
+                      );
+                   })()}
+                </View>
+              </View>
             </ScrollView>
           </SafeAreaView>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showMapModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowMapModal(false)}
+      >
+        <View style={styles.mapModalOverlay}>
+          <View style={styles.mapModalContent}>
+            <View style={styles.mapModalHeader}>
+              <View>
+                <Text style={styles.mapModalTitle}>Attendance Location</Text>
+                <Text style={styles.mapModalSubtitle}>{selectedLocation?.employeeName} at {selectedLocation?.time}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowMapModal(false)} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color="#4B5563" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.mapContainer}>
+              {selectedLocation && (
+                <MapView
+                  style={styles.map}
+                  initialRegion={{
+                    latitude: selectedLocation.clockInLat || selectedLocation.clockOutLat,
+                    longitude: selectedLocation.clockInLng || selectedLocation.clockOutLng,
+                    latitudeDelta: 0.015,
+                    longitudeDelta: 0.015,
+                  }}
+                >
+                  {selectedLocation.clockInLat && (
+                    <Marker
+                      coordinate={{
+                        latitude: selectedLocation.clockInLat,
+                        longitude: selectedLocation.clockInLng,
+                      }}
+                      title={`${selectedLocation.employeeName} (Clock In)`}
+                      description={`In at ${selectedLocation.clockInTime}`}
+                      pinColor="#10B981"
+                    />
+                  )}
+                  {selectedLocation.clockOutLat && (
+                    <Marker
+                      coordinate={{
+                        latitude: selectedLocation.clockOutLat,
+                        longitude: selectedLocation.clockOutLng,
+                      }}
+                      title={`${selectedLocation.employeeName} (Clock Out)`}
+                      description={`Out at ${selectedLocation.clockOutTime}`}
+                      pinColor="#EF4444"
+                    />
+                  )}
+                </MapView>
+              )}
+            </View>
+            
+            <TouchableOpacity style={styles.doneButton} onPress={() => setShowMapModal(false)}>
+                <Text style={styles.doneButtonText}>Selesai</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -231,6 +496,31 @@ const styles = StyleSheet.create({
   headerContainer: {
     paddingHorizontal: 20,
     paddingVertical: 15,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 2,
+  },
+  tabBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeTabBtn: {
+    backgroundColor: '#3B82F6',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   header: {
     fontSize: 28,
@@ -273,34 +563,65 @@ const styles = StyleSheet.create({
   },
   employeeInfo: {
     flex: 1,
+    justifyContent: 'center',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   employeeName: {
     fontSize: 16,
     fontWeight: '700',
     color: '#1F2937',
-    marginBottom: 4,
+    flex: 1,
+    marginRight: 8,
+  },
+  locationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  locationLabelText: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginLeft: 4,
+    flex: 1,
   },
   timeRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  timeText: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
+  timePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  timeSeparator: {
-    color: '#D1D5DB',
-    marginHorizontal: 4,
+  timeText: {
+    fontSize: 12,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  timePillSeparator: {
+    width: 8,
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    minWidth: 65,
+    alignItems: 'center',
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -414,6 +735,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  selectedDayBorder: {
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+  },
   legendRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -437,6 +762,190 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     fontWeight: '600',
+  },
+  historyListSection: {
+    marginTop: 10,
+    paddingBottom: 40,
+  },
+  activityTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 15,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 10,
+  },
+  activityDate: {
+    width: 50,
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#E5E7EB',
+    paddingRight: 10,
+    marginRight: 15,
+  },
+  activityDay: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  activityMonth: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+  },
+  activityInfo: {
+    flex: 1,
+  },
+  historyMapSection: {
+    marginTop: 10,
+    marginBottom: 30,
+  },
+  detailMapContainer: {
+    height: 200,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  detailMap: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  noMapData: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noMapDataText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginTop: 8,
+  },
+  noHistoryText: {
+    textAlign: 'center',
+    color: '#9CA3AF',
+    marginTop: 20,
+    fontStyle: 'italic',
+  },
+  mapIconBtn: {
+    marginLeft: 10,
+    padding: 8,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 10,
+  },
+  mapModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  mapModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    width: '100%',
+    height: '70%',
+    padding: 20,
+    overflow: 'hidden',
+  },
+  mapModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  mapModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  mapModalSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  mapContainer: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F3F4F6',
+    marginBottom: 20,
+  },
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  doneButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  fullMapContainer: {
+    flex: 1,
+    width: '100%',
+  },
+  fullMap: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  customMarker: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  markerImage: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+    backgroundColor: '#FFFFFF',
+  },
+  markerPointer: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 10,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#3B82F6',
+    marginTop: -4,
+    alignSelf: 'center',
+  },
+  mapStatsBtn: {
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    right: 20,
+    backgroundColor: 'white',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  mapStatsText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+    marginLeft: 8,
   },
 });
 
