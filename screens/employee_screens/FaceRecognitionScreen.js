@@ -135,6 +135,8 @@ export default function FaceRecognitionScreen() {
         try {
             if (mode === 'registration') {
                 let successCount = 0;
+                let lastErrorMessage = "Wajah tidak terdeteksi dengan jelas.";
+                
                 for (let uri of capturedPhotos) {
                     const formData = new FormData();
                     formData.append('file', {
@@ -150,9 +152,18 @@ export default function FaceRecognitionScreen() {
                         headers: { 'Content-Type': 'multipart/form-data' },
                     });
                     
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.status === 'success') successCount++;
+                    const data = await response.json();
+                    if (response.ok && data.status === 'success') {
+                        successCount++;
+                    } else {
+                        lastErrorMessage = data.message || lastErrorMessage;
+                        // Jika wajah sudah terdaftar di orang lain, batalkan proses dan beri tahu user
+                        if (lastErrorMessage.includes("sudah terdaftar")) {
+                            Alert.alert("Registrasi Ditolak", lastErrorMessage);
+                            setIsProcessing(false);
+                            setPhotos([]);
+                            return;
+                        }
                     }
                 }
                 
@@ -161,7 +172,7 @@ export default function FaceRecognitionScreen() {
                         { text: "OK", onPress: () => navigation.goBack() }
                     ]);
                 } else {
-                    Alert.alert("Gagal", "Wajah tidak terdeteksi dengan jelas.");
+                    Alert.alert("Gagal Registrasi", lastErrorMessage);
                 }
             } else {
                 const formData = new FormData();

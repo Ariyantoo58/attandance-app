@@ -43,37 +43,34 @@ const EmployeeEdit = () => {
     const [loading, setLoading] = useState(false);
     const [faceStatus, setFaceStatus] = useState({ registered: false, message: '' });
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const depts = await apiService.getDepartments();
-                if (Array.isArray(depts)) {
-                    setDepartments(depts.map(d => ({ label: d.name, value: d.id })));
-                }
-            } catch (error) {
-                console.error('Failed to fetch departments:', error);
-            }
+    useFocusEffect(
+        React.useCallback(() => {
+            const fetchData = async () => {
+                setLoading(true);
+                try {
+                    const depts = await apiService.getDepartments();
+                    if (Array.isArray(depts)) {
+                        setDepartments(depts.map(d => ({ label: d.name, value: d.id })));
+                    }
 
-            try {
-                const posts = await apiService.getPositions();
-                if (Array.isArray(posts)) {
-                    setPositions(posts.map(p => ({ label: p.title, value: p.id })));
-                }
-            } catch (error) {
-                console.error('Failed to fetch positions:', error);
-            }
+                    const posts = await apiService.getPositions();
+                    if (Array.isArray(posts)) {
+                        setPositions(posts.map(p => ({ label: p.title, value: p.id })));
+                    }
 
-            try {
-                const status = await apiService.checkFaceStatus(employee.id);
-                if (status) {
-                    setFaceStatus(status);
+                    const status = await apiService.checkFaceStatus(employee.id);
+                    if (status) {
+                        setFaceStatus(status);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch screen data:', error);
+                } finally {
+                    setLoading(false);
                 }
-            } catch (error) {
-                console.error('Failed to fetch face status:', error);
-            }
-        };
-        fetchData();
-    }, []);
+            };
+            fetchData();
+        }, [employee.id])
+    );
 
     const handleResetFace = async () => {
         Alert.alert(
@@ -354,20 +351,41 @@ const EmployeeEdit = () => {
                         />
                     </View>
 
-                    {faceStatus.registered && (
-                        <View style={styles.faceDataCard}>
-                            <View>
-                                <Text style={styles.faceDataTitle}>Face Data Detected</Text>
-                                <Text style={styles.faceDataSub}>Employee has verification access</Text>
-                            </View>
+                    <View style={[
+                        styles.faceDataCard, 
+                        { 
+                            backgroundColor: faceStatus.registered ? '#FEF2F2' : '#F0FDF4', 
+                            borderColor: faceStatus.registered ? '#FEE2E2' : '#DCFCE7' 
+                        }
+                    ]}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.faceDataTitle, { color: faceStatus.registered ? '#991B1B' : '#166534' }]}>
+                                {faceStatus.registered ? 'Face Data Detected' : 'Face Data Not Registered'}
+                            </Text>
+                            <Text style={[styles.faceDataSub, { color: faceStatus.registered ? '#B91C1C' : '#15803D' }]}>
+                                {faceStatus.registered ? 'Employee has verification access' : 'Enroll face data for attendance'}
+                            </Text>
+                        </View>
+                        {faceStatus.registered ? (
                             <TouchableOpacity
                                 style={styles.resetButton}
                                 onPress={handleResetFace}
                             >
                                 <Text style={styles.resetButtonText}>Reset Face</Text>
                             </TouchableOpacity>
-                        </View>
-                    )}
+                        ) : (
+                            <TouchableOpacity
+                                style={[styles.resetButton, { backgroundColor: '#3B82F6' }]}
+                                onPress={() => navigation.navigate("FaceRecognition", {
+                                    mode: 'registration',
+                                    employeeId: employee.id,
+                                    employeeName: employeeName || 'Employee'
+                                })}
+                            >
+                                <Text style={styles.resetButtonText}>Register</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
 
                     <TouchableOpacity
                         style={styles.updateButton}

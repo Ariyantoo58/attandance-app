@@ -34,11 +34,13 @@ const ProfileSetting = () => {
     const [mobileNo, setMobileNo] = useState('');
     const [address, setAddress] = useState('');
 
-    useEffect(() => {
-        if (employeeId) {
-            loadProfile();
-        }
-    }, [employeeId]);
+    useFocusEffect(
+        useCallback(() => {
+            if (employeeId) {
+                loadProfile();
+            }
+        }, [employeeId, loadProfile])
+    );
 
     const loadProfile = useCallback(async () => {
         try {
