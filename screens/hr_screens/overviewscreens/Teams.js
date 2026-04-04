@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Modal, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
-import { API_BASE_URL } from '../../../config';
+import { apiService } from '../../../services/api';
 
 // Placeholder images (replace with actual image paths)
 const placeholderImage = 'https://www.nordstudio.ch/wp/wp-content/uploads/2018/02/mitarbeiter-business-fotos_06.jpg';
@@ -17,17 +17,15 @@ const Teams = () => {
 
     const fetchEmployees = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/employees`);
-            if (response.ok) {
-                const data = await response.json();
-                setEmployees(data);
-            }
+            const data = await apiService.getAllEmployees();
+            setEmployees(data);
         } catch (error) {
             console.error('Error fetching employees:', error);
         } finally {
             setLoading(false);
         }
     };
+
 
     const renderItem = ({ item }) => (
         <TouchableOpacity style={styles.teamItem} onPress={() => setSelectedTeam(item)}>

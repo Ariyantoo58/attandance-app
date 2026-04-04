@@ -5,7 +5,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { API_BASE_URL } from '../../config';
+import { apiService } from '../../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -144,20 +144,13 @@ export default function FaceRecognitionScreen() {
                         name: 'photo.jpg',
                         type: 'image/jpeg',
                     });
-                    formData.append('employeeId', employeeId || user?.user?.employeeId || user?.user?.id);
+                    formData.append('employeeId', employeeId || user?.employeeId || user?.id);
                     
-                    const response = await fetch(`${API_BASE_URL}/face-recognition/register`, {
-                        method: 'POST',
-                        body: formData,
-                        headers: { 'Content-Type': 'multipart/form-data' },
-                    });
-                    
-                    const data = await response.json();
-                    if (response.ok && data.status === 'success') {
+                    const data = await apiService.registerFace(formData);
+                    if (data.status === 'success') {
                         successCount++;
                     } else {
                         lastErrorMessage = data.message || lastErrorMessage;
-                        // Jika wajah sudah terdaftar di orang lain, batalkan proses dan beri tahu user
                         if (lastErrorMessage.includes("sudah terdaftar")) {
                             Alert.alert("Registrasi Ditolak", lastErrorMessage);
                             setIsProcessing(false);
@@ -181,36 +174,27 @@ export default function FaceRecognitionScreen() {
                     name: 'photo.jpg',
                     type: 'image/jpeg',
                 });
-                const currentEmployeeId = user?.user?.employeeId || user?.user?.id;
+                const currentEmployeeId = user?.employeeId || user?.id;
                 if (currentEmployeeId) formData.append('employeeId', currentEmployeeId);
 
-                const response = await fetch(`${API_BASE_URL}/face-recognition/recognize`, {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.recognized) {
-                        Alert.alert("Berhasil!", `Halo, ${data.name}! Absensi telah dicatat.`, [
-                            { text: "OK", onPress: () => navigation.goBack() }
-                        ]);
-                    } else {
-                        Alert.alert("Info", data.message || "Wajah tidak cocok.");
-                    }
+                const data = await apiService.recognizeFace(formData);
+                if (data.recognized) {
+                    Alert.alert("Berhasil!", `Halo, ${data.name}! Absensi telah dicatat.`, [
+                        { text: "OK", onPress: () => navigation.goBack() }
+                    ]);
                 } else {
-                    Alert.alert("Error", "Gagal mengenali wajah.");
+                    Alert.alert("Info", data.message || "Wajah tidak cocok.");
                 }
             }
         } catch (error) {
             console.error("API Error:", error);
-            Alert.alert("Gagal", "Koneksi ke server gagal.");
+            Alert.alert("Gagal", "Koneksi ke server gagal atau sesi berakhir.");
         } finally {
             setIsProcessing(false);
             setPhotos([]);
         }
     };
+
 
     return (
         <View style={styles.container}>

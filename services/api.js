@@ -1,176 +1,198 @@
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../config';
 
-const fetchWithTimeout = async (url, options = {}, timeout = 10000) => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  const response = await fetch(url, {
-    ...options,
-    signal: controller.signal,
-  });
-  clearTimeout(id);
-  return response;
-};
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request Interceptor
+apiClient.interceptors.request.use(
+  async (config) => {
+    const token = await AsyncStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response Interceptor
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+        const userStr = await AsyncStorage.getItem('user');
+        const userData = userStr ? JSON.parse(userStr) : null;
+        const user = userData?.user || userData;
+
+        if (!refreshToken || !user) throw new Error('No refresh token');
+
+        const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+          userId: user.id || user.sub,
+          refreshToken,
+        });
+
+
+        await AsyncStorage.setItem('accessToken', data.access_token);
+        await AsyncStorage.setItem('refreshToken', data.refresh_token);
+
+        apiClient.defaults.headers.Authorization = `Bearer ${data.access_token}`;
+        originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
+
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        // Clear tokens and logout if refresh fails
+        await AsyncStorage.clear();
+        return Promise.reject(refreshError);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const apiService = {
   // Attendance
   clockIn: async (employeeId, location, deviceInfo) => {
-    const response = await fetch(`${API_BASE_URL}/attendance/clock-in`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ employeeId, location, deviceInfo }),
-    });
-    return response.json();
+    const response = await apiClient.post('/attendance/clock-in', { employeeId, location, deviceInfo });
+    return response.data;
   },
   clockOut: async (employeeId) => {
-    const response = await fetch(`${API_BASE_URL}/attendance/clock-out`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ employeeId }),
-    });
-    return response.json();
+    const response = await apiClient.post('/attendance/clock-out', { employeeId });
+    return response.data;
   },
   getAttendanceHistory: async (employeeId, skip, take) => {
-    let url = `${API_BASE_URL}/attendance/history/${employeeId}`;
-    const params = new URLSearchParams();
-    if (skip !== undefined) params.append('skip', skip);
-    if (take !== undefined) params.append('take', take);
-    if (params.toString()) url += `?${params.toString()}`;
-    const response = await fetch(url);
-    return response.json();
+    const response = await apiClient.get(`/attendance/history/${employeeId}`, {
+      params: { skip, take }
+    });
+    return response.data;
   },
-
 
   // Time Off
   getTimeOffRequests: async (employeeId) => {
-    const response = await fetch(`${API_BASE_URL}/time-off/employee/${employeeId}`);
-    return response.json();
+    const response = await apiClient.get(`/time-off/employee/${employeeId}`);
+    return response.data;
   },
   requestTimeOff: async (data) => {
-    const response = await fetch(`${API_BASE_URL}/time-off/request`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return response.json();
+    const response = await apiClient.post('/time-off/request', data);
+    return response.data;
   },
 
   // Tasks
   getTasks: async (employeeId) => {
-    const response = await fetch(`${API_BASE_URL}/tasks/employee/${employeeId}`);
-    return response.json();
+    const response = await apiClient.get(`/tasks/employee/${employeeId}`);
+    return response.data;
   },
   updateTaskStatus: async (taskId, status) => {
-    const response = await fetch(`${API_BASE_URL}/tasks/update-status/${taskId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    return response.json();
+    const response = await apiClient.patch(`/tasks/update-status/${taskId}`, { status });
+    return response.data;
   },
 
   // Payroll
   getPayroll: async (employeeId) => {
-    const response = await fetch(`${API_BASE_URL}/payroll/employee/${employeeId}`);
-    return response.json();
+    const response = await apiClient.get(`/payroll/employee/${employeeId}`);
+    return response.data;
   },
 
   // Notifications
   getNotifications: async (employeeId) => {
-    const response = await fetch(`${API_BASE_URL}/notifications/employee/${employeeId}`);
-    return response.json();
+    const response = await apiClient.get(`/notifications/employee/${employeeId}`);
+    return response.data;
   },
   markNotificationRead: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/notifications/mark-read/${id}`, {
-      method: 'PATCH',
-    });
-    return response.json();
+    const response = await apiClient.patch(`/notifications/mark-read/${id}`);
+    return response.data;
   },
 
   // Employee Profile
   getEmployeeProfile: async (employeeId) => {
-    const response = await fetch(`${API_BASE_URL}/employees/${employeeId}`);
-    return response.json();
+    const response = await apiClient.get(`/employees/${employeeId}`);
+    return response.data;
   },
   updateEmployeeProfile: async (employeeId, data) => {
-    const response = await fetch(`${API_BASE_URL}/employees/${employeeId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return response.json();
+    const response = await apiClient.patch(`/employees/${employeeId}`, data);
+    return response.data;
   },
 
   // HR / Admin Dashboard
   getHrSummary: async () => {
-    const response = await fetch(`${API_BASE_URL}/hr-dashboard/summary`);
-    return response.json();
+    const response = await apiClient.get('/hr-dashboard/summary');
+    return response.data;
   },
   getRecentLeaves: async () => {
-    const response = await fetch(`${API_BASE_URL}/hr-dashboard/recent-leaves`);
-    return response.json();
+    const response = await apiClient.get('/hr-dashboard/recent-leaves');
+    return response.data;
   },
   getAllEmployees: async () => {
-    const response = await fetch(`${API_BASE_URL}/employees`);
-    return response.json();
+    const response = await apiClient.get('/employees');
+    return response.data;
   },
   getDepartments: async () => {
-    const response = await fetch(`${API_BASE_URL}/employees/departments`);
-    return response.json();
+    const response = await apiClient.get('/employees/departments');
+    return response.data;
   },
   getPositions: async () => {
-    const response = await fetch(`${API_BASE_URL}/employees/positions`);
-    const text = await response.text();
-    console.log("Positions raw response:", text);
-    if (!text) return [];
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      console.error("JSON Parse Error on positions:", e);
-      return [];
-    }
+    const response = await apiClient.get('/employees/positions');
+    return response.data;
   },
   updateTimeOffStatus: async (id, status, approvedBy) => {
-    const response = await fetch(`${API_BASE_URL}/time-off/update-status/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, approvedBy }),
-    });
-    return response.json();
+    const response = await apiClient.patch(`/time-off/update-status/${id}`, { status, approvedBy });
+    return response.data;
   },
   getAllTimeOffRequests: async () => {
-    const response = await fetch(`${API_BASE_URL}/time-off/all`);
-    return response.json();
+    const response = await apiClient.get('/time-off/all');
+    return response.data;
   },
   getDailyAttendance: async (date) => {
-    const response = await fetch(`${API_BASE_URL}/attendance/daily?date=${date || ''}`);
-    return response.json();
+    const response = await apiClient.get('/attendance/daily', { params: { date } });
+    return response.data;
   },
   getAllTasks: async () => {
-    const response = await fetch(`${API_BASE_URL}/tasks/all`);
-    return response.json();
+    const response = await apiClient.get('/tasks/all');
+    return response.data;
   },
   createEmployee: async (data) => {
-    const response = await fetch(`${API_BASE_URL}/employees`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return response.json();
+    const response = await apiClient.post('/employees', data);
+    return response.data;
   },
   removeEmployee: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/employees/${id}`, {
-      method: 'DELETE',
-    });
-    return response.json();
+    const response = await apiClient.delete(`/employees/${id}`);
+    return response.data;
   },
   checkFaceStatus: async (employeeId) => {
-    const response = await fetch(`${API_BASE_URL}/face-recognition/status/${employeeId}`);
-    return response.json();
+    const response = await apiClient.get(`/face-recognition/status/${employeeId}`);
+    return response.data;
   },
   resetFaceData: async (employeeId) => {
-    const response = await fetch(`${API_BASE_URL}/face-recognition/reset/${employeeId}`, {
-      method: 'DELETE',
+    const response = await apiClient.delete(`/face-recognition/reset/${employeeId}`);
+    return response.data;
+  },
+  getCurrentUser: async () => {
+    const response = await apiClient.get('/auth/profile');
+    return response.data;
+  },
+  registerFace: async (formData) => {
+    const response = await apiClient.post('/face-recognition/register', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return response.json();
+    return response.data;
+  },
+  recognizeFace: async (formData) => {
+    const response = await apiClient.post('/face-recognition/recognize', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
   },
 };
+
+
+
