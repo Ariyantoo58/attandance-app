@@ -411,14 +411,18 @@ const Attendance = () => {
                                }
                                return null;
                              })()}
-                             {dayLog.clockInLat && (
+                              {dayLog.clockInLat && (
                                 <Marker
                                   coordinate={{ latitude: dayLog.clockInLat, longitude: dayLog.clockInLng }}
                                   title="Clock In"
                                   description={moment(dayLog.clockIn).format('HH:mm')}
-                                  pinColor="#10B981"
                                   zIndex={1}
-                                />
+                                >
+                                  <View style={styles.customMarker}>
+                                      <Image source={{ uri: selectedEmployee?.avatarUrl || 'https://i.pravatar.cc/150?u=' + selectedEmployee?.id }} style={[styles.markerImage, { borderColor: '#10B981' }]} />
+                                      <View style={[styles.markerPointer, { borderTopColor: '#10B981' }]} />
+                                  </View>
+                                </Marker>
                              )}
                              {dayLog.clockOutLat && (
                                 <Marker
@@ -428,9 +432,13 @@ const Attendance = () => {
                                   }}
                                   title="Clock Out"
                                   description={moment(dayLog.clockOut).format('HH:mm')}
-                                  pinColor="#EF4444"
                                   zIndex={2}
-                                />
+                                >
+                                  <View style={styles.customMarker}>
+                                      <Image source={{ uri: selectedEmployee?.avatarUrl || 'https://i.pravatar.cc/150?u=' + selectedEmployee?.id }} style={[styles.markerImage, { borderColor: '#EF4444' }]} />
+                                      <View style={[styles.markerPointer, { borderTopColor: '#EF4444' }]} />
+                                  </View>
+                                </Marker>
                              )}
                           </MapView>
                         );
@@ -486,8 +494,12 @@ const Attendance = () => {
                       }}
                       title={`${selectedLocation.employeeName} (Clock In)`}
                       description={`In at ${selectedLocation.clockInTime}`}
-                      pinColor="#10B981"
-                    />
+                    >
+                      <View style={styles.customMarker}>
+                          <Image source={{ uri: selectedLocation?.avatarUrl || 'https://i.pravatar.cc/150?u=' + selectedLocation?.employeeId }} style={[styles.markerImage, { borderColor: '#10B981' }]} />
+                          <View style={[styles.markerPointer, { borderTopColor: '#10B981' }]} />
+                      </View>
+                    </Marker>
                   )}
                   {selectedLocation.clockOutLat && (
                     <Marker
@@ -497,8 +509,12 @@ const Attendance = () => {
                       }}
                       title={`${selectedLocation.employeeName} (Clock Out)`}
                       description={`Out at ${selectedLocation.clockOutTime}`}
-                      pinColor="#EF4444"
-                    />
+                    >
+                      <View style={styles.customMarker}>
+                          <Image source={{ uri: selectedLocation?.avatarUrl || 'https://i.pravatar.cc/150?u=' + selectedLocation?.employeeId }} style={[styles.markerImage, { borderColor: '#EF4444' }]} />
+                          <View style={[styles.markerPointer, { borderTopColor: '#EF4444' }]} />
+                      </View>
+                    </Marker>
                   )}
                 </MapView>
               )}
@@ -680,8 +696,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 20,
-    marginBottom: 10,
+    paddingVertical: 12,
+    marginBottom: 5,
   },
   modalTitle: {
     fontSize: 18,
@@ -701,7 +717,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 15,
   },
   statItem: {
     flex: 1,
@@ -721,7 +737,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   monthSelector: {
-    marginBottom: 24,
+    marginBottom: 15,
   },
   monthPill: {
     paddingHorizontal: 18,
@@ -743,11 +759,11 @@ const styles = StyleSheet.create({
   },
   calendarCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 15,
+    borderRadius: 16,
+    padding: 10,
     borderWidth: 1,
     borderColor: '#F3F4F6',
-    marginBottom: 30,
+    marginBottom: 12,
   },
   calendarGrid: {
     flexDirection: 'row',
@@ -755,12 +771,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   daySquare: {
-    width: (width - 70) / 7,
+    width: (width - 70) / 7.5,
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 3,
-    borderRadius: 12,
+    margin: 2,
+    borderRadius: 10,
   },
   dayText: {
     fontSize: 14,
@@ -773,8 +789,8 @@ const styles = StyleSheet.create({
   legendRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 20,
-    paddingTop: 20,
+    marginTop: 8,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
@@ -802,7 +818,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#111827',
-    marginBottom: 15,
+    marginBottom: 10,
   },
   activityItem: {
     flexDirection: 'row',
@@ -835,7 +851,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   historyMapSection: {
-    marginTop: 10,
+    marginTop: 0,
     marginBottom: 30,
   },
   detailMapContainer: {
