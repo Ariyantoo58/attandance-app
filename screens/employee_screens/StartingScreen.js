@@ -176,26 +176,35 @@ const StartingScreen = () => {
         {loading ? (
           <ActivityIndicator size="small" color="#00a2e4" className="mt-5" />
         ) : attendance.length > 0 ? (
-          <View className="space-y-2">
+          <View className="space-y-3">
             {attendance.slice(0, 5).map((item) => (
-              <View key={item.id} className="bg-white p-2.5 rounded-lg flex-row items-center justify-between">
-                <View className="flex-row space-x-3 pl-1">
-                  <View className="h-10 w-10 p-1.5 rounded-lg bg-[#f0f9ff] justify-center items-center">
-                    <Ionicons name="time-outline" size={20} color="#00a2e4" />
+              <View key={item.id} className="bg-white p-4 rounded-2xl flex-row items-center justify-between shadow-sm border border-slate-50">
+                <View className="flex-row items-center space-x-4">
+                  <View className={`h-12 w-12 rounded-xl justify-center items-center ${item.clockOut ? 'bg-green-50' : 'bg-amber-50'}`}>
+                    <Ionicons 
+                      name={item.clockOut ? "checkmark-circle" : "time"} 
+                      size={24} 
+                      color={item.clockOut ? "#10b981" : "#f59e0b"} 
+                    />
                   </View>
-                  <View className="space-y-0.5">
-                    <Text className="text-[15px] font-semibold">{item.status}</Text>
-                    <Text className="text-[11px] font-medium text-gray-400">{new Date(item.date).toLocaleDateString()}</Text>
+                  <View>
+                    <Text className="text-[15px] font-bold text-slate-800">
+                      {item.clockOut ? 'Completed' : 'Clocked In'}
+                    </Text>
+                    <Text className="text-[12px] font-medium text-slate-400">
+                      {new Date(item.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} • {item.location || 'Office'}
+                    </Text>
                   </View>
                 </View>
-                <View className="space-y-0.5 pr-1">
-                  <Text className="font-semibold">{formatTime(item.clockIn)}</Text>
-                  <Text className="text-right text-[12px] font-medium text-gray-400">{item.location || 'Office'}</Text>
+                <View className="items-end">
+                  <Text className="font-bold text-slate-700">{formatTime(item.clockIn)}</Text>
+                  <Text className="text-[11px] font-semibold text-slate-400 uppercase">In Time</Text>
                 </View>
               </View>
             ))}
           </View>
         ) : (
+
           <View className="py-4">
             <Text className="text-center font-medium text-gray-500">No Activity Available</Text>
           </View>

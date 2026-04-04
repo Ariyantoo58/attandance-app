@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, Alert, TouchableOpacity, ActivityIndicator, Platform, Switch, Image, SafeAreaView } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { Ionicons, AntDesign } from '@expo/vector-icons';
 import { apiService } from '../../../services/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -351,41 +351,43 @@ const EmployeeEdit = () => {
                         />
                     </View>
 
-                    <View style={[
-                        styles.faceDataCard, 
-                        { 
-                            backgroundColor: faceStatus.registered ? '#FEF2F2' : '#F0FDF4', 
-                            borderColor: faceStatus.registered ? '#FEE2E2' : '#DCFCE7' 
-                        }
-                    ]}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.faceDataTitle, { color: faceStatus.registered ? '#991B1B' : '#166534' }]}>
-                                {faceStatus.registered ? 'Face Data Detected' : 'Face Data Not Registered'}
-                            </Text>
-                            <Text style={[styles.faceDataSub, { color: faceStatus.registered ? '#B91C1C' : '#15803D' }]}>
-                                {faceStatus.registered ? 'Employee has verification access' : 'Enroll face data for attendance'}
-                            </Text>
+                    {employee?.user?.role?.toLowerCase() === 'employee' && (
+                        <View style={[
+                            styles.faceDataCard, 
+                            { 
+                                backgroundColor: faceStatus.registered ? '#FEF2F2' : '#F0FDF4', 
+                                borderColor: faceStatus.registered ? '#FEE2E2' : '#DCFCE7' 
+                            }
+                        ]}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={[styles.faceDataTitle, { color: faceStatus.registered ? '#991B1B' : '#166534' }]}>
+                                    {faceStatus.registered ? 'Face Data Detected' : 'Face Data Not Registered'}
+                                </Text>
+                                <Text style={[styles.faceDataSub, { color: faceStatus.registered ? '#B91C1C' : '#15803D' }]}>
+                                    {faceStatus.registered ? 'Employee has verification access' : 'Enroll face data for attendance'}
+                                </Text>
+                            </View>
+                            {faceStatus.registered ? (
+                                <TouchableOpacity
+                                    style={styles.resetButton}
+                                    onPress={handleResetFace}
+                                >
+                                    <Text style={styles.resetButtonText}>Reset Face</Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity
+                                    style={[styles.resetButton, { backgroundColor: '#3B82F6' }]}
+                                    onPress={() => navigation.navigate("FaceRecognition", {
+                                        mode: 'registration',
+                                        employeeId: employee.id,
+                                        employeeName: employeeName || 'Employee'
+                                    })}
+                                >
+                                    <Text style={styles.resetButtonText}>Register</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
-                        {faceStatus.registered ? (
-                            <TouchableOpacity
-                                style={styles.resetButton}
-                                onPress={handleResetFace}
-                            >
-                                <Text style={styles.resetButtonText}>Reset Face</Text>
-                            </TouchableOpacity>
-                        ) : (
-                            <TouchableOpacity
-                                style={[styles.resetButton, { backgroundColor: '#3B82F6' }]}
-                                onPress={() => navigation.navigate("FaceRecognition", {
-                                    mode: 'registration',
-                                    employeeId: employee.id,
-                                    employeeName: employeeName || 'Employee'
-                                })}
-                            >
-                                <Text style={styles.resetButtonText}>Register</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
+                    )}
 
                     <TouchableOpacity
                         style={styles.updateButton}

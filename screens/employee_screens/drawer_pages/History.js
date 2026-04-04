@@ -1,92 +1,281 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { AntDesign, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { AttendanceData } from '../../../services/AttendanceObj';
+import { useSelector } from 'react-redux';
+import { apiService } from '../../../services/api';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 const History = () => {
   const navigation = useNavigation();
-  const [filter, setFilter] = useState('All');
+  const { user } = useSelector(state => state.auth);
+  const employeeId = user?.user?.employeeId;
 
-  const filteredTasks = AttendanceData.filter(task =>
-    filter === 'All' ? true : task.att === filter
+  const [attendance, setAttendance] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [filter, setFilter] = useState('All');
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const PAGE_SIZE = 10;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (employeeId) {
+        setPage(0);
+        fetchHistory(0, true);
+      }
+    }, [employeeId, filter])
   );
 
+  const fetchHistory = async (skip = 0, isInitial = false) => {
+    // Ensure skip is a number
+    const skipVal = typeof skip === 'number' ? skip : 0;
+    
+    try {
+      if (isInitial) {
+        setLoading(true);
+        setHasMore(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const data = await apiService.getAttendanceHistory(employeeId, skipVal, PAGE_SIZE);
+      
+      if (isInitial) {
+        setAttendance(data);
+      } else {
+        // Append unique items only to avoid key duplicates
+        setAttendance(prev => {
+          const existingIds = new Set(prev.map(item => item.id));
+          const newItems = data.filter(item => !existingIds.has(item.id));
+          return [...prev, ...newItems];
+        });
+      }
+      
+      setHasMore(data.length === PAGE_SIZE);
+    } catch (error) {
+      console.error('Failed to fetch attendance history:', error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchHistory(nextPage * PAGE_SIZE, false);
+    }
+  };
+
+  const filteredAttendance = attendance.filter(item => {
+    if (filter === 'All') return true;
+    const itemDate = new Date(item.date);
+    const now = new Date();
+    if (filter === 'Weekly') {
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return itemDate >= weekAgo;
+    }
+    if (filter === 'Monthly') {
+      return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+    }
+    return true;
+  });
+
+
+  const formatTime = (date) => date ? new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+  const formatDate = (date) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const getDayName = (date) => new Date(date).toLocaleDateString('en-US', { weekday: 'short' });
+
+  const calculateHours = (clockIn, clockOut) => {
+    if (!clockIn || !clockOut) return '0h';
+    const diff = new Date(clockOut) - new Date(clockIn);
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  };
+
+  // Summary stats for current month
+  const currentMonthAttendance = attendance.filter(item => {
+    const itemDate = new Date(item.date);
+    const now = new Date();
+    return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+  });
+
+  const totalHours = currentMonthAttendance.reduce((acc, item) => {
+    if (item.clockIn && item.clockOut) {
+      return acc + (new Date(item.clockOut) - new Date(item.clockIn));
+    }
+    return acc;
+  }, 0);
+
+  const formattedTotalHours = `${Math.floor(totalHours / (1000 * 60 * 60))}h`;
+  const presentDays = currentMonthAttendance.length;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <AntDesign name="left" size={18} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Attendance</Text>
-        <View style={{ width: 32 }} /> 
-      </View>
-
-      <View style={styles.filterRow}>
-        {['All', 'Weekly', 'Monthly'].map(status => (
-          <TouchableOpacity
-            key={status}
-            onPress={() => setFilter(status)}
-            style={[styles.filterPill, filter === status && styles.activeFilterPill]}
-          >
-            <Text style={[styles.filterText, filter === status && styles.activeFilterText]}>{status}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Attendance For</Text>
-          <Text style={styles.summaryValue}>February</Text>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Total Hours</Text>
-          <Text style={styles.summaryValue}>410h</Text>
-        </View>
-      </View>
-
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#00a2e4', '#007bb0']}
+        style={styles.headerGradient}
       >
-        {filteredTasks && filteredTasks.map((list) => (
-          <TouchableOpacity key={list.id} style={styles.historyCard}>
-            <View style={styles.cardLeft}>
-              <View style={styles.iconBox}>
-                <MaterialCommunityIcons name="clock-check-outline" size={24} color="#3B82F6" />
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+              <AntDesign name="left" size={20} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Attendance History</Text>
+            <TouchableOpacity onPress={() => {
+              setPage(0);
+              fetchHistory(0, true);
+            }}>
+              <Ionicons name="refresh" size={22} color="white" />
+            </TouchableOpacity>
+
+          </View>
+
+          <View style={styles.summaryContainer}>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>This Month</Text>
+                <Text style={styles.summaryValue}>{presentDays} <Text style={styles.summarySubLabel}>Days</Text></Text>
               </View>
-              <View>
-                <Text style={styles.shiftType}>{list.shifttype}</Text>
-                <Text style={styles.dateText}>{list.date}</Text>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Total Hours</Text>
+                <Text style={styles.summaryValue}>{formattedTotalHours}</Text>
               </View>
             </View>
-            <View style={styles.cardRight}>
-              <Text style={styles.timeText}>{list.time}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: list.status === 'Present' ? '#D1FAE5' : '#FEE2E2' }]}>
-                <Text style={[styles.statusText, { color: list.status === 'Present' ? '#059669' : '#DC2626' }]}>
-                    {list.status}
-                </Text>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      <View style={styles.content}>
+        <View style={styles.filterRow}>
+          {['All', 'Weekly', 'Monthly'].map(status => (
+            <TouchableOpacity
+              key={status}
+              onPress={() => setFilter(status)}
+              style={[styles.filterPill, filter === status && styles.activeFilterPill]}
+            >
+              <Text style={[styles.filterText, filter === status && styles.activeFilterText]}>{status}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {loading ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color="#00a2e4" />
+          </View>
+        ) : (
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {filteredAttendance.length > 0 ? (
+              <>
+                {filteredAttendance.map((item) => (
+                  <View key={item.id} style={styles.historyCard}>
+                    <View style={styles.cardHeader}>
+                      <View style={styles.dateBlock}>
+                        <Text style={styles.dayText}>{getDayName(item.date)}</Text>
+                        <Text style={styles.dateNumberText}>{new Date(item.date).getDate()}</Text>
+                      </View>
+                      <View style={styles.infoBlock}>
+                        <Text style={styles.monthText}>{new Date(item.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
+                        <View style={styles.locationTag}>
+                          <Ionicons name="location" size={12} color="#6B7280" />
+                          <Text style={styles.locationText}>{item.location || 'Office'}</Text>
+                        </View>
+                      </View>
+                      <View style={[styles.statusBadge, { backgroundColor: item.clockOut ? '#def7ec' : '#fef3c7' }]}>
+                        <Text style={[styles.statusText, { color: item.clockOut ? '#03543f' : '#92400e' }]}>
+                          {item.clockOut ? 'Completed' : 'On Guard'}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.cardDivider} />
+                    
+                    <View style={styles.timeRow}>
+                      <View style={styles.timeItem}>
+                        <View style={[styles.iconBox, { backgroundColor: '#E0F2FE' }]}>
+                          <MaterialCommunityIcons name="clock-in" size={20} color="#00a2e4" />
+                        </View>
+                        <View>
+                          <Text style={styles.timeLabel}>Clock In</Text>
+                          <Text style={styles.timeValue}>{formatTime(item.clockIn)}</Text>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.verticalDivider} />
+                      
+                      <View style={styles.timeItem}>
+                        <View style={[styles.iconBox, { backgroundColor: '#FEF3C7' }]}>
+                          <MaterialCommunityIcons name="clock-out" size={20} color="#D97706" />
+                        </View>
+                        <View>
+                          <Text style={styles.timeLabel}>Clock Out</Text>
+                          <Text style={styles.timeValue}>{formatTime(item.clockOut)}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {item.clockIn && item.clockOut && (
+                      <View style={styles.durationFooter}>
+                        <Text style={styles.durationLabel}>Working Hours:</Text>
+                        <Text style={styles.durationValue}>{calculateHours(item.clockIn, item.clockOut)}</Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+
+                {hasMore && filter === 'All' && (
+                  <TouchableOpacity 
+                    style={styles.loadMoreButton} 
+                    onPress={loadMore}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? (
+                      <ActivityIndicator size="small" color="#00a2e4" />
+                    ) : (
+                      <Text style={styles.loadMoreText}>Load More</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : (
+
+
+              <View style={styles.emptyContainer}>
+                <View style={styles.emptyIconBg}>
+                  <Ionicons name="calendar-outline" size={60} color="#D1D5DB" />
+                </View>
+                <Text style={styles.emptyText}>No attendance records found</Text>
+                <Text style={styles.emptySubText}>Records for your selected filter will appear here.</Text>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-        {(!filteredTasks || filteredTasks.length === 0) && (
-            <View style={styles.emptyContainer}>
-                <Ionicons name="document-text-outline" size={48} color="#D1D5DB" />
-                <Text style={styles.emptyText}>No records found</Text>
-            </View>
+            )}
+          </ScrollView>
         )}
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#f8fafc',
+  },
+  headerGradient: {
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   header: {
     flexDirection: 'row',
@@ -97,138 +286,270 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    backgroundColor: '#3B82F6',
-    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontWeight: '800',
+    color: 'white',
+    letterSpacing: 0.5,
   },
-  filterRow: {
-    flexDirection: 'row',
+  summaryContainer: {
     paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  filterPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 100,
-    backgroundColor: '#FFFFFF',
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  activeFilterPill: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
-  },
-  filterText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  activeFilterText: {
-    color: '#FFFFFF',
+    marginTop: 10,
   },
   summaryCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 24,
     padding: 20,
-    marginBottom: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   summaryItem: {
     flex: 1,
     alignItems: 'center',
   },
   summaryLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
+    marginBottom: 6,
   },
   summaryValue: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '800',
-    color: '#3B82F6',
+    color: 'white',
+  },
+  summarySubLabel: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.7)',
   },
   summaryDivider: {
     width: 1,
-    height: '100%',
-    backgroundColor: '#F3F4F6',
+    height: '80%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  content: {
+    flex: 1,
+    marginTop: -20,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 15,
+    zIndex: 10,
+  },
+  filterPill: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: 'white',
+    marginRight: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  activeFilterPill: {
+    backgroundColor: '#007bb0',
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  activeFilterText: {
+    color: 'white',
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 30,
+    paddingBottom: 40,
+    paddingTop: 5,
   },
   historyCard: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    marginBottom: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    borderRadius: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
   },
-  cardLeft: {
+  dateBlock: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f1f5f9',
+    width: 50,
+    height: 55,
+    borderRadius: 12,
+    marginRight: 15,
+  },
+  dayText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748b',
+    textTransform: 'uppercase',
+  },
+  dateNumberText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1e293b',
+  },
+  infoBlock: {
+    flex: 1,
+  },
+  monthText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  locationTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationText: {
+    fontSize: 12,
+    color: '#64748b',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#f1f5f9',
+    marginVertical: 15,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timeItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
   iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#EFF6FF',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
-  shiftType: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 2,
+  timeLabel: {
+    fontSize: 11,
+    color: '#94a3b8',
+    fontWeight: '600',
   },
-  dateText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  cardRight: {
-    alignItems: 'flex-end',
-  },
-  timeText: {
+  timeValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
+    color: '#334155',
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+  verticalDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#f1f5f9',
+    marginHorizontal: 10,
   },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
+  durationFooter: {
+    marginTop: 15,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  durationLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginRight: 6,
+    fontWeight: '500',
+  },
+  durationValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#00a2e4',
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingTop: 50,
+    justifyContent: 'center',
+    marginTop: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIconBg: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   emptyText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: '#94a3b8',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  loadMoreButton: {
+    backgroundColor: 'white',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 10,
-    color: '#9CA3AF',
-    fontSize: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#00a2e4',
   },
 });
+
 
 export default History;

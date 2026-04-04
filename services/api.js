@@ -29,10 +29,16 @@ export const apiService = {
     });
     return response.json();
   },
-  getAttendanceHistory: async (employeeId) => {
-    const response = await fetch(`${API_BASE_URL}/attendance/history/${employeeId}`);
+  getAttendanceHistory: async (employeeId, skip, take) => {
+    let url = `${API_BASE_URL}/attendance/history/${employeeId}`;
+    const params = new URLSearchParams();
+    if (skip !== undefined) params.append('skip', skip);
+    if (take !== undefined) params.append('take', take);
+    if (params.toString()) url += `?${params.toString()}`;
+    const response = await fetch(url);
     return response.json();
   },
+
 
   // Time Off
   getTimeOffRequests: async (employeeId) => {

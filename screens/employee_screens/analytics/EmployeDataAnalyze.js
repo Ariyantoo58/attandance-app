@@ -1,323 +1,340 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { LineChart, PieChart, BarChart, ContributionGraph } from 'react-native-chart-kit';
+import React, { useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import { LineChart, PieChart, BarChart } from 'react-native-chart-kit';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSelector } from 'react-redux';
+import { apiService } from '../../../services/api';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Ionicons, AntDesign } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 const EmployeeDataAnalyze = () => {
-    const [selectedChart, setSelectedChart] = useState('work');
+    const navigation = useNavigation();
+    const { user } = useSelector(state => state.auth);
+    const employeeId = user?.user?.employeeId;
 
-    const chartsData = {
+    const [selectedChart, setSelectedChart] = useState('attendance');
+    const [loading, setLoading] = useState(true);
+    const [attendance, setAttendance] = useState([]);
+    
+    // Processed data for charts
+    const [chartData, setChartData] = useState({
+        attendance: {
+            pie: [],
+            bar: { labels: [], datasets: [{ data: [] }] },
+            line: { labels: [], datasets: [{ data: [] }] }
+        },
         work: {
             title: 'Work Analytics',
-            description: 'Track your work performance over time.',
-            pieChartData: [
-                { name: 'Completed', population: 70, color: '#4CAF50', legendFontColor: '#7F7F7F', legendFontSize: 15 },
-                { name: 'Pending', population: 30, color: '#FFC107', legendFontColor: '#7F7F7F', legendFontSize: 15 },
+            pie: [
+                { name: 'Completed', population: 70, color: '#4CAF50', legendFontColor: '#7F7F7F', legendFontSize: 12 },
+                { name: 'Pending', population: 30, color: '#FFC107', legendFontColor: '#7F7F7F', legendFontSize: 12 },
             ],
-            barChartData: {
-                labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+            bar: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
                 datasets: [{ data: [20, 45, 28, 80, 99], color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})` }],
-            },
-            lineChartData: {
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                datasets: [
-                    {
-                        data: [50, 70, 85, 60],
-                        color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`, // green for current data
-                    },
-                    {
-                        data: [30, 50, 60, 40],
-                        color: (opacity = 1) => `rgba(244, 67, 54, ${opacity})`, // red for previous data
-                    },
-                ],
-            },
-        },
-        attendance: {
-            title: 'Attendance Analytics',
-            description: 'Track your attendance over time.',
-            pieChartData: [
-                { name: 'Present', population: 80, color: '#4CAF50', legendFontColor: '#7F7F7F', legendFontSize: 15 },
-                { name: 'Absent', population: 20, color: '#FFC107', legendFontColor: '#7F7F7F', legendFontSize: 15 },
-            ],
-            barChartData: {
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                datasets: [{ data: [5, 10, 15, 8], color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})` }],
-            },
-            lineChartData: {
-                labels: ['January', 'February', 'March', 'April'],
-                datasets: [
-                    {
-                        data: [70, 60, 80, 75],
-                        color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`, // green for current data
-                    },
-                    {
-                        data: [60, 50, 70, 65],
-                        color: (opacity = 1) => `rgba(244, 67, 54, ${opacity})`, // red for previous data
-                    },
-                ],
-            },
-        },
-        performance: {
-            title: 'Performance Analytics',
-            description: 'Track your overall performance over time.',
-            pieChartData: [
-                { name: 'Excellent', population: 50, color: '#4CAF50', legendFontColor: '#7F7F7F', legendFontSize: 15 },
-                { name: 'Good', population: 30, color: '#2196F3', legendFontColor: '#7F7F7F', legendFontSize: 15 },
-                { name: 'Average', population: 20, color: '#FFC107', legendFontColor: '#7F7F7F', legendFontSize: 15 },
-            ],
-            barChartData: {
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                datasets: [{ data: [80, 85, 75, 90], color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})` }],
-            },
-            lineChartData: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
-                datasets: [
-                    {
-                        data: [70, 80, 85, 90, 75, 95, 70, 60],
-                        color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`, // green for current data
-                    },
-                    {
-                        data: [60, 70, 80, 85, 90, 80, 75, 90],
-                        color: (opacity = 1) => `rgba(244, 67, 54, ${opacity})`, // red for previous data
-                    },
-                ],
-            },
-        },
+            }
+        }
+    });
+
+    useFocusEffect(
+        useCallback(() => {
+            if (employeeId) {
+                fetchData();
+            }
+        }, [employeeId])
+    );
+
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            const attendanceData = await apiService.getAttendanceHistory(employeeId);
+            setAttendance(attendanceData);
+            processAttendanceData(attendanceData);
+        } catch (error) {
+            console.error('Failed to fetch analytics data:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const commitsData = [
-        { date: "2017-01-02", count: 1 },
-        { date: "2017-01-03", count: 1 },
-        { date: "2017-01-04", count: 1 },
-        { date: "2017-01-05", count: 1 },
-        { date: "2017-01-06", count: 1 },
-        { date: "2017-01-30", count: 1 },
-        { date: "2017-01-31", count: 1 },
-        { date: "2017-02-01", count: 1 },
-        { date: "2017-02-02", count: 1 },
-        { date: "2017-02-03", count: 1 },
-        { date: "2017-02-04", count: 1 },
-        { date: "2017-03-01", count: 1 },
-        { date: "2017-03-02", count: 1 },
-        { date: "2017-03-03", count: 1 },
-        { date: "2017-03-04", count: 1 },
-        { date: "2017-04-01", count: 1 },
-        { date: "2017-04-02", count: 1 },
-        { date: "2017-04-03", count: 1 },
-        { date: "2017-04-04", count: 1 },
-        { date: "2017-05-01", count: 1 },
-        { date: "2017-05-02", count: 1 },
-        { date: "2017-05-03", count: 1 },
-        { date: "2017-05-04", count: 1 },
-        { date: "2017-06-01", count: 1 },
-        { date: "2017-06-02", count: 1 },
-        { date: "2017-06-03", count: 1 },
-        { date: "2017-06-04", count: 1 },
-        { date: "2017-07-01", count: 1 },
-        { date: "2017-07-02", count: 1 },
-        { date: "2017-07-03", count: 1 },
-        { date: "2017-07-04", count: 1 },
-        { date: "2017-08-01", count: 1 },
-        { date: "2017-08-02", count: 1 },
-        { date: "2017-08-03", count: 1 },
-        { date: "2017-08-04", count: 1 },
-        { date: "2017-09-01", count: 1 },
-        { date: "2017-09-02", count: 1 },
-        { date: "2017-09-03", count: 1 },
-        { date: "2017-09-04", count: 1 },
-        { date: "2017-10-01", count: 1 },
-        { date: "2017-10-02", count: 1 },
-        { date: "2017-10-03", count: 1 },
-        { date: "2017-10-04", count: 1 },
-        { date: "2017-11-01", count: 1 },
-        { date: "2017-11-02", count: 1 },
-        { date: "2017-11-03", count: 1 },
-        { date: "2017-11-04", count: 1 },
-        { date: "2017-12-01", count: 1 },
-        { date: "2017-12-02", count: 1 },
-        { date: "2017-12-03", count: 1 },
-        { date: "2017-12-04", count: 1 }
-    ];
+    const processAttendanceData = (data) => {
+        if (!data || data.length === 0) return;
 
-    const renderChart = () => {
-        const chartData = chartsData[selectedChart];
-        const chartConfig = {
-            backgroundGradientFrom: '#FFFFFF',
-            backgroundGradientTo: '#FFFFFF',
-            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            strokeWidth: 2,
+        // 1. Pie Chart: Present vs Absent (Simplified: just present count for now vs 22 working days)
+        const presentCount = data.length;
+        const workingDaysInMonth = 22; // Assumption
+        const absentCount = Math.max(0, workingDaysInMonth - presentCount);
+
+        const pieData = [
+            { name: 'Present', population: presentCount, color: '#0ea5e9', legendFontColor: '#475569', legendFontSize: 12 },
+            { name: 'Absent/Off', population: absentCount, color: '#cbd5e1', legendFontColor: '#475569', legendFontSize: 12 },
+        ];
+
+        // 2. Bar Chart: Last 7 days status or Hours
+        // Let's do hours for last 5 entries
+        const recentEntries = [...data].reverse().slice(-5);
+        const barLabels = recentEntries.map(item => new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' }));
+        const barValues = recentEntries.map(item => {
+            if (item.clockIn && item.clockOut) {
+                return (new Date(item.clockOut) - new Date(item.clockIn)) / (1000 * 60 * 60);
+            }
+            return 8; // Default to 8 if not clocked out but present
+        });
+
+        const barData = {
+            labels: barLabels,
+            datasets: [{ data: barValues }],
         };
 
+        // 3. Line Chart: Trend over time
+        const lineData = {
+            labels: barLabels,
+            datasets: [{ 
+                data: barValues,
+                color: (opacity = 1) => `rgba(14, 165, 233, ${opacity})`,
+                strokeWidth: 2
+            }],
+        };
+
+        setChartData(prev => ({
+            ...prev,
+            attendance: {
+                pie: pieData,
+                bar: barData,
+                line: lineData
+            }
+        }));
+    };
+
+    const chartConfig = {
+        backgroundGradientFrom: '#ffffff',
+        backgroundGradientTo: '#ffffff',
+        decimalPlaces: 1,
+        color: (opacity = 1) => `rgba(14, 165, 233, ${opacity})`,
+        labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
+        style: { borderRadius: 16 },
+        propsForDots: {
+            r: '5',
+            strokeWidth: '2',
+            stroke: '#0ea5e9'
+        }
+    };
+
+    const renderChartGroup = () => {
+        if (loading) {
+            return (
+                <View style={styles.centerBox}>
+                    <ActivityIndicator size="large" color="#0ea5e9" />
+                    <Text style={styles.loadingText}>Analyzing your data...</Text>
+                </View>
+            );
+        }
+
+        const currentData = selectedChart === 'attendance' ? chartData.attendance : chartData.work;
+
+        if (selectedChart === 'attendance' && attendance.length === 0) {
+            return (
+                <View style={styles.centerBox}>
+                    <Ionicons name="bar-chart-outline" size={80} color="#e2e8f0" />
+                    <Text style={styles.emptyText}>No data available yet</Text>
+                    <Text style={styles.emptySubText}>Start clocking in to see your analytics</Text>
+                </View>
+            );
+        }
+
         return (
-            <View style={styles.chartContainer}>
-                <Text style={styles.chartTitle}>{chartData.title}</Text>
-                <Text style={styles.chartDescription}>{chartData.description}</Text>
-                <PieChart
-                    data={chartData.pieChartData}
-                    width={350}
-                    height={200}
-                    chartConfig={chartConfig}
-                    accessor="population"
-                    backgroundColor="transparent"
-                    style={{
-                        borderWidth: 0.2,
-                        borderRadius: 10,
-                    }}
-                />
-                {/* {selectedChart !== 'attendance' && (
-                    <> */}
-                        <BarChart
-                            data={chartData.barChartData}
-                            width={350}
-                            height={200}
-                            chartConfig={chartConfig}
-                            style={styles.chart}
-                            fromZero
-                            showBarTops={true}
-                            showValuesOnTopOfBars={true}
-                            withInnerLines={false}
-                        />
-                        <LineChart
-                            data={chartData.lineChartData}
-                            width={350}
-                            height={200}
-                            chartConfig={chartConfig}
-                            style={styles.chart}
-                            bezier
-                            withDots={true}
-                            withInnerLines={false}
-                            withOuterLines={true}
-                            formatYLabel={value => `${value}%`}
-                            fromZero
-                            withShadow={true}
-                            segments={5}
-                        />
-                    {/* </>
-                )} */}
-                {/* {selectedChart === 'attendance' && (
-                    <>
-                        <View style={styles.legendContainer}>
-                            <View style={styles.legendItem}>
-                                <View style={[styles.legendColor, { backgroundColor: '#161616' }]} />
-                                <Text style={styles.legendText}>Present</Text>
-                            </View>
-                            <View style={styles.legendItem}>
-                                <View style={[styles.legendColor, { backgroundColor: '#e3e3e3' }]} />
-                                <Text style={styles.legendText}>Absent</Text>
-                            </View>
-                        </View>
-                        <ScrollView horizontal>
-                            <ContributionGraph
-                                values={commitsData}
-                                endDate={new Date("2017-12-31")}
-                                numDays={365}
-                                width={1150}
-                                height={220}
-                                chartConfig={chartConfig}
-                                style={{
-                                    borderRadius: 10,
-                                    marginTop: 10
-                                }}
-                                showOutOfRangeDays={true}
-                                getMonthLabel={(index) => {
-                                    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                                    return months[index];
-                                }}
-                                accessor="count"
-                            // colorForValue={(value) => value > 0 ? '#0000FF' : '#ADD8E6'}
-                            />
-                        </ScrollView>
-                    </>
-                )} */}
-            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                <View style={styles.card}>
+                    <Text style={styles.chartTitle}>Monthly Distribution</Text>
+                    <PieChart
+                        data={currentData.pie}
+                        width={width - 60}
+                        height={180}
+                        chartConfig={chartConfig}
+                        accessor="population"
+                        backgroundColor="transparent"
+                        paddingLeft="15"
+                        absolute
+                    />
+                </View>
+
+                <View style={styles.card}>
+                    <Text style={styles.chartTitle}>Daily Working Hours</Text>
+                    <BarChart
+                        data={currentData.bar}
+                        width={width - 60}
+                        height={220}
+                        chartConfig={chartConfig}
+                        style={styles.chartStyle}
+                        fromZero
+                        showValuesOnTopOfBars
+                        withInnerLines={false}
+                    />
+                </View>
+
+                <View style={styles.card}>
+                    <Text style={styles.chartTitle}>Performance Trend</Text>
+                    <LineChart
+                        data={currentData.line}
+                        width={width - 60}
+                        height={220}
+                        chartConfig={chartConfig}
+                        bezier
+                        style={styles.chartStyle}
+                    />
+                </View>
+            </ScrollView>
         );
     };
 
     return (
-        <View style={styles.container}>
-            <View style={styles.filterContainer} className={`${selectedChart === 'attendance' ? 'pt-0' : ''}`}>
-                {Object.keys(chartsData).map((key) => (
-                    <FilterButton key={key} chartKey={key} selectedChart={selectedChart} onPress={() => setSelectedChart(key)} />
-                ))}
+        <View style={styles.mainContainer}>
+            <LinearGradient colors={['#00a2e4', '#007bb0']} style={styles.header}>
+                <SafeAreaView edges={['top']}>
+                    <View style={styles.headerRow}>
+                        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                            <AntDesign name="left" size={20} color="white" />
+                        </TouchableOpacity>
+                        <Text style={styles.headerTitle}>My Analytics</Text>
+                        <TouchableOpacity onPress={fetchData}>
+                            <Ionicons name="refresh" size={20} color="white" />
+                        </TouchableOpacity>
+                    </View>
+                    
+                    <View style={styles.filterContainer}>
+                        {['attendance', 'work'].map((key) => (
+                            <TouchableOpacity 
+                                key={key} 
+                                onPress={() => setSelectedChart(key)} 
+                                style={[styles.filterButton, selectedChart === key && styles.selectedFilterButton]}
+                            >
+                                <Text style={[styles.filterText, selectedChart === key && styles.selectedFilterText]}>
+                                    {key.charAt(0).toUpperCase() + key.slice(1)}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </SafeAreaView>
+            </LinearGradient>
+            
+            <View style={styles.content}>
+                {renderChartGroup()}
             </View>
-            {renderChart()}
         </View>
     );
 };
 
-const FilterButton = ({ chartKey, selectedChart, onPress }) => {
-    const isSelected = chartKey === selectedChart;
-    const chartTitle = chartKey.charAt(0).toUpperCase() + chartKey.slice(1);
-    return (
-        <TouchableOpacity onPress={onPress} style={[styles.filterButton, isSelected && styles.selectedFilterButton]}>
-            <Text style={styles.filterButtonText}>{chartTitle}</Text>
-        </TouchableOpacity>
-    );
-};
-
 const styles = StyleSheet.create({
-    container: {
+    mainContainer: {
         flex: 1,
+        backgroundColor: '#f8fafc',
+    },
+    header: {
+        paddingBottom: 25,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+    },
+    headerRow: {
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 30
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+    },
+    backButton: {
+        padding: 8,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 12,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: 'white',
     },
     filterContainer: {
         flexDirection: 'row',
-        marginBottom: 10,
-        marginTop: 40
+        paddingHorizontal: 20,
+        marginTop: 10,
     },
     filterButton: {
         paddingHorizontal: 20,
         paddingVertical: 10,
-        backgroundColor: '#bdbdbd',
-        borderRadius: 8,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        borderRadius: 14,
         marginRight: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     selectedFilterButton: {
-        backgroundColor: '#3B82F6',
+        backgroundColor: 'white',
+        borderColor: 'white',
     },
-    filterButtonText: {
-        color: 'white',
+    filterText: {
+        color: 'rgba(255,255,255,0.8)',
+        fontWeight: '700',
+        fontSize: 14,
     },
-    chartContainer: {
-        alignItems: 'center',
+    selectedFilterText: {
+        color: '#007bb0',
+    },
+    content: {
+        flex: 1,
+    },
+    scrollContent: {
+        padding: 20,
+        paddingBottom: 40,
+    },
+    card: {
+        backgroundColor: 'white',
+        borderRadius: 24,
+        padding: 20,
         marginBottom: 20,
-    },
-    chart: {
-        marginTop: 15,
-        borderRadius: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
     },
     chartTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        color: '#333333',
-    },
-    chartDescription: {
         fontSize: 16,
-        marginBottom: 20,
-        color: '#666666',
+        fontWeight: '700',
+        color: '#1e293b',
+        marginBottom: 15,
     },
-    legendContainer: {
-        flexDirection: 'row',
+    chartStyle: {
+        marginVertical: 8,
+        borderRadius: 16,
+    },
+    centerBox: {
+        flex: 1,
         justifyContent: 'center',
-        marginBottom: 5,
-        marginTop: 20
-    },
-    legendItem: {
-        flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 10,
+        padding: 40,
     },
-    legendColor: {
-        width: 15,
-        height: 15,
-        borderRadius: 3,
-        marginRight: 5,
+    loadingText: {
+        marginTop: 15,
+        color: '#64748b',
+        fontWeight: '500',
     },
-    legendText: {
+    emptyText: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#334155',
+        marginTop: 20,
+    },
+    emptySubText: {
         fontSize: 14,
+        color: '#94a3b8',
+        textAlign: 'center',
+        marginTop: 8,
+        lineHeight: 20,
     },
 });
 
 export default EmployeeDataAnalyze;
+
