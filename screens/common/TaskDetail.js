@@ -14,7 +14,7 @@ const TaskDetail = () => {
     const { task } = route.params;
 
     const userState = useSelector(state => state.auth.user?.user);
-    const isAdmin = userState?.role === 'ADMIN' || userState?.role === 'HR';
+    const isAdmin = ['ADMIN', 'HR', 'MANAGER'].includes(userState?.role?.toUpperCase());
 
     const [progress, setProgress] = useState(task.progress || 0);
     const [loading, setLoading] = useState(false);
@@ -24,6 +24,7 @@ const TaskDetail = () => {
     const [description, setDescription] = useState(task.description);
     const [priority, setPriority] = useState(task.priority || 'MEDIUM');
     const [category, setCategory] = useState(task.category || 'GENERAL');
+    const [status, setStatus] = useState(task.status || 'PENDING');
     
     // Multi-Select People
     const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([task.employeeId]);
@@ -61,12 +62,22 @@ const TaskDetail = () => {
     const handleUpdateProgress = async () => {
         setLoading(true);
         try {
-            await apiService.updateTaskProgress(task.id, progress);
-            Alert.alert("Success", "Progress updated successfully!");
+            // If user (admin or employee) updates progress via slider, 
+            // we use the updateTask endpoint to be sure status is also synced if needed.
+            let updatedStatus = status;
+            if (progress === 100) updatedStatus = 'COMPLETE';
+            else if (progress > 0) updatedStatus = 'IN_PROGRESS';
+            else if (progress === 0) updatedStatus = 'PENDING';
+
+            await apiService.updateTask(task.id, { 
+                progress,
+                status: updatedStatus
+            });
+            Alert.alert("Success", "Task updated successfully!");
             navigation.goBack();
         } catch (error) {
             console.error(error);
-            Alert.alert("Error", "Failed to update progress.");
+            Alert.alert("Error", "Failed to update task.");
         } finally {
             setLoading(false);
         }
@@ -95,7 +106,7 @@ const TaskDetail = () => {
                 priority,
                 category,
                 employeeId: firstId,
-                status: progress === 100 ? 'COMPLETE' : (progress > 0 ? 'IN_PROGRESS' : 'PENDING')
+                status: status // Use the manually selected status in edit mode
             });
 
             // If multi-assignment during edit
@@ -147,11 +158,9 @@ const TaskDetail = () => {
                         <AntDesign name="left" size={20} color="black" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Task Details</Text>
-                    {isAdmin && (
-                        <TouchableOpacity onPress={() => setIsEditing(!isEditing)} style={styles.editButton}>
-                            <Feather name={isEditing ? "x" : "edit-2"} size={20} color={isEditing ? "red" : "black"} />
-                        </TouchableOpacity>
-                    )}
+                    <TouchableOpacity onPress={() => setIsEditing(!isEditing)} style={styles.editButton}>
+                        <Feather name={isEditing ? "x" : (isAdmin ? "edit-2" : "edit")} size={20} color={isEditing ? "red" : "black"} />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Content */}
@@ -163,72 +172,104 @@ const TaskDetail = () => {
 
                     {isEditing ? (
                         <View style={styles.form}>
-                            <Text style={styles.label}>Title</Text>
-                            <TextInput 
-                                style={styles.input} 
-                                value={title} 
-                                onChangeText={setTitle} 
-                                placeholder="Task Title"
-                            />
-                            
-                            <Text style={styles.label}>Assign To (Multiple allowed)</Text>
-                            <TouchableOpacity 
-                                style={styles.pickerWrapper} 
-                                onPress={() => setPickerModalVisible(true)}
-                            >
-                                <View style={{ padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Text style={{ flex: 1, color: '#374151' }} numberOfLines={1}>
-                                        {getSelectedNames() || 'Select people...'}
-                                    </Text>
-                                    <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
-                                </View>
-                            </TouchableOpacity>
-                            {selectedEmployeeIds.length > 1 && (
-                                <Text style={styles.batchInfo}>Note: This will create {selectedEmployeeIds.length - 1} extra copy/copies of this task.</Text>
+                            {isAdmin && (
+                                <>
+                                    <Text style={styles.label}>Title</Text>
+                                    <TextInput 
+                                        style={styles.input} 
+                                        value={title} 
+                                        onChangeText={setTitle} 
+                                        placeholder="Task Title"
+                                    />
+                                    
+                                    <Text style={styles.label}>Assign To (Multiple allowed)</Text>
+                                    <TouchableOpacity 
+                                        style={styles.pickerWrapper} 
+                                        onPress={() => setPickerModalVisible(true)}
+                                    >
+                                        <View style={{ padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Text style={{ flex: 1, color: '#374151' }} numberOfLines={1}>
+                                                {getSelectedNames() || 'Select people...'}
+                                            </Text>
+                                            <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                                        </View>
+                                    </TouchableOpacity>
+                                    {selectedEmployeeIds.length > 1 && (
+                                        <Text style={styles.batchInfo}>Note: This will create {selectedEmployeeIds.length - 1} extra copy/copies of this task.</Text>
+                                    )}
+
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                        <View style={{ width: '48%' }}>
+                                            <Text style={styles.label}>Category</Text>
+                                            <View style={styles.pickerWrapper}>
+                                                <RNPickerSelect
+                                                    onValueChange={(value) => setCategory(value)}
+                                                    value={category}
+                                                    items={[
+                                                        { label: 'General', value: 'GENERAL' },
+                                                        { label: 'Development', value: 'DEVELOPMENT' },
+                                                        { label: 'Design', value: 'DESIGN' },
+                                                        { label: 'Marketing', value: 'MARKETING' },
+                                                    ]}
+                                                    style={pickerSelectStyles}
+                                                />
+                                            </View>
+                                        </View>
+                                        <View style={{ width: '48%' }}>
+                                            <Text style={styles.label}>Priority</Text>
+                                            <View style={styles.pickerWrapper}>
+                                                <RNPickerSelect
+                                                    onValueChange={(value) => setPriority(value)}
+                                                    value={priority}
+                                                    items={[
+                                                        { label: 'Low', value: 'LOW' },
+                                                        { label: 'Medium', value: 'MEDIUM' },
+                                                        { label: 'High', value: 'HIGH' },
+                                                    ]}
+                                                    style={pickerSelectStyles}
+                                                />
+                                            </View>
+                                        </View>
+                                    </View>
+                                </>
                             )}
 
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                <View style={{ width: '48%' }}>
-                                    <Text style={styles.label}>Category</Text>
-                                    <View style={styles.pickerWrapper}>
-                                        <RNPickerSelect
-                                            onValueChange={(value) => setCategory(value)}
-                                            value={category}
-                                            items={[
-                                                { label: 'General', value: 'GENERAL' },
-                                                { label: 'Development', value: 'DEVELOPMENT' },
-                                                { label: 'Design', value: 'DESIGN' },
-                                                { label: 'Marketing', value: 'MARKETING' },
-                                            ]}
-                                            style={pickerSelectStyles}
-                                        />
-                                    </View>
-                                </View>
-                                <View style={{ width: '48%' }}>
-                                    <Text style={styles.label}>Priority</Text>
-                                    <View style={styles.pickerWrapper}>
-                                        <RNPickerSelect
-                                            onValueChange={(value) => setPriority(value)}
-                                            value={priority}
-                                            items={[
-                                                { label: 'Low', value: 'LOW' },
-                                                { label: 'Medium', value: 'MEDIUM' },
-                                                { label: 'High', value: 'HIGH' },
-                                            ]}
-                                            style={pickerSelectStyles}
-                                        />
-                                    </View>
-                                </View>
+                            <Text style={styles.label}>Status</Text>
+                            <View style={styles.pickerWrapper}>
+                                <RNPickerSelect
+                                    onValueChange={(value) => {
+                                        setStatus(value);
+                                        if (value === 'COMPLETE') setProgress(100);
+                                        if (value === 'PENDING') setProgress(0);
+                                    }}
+                                    value={status}
+                                    items={[
+                                        { label: 'Pending', value: 'PENDING' },
+                                        { label: 'In Progress', value: 'IN_PROGRESS' },
+                                        { label: 'Complete', value: 'COMPLETE' },
+                                    ]}
+                                    style={pickerSelectStyles}
+                                />
                             </View>
 
-                            <Text style={styles.label}>Description</Text>
-                            <TextInput 
-                                style={[styles.input, styles.textArea]} 
-                                multiline 
-                                value={description} 
-                                onChangeText={setDescription} 
-                                placeholder="Task Description"
-                            />
+                            {isAdmin ? (
+                                <>
+                                    <Text style={styles.label}>Description</Text>
+                                    <TextInput 
+                                        style={[styles.input, styles.textArea]} 
+                                        multiline 
+                                        value={description} 
+                                        onChangeText={setDescription} 
+                                        placeholder="Task Description"
+                                    />
+                                </>
+                            ) : (
+                                <View style={{ padding: 15, backgroundColor: '#F9FAFB', borderRadius: 12, marginBottom: 15 }}>
+                                    <Text style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 5, fontWeight: 'bold' }}>TASK INFO</Text>
+                                    <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#111827' }}>{title}</Text>
+                                    <Text style={{ fontSize: 13, color: '#4B5563', marginTop: 5 }}>{description || "No description provided."}</Text>
+                                </View>
+                            )}
                         </View>
                     ) : (
                         <>
@@ -263,11 +304,18 @@ const TaskDetail = () => {
                                     <Text style={styles.infoValue}>{category}</Text>
                                 </View>
                             </View>
-                            <View style={styles.infoItem}>
+                             <View style={styles.infoItem}>
                                 <Ionicons name="time-outline" size={20} color="#666" />
                                 <View style={{ marginLeft: 10 }}>
                                     <Text style={styles.infoLabel}>Due Date</Text>
                                     <Text style={styles.infoValue}>{task.dueDate ? moment(task.dueDate).format('MMM DD, YYYY') : 'None'}</Text>
+                                </View>
+                            </View>
+                            <View style={styles.infoItem}>
+                                <Ionicons name="stats-chart-outline" size={20} color="#666" />
+                                <View style={{ marginLeft: 10 }}>
+                                    <Text style={styles.infoLabel}>Status</Text>
+                                    <Text style={[styles.infoValue, { color: getStatusColor(status) }]}>{status}</Text>
                                 </View>
                             </View>
                         </View>

@@ -119,9 +119,9 @@ const ProjectTasks = () => {
                         <TouchableOpacity
                             key={status}
                             onPress={() => setStatusFilter(status)}
-                            className={`mr-3 rounded-full px-5 py-2 ${statusFilter.toUpperCase() === status ? 'bg-blue-500' : 'bg-white border border-gray-100 shadow-sm'}`}
+                            className={`mr-2 rounded-full px-3.5 py-2 ${statusFilter.toUpperCase() === status ? 'bg-blue-500' : 'bg-white border border-gray-100 shadow-sm'}`}
                         >
-                            <Text className={`text-[12px] font-bold ${statusFilter.toUpperCase() === status ? 'text-white' : 'text-blue-500'}`}>
+                            <Text className={`text-[11px] font-bold ${statusFilter.toUpperCase() === status ? 'text-white' : 'text-blue-500'}`}>
                                 {status.replace('_', ' ')}
                             </Text>
                         </TouchableOpacity>

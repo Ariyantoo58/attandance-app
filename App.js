@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { MenuProvider } from 'react-native-popup-menu';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DrawerActions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -9,6 +10,7 @@ import { StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native
 import StartingScreen from './screens/employee_screens/StartingScreen';
 import EmployeeLogin from './screens/loginscreens/EmployeeLogin';
 import ManagerLogin from './screens/loginscreens/ManagerLogin';
+import WelcomeScreen from './screens/loginscreens/WelcomeScreen';
 import UserProfile from './screens/employee_screens/profile/UserProfile';
 import History from './screens/employee_screens/drawer_pages/History';
 import CustomDrawerContent from './screens/employee_screens/drawer_pages/CustomDrawerContent';
@@ -350,6 +352,7 @@ function AppNavigator() {
             <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {!isAuthenticated ? (
                     <>
+                        <Stack.Screen name="Welcome" component={WelcomeScreen} />
                         <Stack.Screen name="EmployeeLogin">
                             {props => <EmployeeLogin {...props} setRole={setRole} />}
                         </Stack.Screen>
@@ -373,11 +376,13 @@ function AppNavigator() {
 
 export default function App() {
     return (
-        <Provider store={store}>
-            <MenuProvider>
-                <AppNavigator />
-            </MenuProvider>
-        </Provider>
+        <SafeAreaProvider>
+            <Provider store={store}>
+                <MenuProvider>
+                    <AppNavigator />
+                </MenuProvider>
+            </Provider>
+        </SafeAreaProvider>
     );
 }
 

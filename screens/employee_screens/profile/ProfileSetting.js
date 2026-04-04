@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
@@ -34,15 +34,8 @@ const ProfileSetting = () => {
     const [mobileNo, setMobileNo] = useState('');
     const [address, setAddress] = useState('');
 
-    useFocusEffect(
-        useCallback(() => {
-            if (employeeId) {
-                loadProfile();
-            }
-        }, [employeeId, loadProfile])
-    );
-
     const loadProfile = useCallback(async () => {
+        if (!employeeId) return;
         try {
             setFetching(true);
             const [profile, status] = await Promise.all([
@@ -71,11 +64,16 @@ const ProfileSetting = () => {
             }
         } catch (error) {
             console.error('Failed to load profile:', error);
-            Alert.alert('Error', 'Failed to load profile details.');
         } finally {
             setFetching(false);
         }
     }, [employeeId]);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadProfile();
+        }, [loadProfile])
+    );
 
     const handleSave = async () => {
         if (!name) {
@@ -176,7 +174,6 @@ const ProfileSetting = () => {
                                 'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611759.jpg',
                                 'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611771.jpg',
                                 'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611777.jpg'
-                                // 'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2151114515.jpg',
                             ].map((url, index) => (
                                 <TouchableOpacity
                                     key={index}
@@ -221,7 +218,7 @@ const ProfileSetting = () => {
                             style={styles.input}
                             value={designation}
                             onChangeText={setDesignation}
-                            editable={false} // Designation is usually locked for employees
+                            editable={false}
                         />
 
                         <Text style={styles.label}>Phone Number</Text>
@@ -318,7 +315,7 @@ const ProfileSetting = () => {
     );
 };
 
-const styles = {
+const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -469,6 +466,6 @@ const styles = {
         fontWeight: 'bold',
         fontSize: 13,
     },
-};
+});
 
 export default ProfileSetting;

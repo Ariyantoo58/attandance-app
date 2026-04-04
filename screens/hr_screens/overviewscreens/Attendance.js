@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet, Image, ActivityIndicator, Alert, Dimensions, Platform } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -26,10 +27,12 @@ const Attendance = () => {
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
-    loadDaily();
-  }, []);
+    loadDaily(selectedDate);
+  }, [selectedDate]);
 
   useEffect(() => {
     if (dailyLogs.length > 0) {
@@ -45,15 +48,23 @@ const Attendance = () => {
     }
   }, [dailyLogs]);
 
-  const loadDaily = async () => {
+  const loadDaily = async (date) => {
     try {
       setLoading(true);
-      const data = await apiService.getDailyAttendance();
+      const formattedDate = moment(date).format('YYYY-MM-DD');
+      const data = await apiService.getDailyAttendance(formattedDate);
       setDailyLogs(data);
     } catch (error) {
       console.error('Failed to load attendance:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const onDateChange = (event, date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (date) {
+      setSelectedDate(date);
     }
   };
 
@@ -139,8 +150,23 @@ const Attendance = () => {
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.header}>Daily Attendance</Text>
-            <Text style={styles.dateSubheader}>{moment().format('DD MMM YYYY')}</Text>
+            <TouchableOpacity 
+              style={styles.dateSelectorBtn} 
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={styles.dateSubheader}>{moment(selectedDate).format('DD MMM YYYY')}</Text>
+              <Ionicons name="chevron-down" size={14} color="#6B7280" style={{ marginLeft: 5 }} />
+            </TouchableOpacity>
           </View>
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              display="default"
+              onChange={onDateChange}
+              maximumDate={new Date()} // Optional: restrict to past and today
+            />
+          )}
           <View style={styles.tabsContainer}>
             <TouchableOpacity 
                 style={[styles.tabBtn, viewMode === 'list' && styles.activeTabBtn]} 
@@ -280,7 +306,7 @@ const Attendance = () => {
           )) : (
             <View style={styles.emptyContainer}>
                 <Ionicons name="calendar-outline" size={64} color="#D1D5DB" />
-                <Text style={styles.emptyText}>No attendance logs for today</Text>
+                <Text style={styles.emptyText}>No attendance logs for {moment(selectedDate).format('DD MMM YYYY')}</Text>
             </View>
           )}
         </ScrollView>
@@ -530,7 +556,12 @@ const styles = StyleSheet.create({
   dateSubheader: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  dateSelectorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 4,
+    paddingVertical: 2,
   },
   centerBox: {
     flex: 1,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -49,9 +50,10 @@ const EmployeeLogin = ({ setRole, navigation }) => {
             <View style={styles.circleLarge}></View>
             <View style={styles.circleSmall}></View>
           </View>
-          <View style={styles.circleContainerBottom}>
-            <View style={styles.circleLarge}></View>
-            <View style={styles.circleSmall}></View>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.navigate('Welcome')} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color="#333333" />
+            </TouchableOpacity>
           </View>
           <View style={styles.formContainer}>
             <Image
@@ -137,6 +139,21 @@ const styles = StyleSheet.create({
     right: 0,
     width: 100,
     height: 100,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    zIndex: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   circleLarge: {
     width: 90,
