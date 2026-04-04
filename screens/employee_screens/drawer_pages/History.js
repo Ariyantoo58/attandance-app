@@ -1,8 +1,8 @@
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import React, { useState } from 'react'
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { AntDesign } from '@expo/vector-icons';
+import { AntDesign, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AttendanceData } from '../../../services/AttendanceObj';
 
 const History = () => {
@@ -14,61 +14,221 @@ const History = () => {
   );
 
   return (
-    <ScrollView className="pt-12 px-5 bg-blue-50 h-full">
-      <View className="flex-row items-center">
-        <TouchableOpacity className="p-1 bg-blue-400 w-7 rounded-md" onPress={() => navigation.goBack()}>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <AntDesign name="left" size={18} color="white" />
         </TouchableOpacity>
-        <Text className="text-center w-[85%] font-semibold text-[18px]">Attendance</Text>
+        <Text style={styles.headerTitle}>My Attendance</Text>
+        <View style={{ width: 32 }} /> 
       </View>
-      {/* ---------------------------------------------------------------------------- */}
-      <View className="flex-row items-center justify-between py-5 mt-3">
-        {['All', 'Weekly', 'Monthly', 'Yearly'].map(status => (
+
+      <View style={styles.filterRow}>
+        {['All', 'Weekly', 'Monthly'].map(status => (
           <TouchableOpacity
             key={status}
             onPress={() => setFilter(status)}
-            className={`rounded-md px-4 py-2 ${filter === status ? 'bg-blue-200' : 'bg-blue-50'}`}
+            style={[styles.filterPill, filter === status && styles.activeFilterPill]}
           >
-            <Text className="text-[#00a2e4] font-medium">{status}</Text>
+            <Text style={[styles.filterText, filter === status && styles.activeFilterText]}>{status}</Text>
           </TouchableOpacity>
         ))}
       </View>
-      {/* ---------------------------------------------------------------------------- */}
-      <View className="px-4 py-3 bg-blue-100 rounded-md flex-row items-center justify-between">
-        <View className="">
-          <Text className="text-[16px] font-semibold">Attendace For</Text>
-          <Text className="text-[14px] font-medium text-[#00a2e4]">February</Text>
+
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>Attendance For</Text>
+          <Text style={styles.summaryValue}>February</Text>
         </View>
-        <View className="">
-          <Text className="text-[16px] font-semibold">Total Hours</Text>
-          <Text className="text-right text-[14px] font-medium text-[#00a2e4]">410</Text>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>Total Hours</Text>
+          <Text style={styles.summaryValue}>410h</Text>
         </View>
       </View>
-      {/* ----------------------------------------------------------------------------- */}
-      <SafeAreaView className="space-y-4 mt-5">
+
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {filteredTasks && filteredTasks.map((list) => (
-          <TouchableOpacity key={list.id} className="bg-white p-2.5 rounded-lg flex-row items-center justify-between">
-            <View className="flex-row space-x-3 pl-1">
-              <View className="h-10 w-10 p-1.5 rounded-lg bg-[#00a3e417]">
-                <Image
-                  source={list.image}
-                  className="h-full w-full object-cover"
-                />
+          <TouchableOpacity key={list.id} style={styles.historyCard}>
+            <View style={styles.cardLeft}>
+              <View style={styles.iconBox}>
+                <MaterialCommunityIcons name="clock-check-outline" size={24} color="#3B82F6" />
               </View>
-              <View className="space-y-0.5">
-                <Text className="text-[15px] font-semibold">{list.shifttype}</Text>
-                <Text className="text-[11px] font-medium text-gray-400">{list.date}</Text>
+              <View>
+                <Text style={styles.shiftType}>{list.shifttype}</Text>
+                <Text style={styles.dateText}>{list.date}</Text>
               </View>
             </View>
-            <View className="space-y-0.5 pr-1">
-              <Text className="font-semibold">{list.time}</Text>
-              <Text className="text-right text-[12px] font-medium text-gray-400">{list.status}</Text>
+            <View style={styles.cardRight}>
+              <Text style={styles.timeText}>{list.time}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: list.status === 'Present' ? '#D1FAE5' : '#FEE2E2' }]}>
+                <Text style={[styles.statusText, { color: list.status === 'Present' ? '#059669' : '#DC2626' }]}>
+                    {list.status}
+                </Text>
+              </View>
             </View>
           </TouchableOpacity>
         ))}
-      </SafeAreaView>
-    </ScrollView>
-  )
-}
+        {(!filteredTasks || filteredTasks.length === 0) && (
+            <View style={styles.emptyContainer}>
+                <Ionicons name="document-text-outline" size={48} color="#D1D5DB" />
+                <Text style={styles.emptyText}>No records found</Text>
+            </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: '#3B82F6',
+    borderRadius: 10,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  filterPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 100,
+    backgroundColor: '#FFFFFF',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  activeFilterPill: {
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  activeFilterText: {
+    color: '#FFFFFF',
+  },
+  summaryCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#3B82F6',
+  },
+  summaryDivider: {
+    width: 1,
+    height: '100%',
+    backgroundColor: '#F3F4F6',
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  historyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    padding: 15,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  cardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  shiftType: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  cardRight: {
+    alignItems: 'flex-end',
+  },
+  timeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: 50,
+  },
+  emptyText: {
+    marginTop: 10,
+    color: '#9CA3AF',
+    fontSize: 16,
+  },
+});
 
 export default History;

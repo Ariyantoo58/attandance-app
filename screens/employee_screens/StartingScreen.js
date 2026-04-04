@@ -91,9 +91,6 @@ const StartingScreen = () => {
           </View>
         </View>
         <View className="flex-row items-center space-x-3">
-          <TouchableOpacity onPress={() => navigation.navigate("FaceRecognition", { mode: 'attendance' })}>
-            <Ionicons name="scan-circle-outline" size={38} color="#00a2e4" />
-          </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate("Notification")}>
             <Ionicons name="notifications-circle-outline" size={38} color="#00a2e4" className="relative" />
             {notifCount > 0 && (
@@ -118,6 +115,25 @@ const StartingScreen = () => {
             <Text className="text-gray-400 text-[11px] mt-1">Today</Text>
           </View>
         </View>
+      </View>
+
+      {/* --------------------- Face Attendance ------------------------------------*/}
+      <View className="px-5 mb-6">
+        <TouchableOpacity 
+          className="bg-[#00a2e4] rounded-xl p-4 flex-row items-center justify-between shadow-sm"
+          onPress={() => navigation.navigate("FaceRecognition", { mode: 'attendance' })}
+        >
+          <View className="flex-row items-center space-x-3">
+            <View className="bg-white/20 p-2 rounded-lg">
+              <Ionicons name="scan-outline" size={24} color="white" />
+            </View>
+            <View>
+              <Text className="text-white font-bold text-[16px]">Face Attendance</Text>
+              <Text className="text-white/80 text-[12px]">Scan your face to clock in/out</Text>
+            </View>
+          </View>
+          <AntDesign name="right" size={20} color="white" />
+        </TouchableOpacity>
       </View>
       {/* --------------------- Tasks -------------------------------------------*/}
       <View className="px-5">
