@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateUserProfile } from '../auth/authSlice';
 import { API_BASE_URL } from '../config';
 
 const SocketContext = createContext({
@@ -14,7 +15,8 @@ export const useSocket = () => useContext(SocketContext);
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
-  const { accessToken, isAuthenticated } = useSelector(state => state.auth);
+  const { accessToken, isAuthenticated, user } = useSelector(state => state.auth);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     let socketInstance;
@@ -70,6 +72,25 @@ export const SocketProvider = ({ children }) => {
       }
     };
   }, [accessToken, isAuthenticated]);
+
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    const handleEmployeeChange = (data) => {
+      const loggedInUser = user.user || user;
+      const loggedInEmployeeId = loggedInUser.employeeId || loggedInUser.employee?.id || loggedInUser.id;
+      
+      if (data.action === 'UPDATED' && data.employee && data.employee.id === loggedInEmployeeId) {
+        console.log('Real-time profile update detected for current user:', data.employee.name);
+        dispatch(updateUserProfile(data.employee));
+      }
+    };
+
+    socket.on('employee_changed', handleEmployeeChange);
+    return () => {
+      socket.off('employee_changed', handleEmployeeChange);
+    };
+  }, [socket, user, dispatch]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

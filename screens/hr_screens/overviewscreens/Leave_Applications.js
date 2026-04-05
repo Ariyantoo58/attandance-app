@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native'
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Dimensions } from 'react-native'
 import React, { useState, useEffect } from 'react';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -53,66 +53,105 @@ const Leave_Applications = () => {
     };
 
     return (
-        <View className="py-4 bg-gray-800 h-[150vh]">
-            <View className="flex-row items-center px-3 pb-5 pt-10">
+        <View style={styles.container}>
+            <View style={styles.header}>
                 <TouchableOpacity 
-                    style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' }} 
+                    style={styles.backButton} 
                     onPress={() => navigation.goBack()}
+                    activeOpacity={0.7}
                 >
-                    <AntDesign name="left" size={18} color="black" />
+                    <AntDesign name="left" size={20} color="#0F172A" />
                 </TouchableOpacity>
-                <Text className="text-center w-[89%] text-white font-semibold text-[18px]">Leave Application</Text>
+                <Text style={styles.headerTitle}>Leave Applications</Text>
             </View>
-            <ScrollView className="bg-white h-[100vh] px-3">
-                <View className="flex-row items-center justify-between px-1 pt-5 pb-3">
+
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                <View style={styles.filterRow}>
                     {['Waiting', 'Approved', 'Cancelled'].map(status => (
                         <TouchableOpacity
                             key={status}
                             onPress={() => setFilter(status)}
-                            className={`rounded-2xl px-7 py-1.5 ${filter === status ? 'bg-gray-700' : 'bg-gray-100'}`}
+                            style={[
+                                styles.filterItem,
+                                filter === status ? styles.filterActive : styles.filterInactive
+                            ]}
+                            activeOpacity={0.8}
                         >
-                            <Text className={`${filter === status ? 'text-white' : 'text-gray-500'} font-medium`}>{status}</Text>
+                            <Text style={[
+                                styles.filterText,
+                                filter === status ? styles.filterTextActive : styles.filterTextInactive
+                            ]}>
+                                {status}
+                            </Text>
                         </TouchableOpacity>
                     ))}
                 </View>
-                {(loading && requests.length === 0) ? (
-                    <ActivityIndicator size="large" color="#2D3748" style={{ marginTop: 50 }} />
-                ) : filteredTasks.length > 0 ? (
-                    filteredTasks.map((task) => (
-                        <View style={styles.leaveApplicationItem} key={task.id}>
-                            <View style={styles.leaveApplicationInfo}>
-                                <Image
-                                    source={{ uri: task.employee?.avatarUrl || 'https://img.freepik.com/free-photo/front-view-man-posing_23-2148364843.jpg' }}
-                                    style={styles.leaveApplicationImage}
-                                />
-                                <View style={styles.leaveApplicationText}>
-                                    <Text style={styles.leaveApplicantName}>{task.employee?.name}</Text>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <AntDesign name="calendar" size={10} color="#A0AEC0" />
-                                        <Text style={styles.leaveDates}> {formatDate(task.fromdate)} - {formatDate(task.todate)}</Text>
+
+                <View style={styles.listContainer}>
+                    {(loading && requests.length === 0) ? (
+                        <View style={styles.loaderArea}>
+                            <ActivityIndicator size="large" color="#3B82F6" />
+                        </View>
+                    ) : filteredTasks.length > 0 ? (
+                        filteredTasks.map((task) => (
+                            <View style={styles.requestCard} key={task.id}>
+                                <View style={styles.cardInfo}>
+                                    <Image
+                                        source={{ uri: task.employee?.avatarUrl || 'https://img.freepik.com/free-photo/front-view-man-posing_23-2148364843.jpg' }}
+                                        style={styles.avatar}
+                                    />
+                                    <View style={styles.textColumn}>
+                                        <Text style={styles.employeeName}>{task.employee?.name}</Text>
+                                        <View style={styles.dateRow}>
+                                            <AntDesign name="calendar" size={12} color="#EF4444" />
+                                            <Text style={styles.dateRange}> {formatDate(task.fromdate)} - {formatDate(task.todate)}</Text>
+                                        </View>
+                                        <View style={styles.typeBadge}>
+                                            <Text style={styles.typeText}>{task.title}</Text>
+                                        </View>
                                     </View>
-                                    <Text style={styles.leaveType}>{task.title}</Text>
+                                </View>
+                                <View style={styles.actionColumn}>
+                                    {task.status === 'SUBMITTED' ? (
+                                        <View style={styles.buttonStack}>
+                                            <TouchableOpacity 
+                                                style={styles.approveBtn} 
+                                                onPress={() => handleUpdateStatus(task.id, 'ACCEPTED')}
+                                                activeOpacity={0.8}
+                                            >
+                                                <Text style={styles.approveTxt}>Approve</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity 
+                                                style={styles.rejectBtn} 
+                                                onPress={() => handleUpdateStatus(task.id, 'REJECTED')}
+                                                activeOpacity={0.8}
+                                            >
+                                                <Text style={styles.rejectTxt}>Reject</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : (
+                                        <View style={[
+                                            styles.statusTag, 
+                                            { backgroundColor: task.status === 'ACCEPTED' ? '#ECFDF5' : '#FEF2F2' }
+                                        ]}>
+                                            <Text style={[
+                                                styles.statusTagText,
+                                                { color: task.status === 'ACCEPTED' ? '#059669' : '#DC2626' }
+                                            ]}>
+                                                {task.status === 'ACCEPTED' ? 'Approved' : 'Cancelled'}
+                                            </Text>
+                                        </View>
+                                    )}
                                 </View>
                             </View>
-                            <View style={styles.leaveActions}>
-                                {task.status === 'SUBMITTED' && (
-                                    <>
-                                        <TouchableOpacity style={styles.cancelButton} onPress={() => handleUpdateStatus(task.id, 'REJECTED')}>
-                                            <Text style={styles.cancelButtonText}>Reject</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity style={styles.approveButton} onPress={() => handleUpdateStatus(task.id, 'ACCEPTED')}>
-                                            <Text style={styles.approveButtonText}>Approve</Text>
-                                        </TouchableOpacity>
-                                    </>
-                                )}
-                            </View>
+                        ))
+                    ) : (
+                        <View style={styles.emptyContainer}>
+                            <AntDesign name="filetext1" size={48} color="#CBD5E1" />
+                            <Text style={styles.emptyText}>No requests found</Text>
                         </View>
-                    ))
-                ) : (
-                    <View style={{ marginTop: 50, alignItems: 'center' }}>
-                        <Text style={{ color: 'gray' }}>No requests in this category</Text>
-                    </View>
-                )}
+                    )}
+                </View>
             </ScrollView>
         </View >
     )
@@ -121,65 +160,194 @@ const Leave_Applications = () => {
 export default Leave_Applications;
 
 const styles = StyleSheet.create({
-    leaveApplicationItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingVertical: 8,
-        marginTop: 8,
+    container: {
+        flex: 1,
+        backgroundColor: '#EFF6FF',
     },
-    leaveApplicationInfo: {
+    header: {
         flexDirection: 'row',
         alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        paddingTop: 50,
+        backgroundColor: 'white',
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.03,
+        shadowRadius: 10,
+        elevation: 3,
     },
-    leaveApplicationImage: {
-        height: 64,
-        width: 64,
-        borderRadius: 32,
-    },
-    leaveApplicationText: {
-        marginLeft: 8,
+    backButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: '#F1F5F9',
+        alignItems: 'center',
         justifyContent: 'center',
-        gap: 2
     },
-    leaveApplicantName: {
-        fontSize: 16,
+    headerTitle: {
+        flex: 1,
+        textAlign: 'center',
+        marginRight: 44, // offset back button
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#0F172A',
+    },
+    content: {
+        flex: 1,
+        paddingHorizontal: 20,
+    },
+    filterRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 20,
+    },
+    filterItem: {
+        borderRadius: 14,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        width: (Dimensions.get('window').width - 60) / 3,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+    },
+    filterActive: {
+        backgroundColor: '#1E293B',
+        borderColor: '#1E293B',
+    },
+    filterInactive: {
+        backgroundColor: 'white',
+        borderColor: '#E2E8F0',
+    },
+    filterText: {
+        fontSize: 12,
         fontWeight: '600',
     },
-    leaveDates: {
-        fontSize: 12,
-        color: '#A0AEC0',
-        fontWeight: '500',
+    filterTextActive: {
+        color: 'white',
     },
-    leaveType: {
-        fontSize: 12,
-        fontWeight: '500',
-        color: '#E53E3E',
+    filterTextInactive: {
+        color: '#64748B',
     },
-    leaveActions: {
-        justifyContent: 'center',
+    listContainer: {
+        paddingBottom: 40,
+    },
+    requestCard: {
+        backgroundColor: 'white',
+        borderRadius: 24,
+        padding: 16,
+        marginBottom: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        elevation: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(226, 232, 240, 0.5)',
+    },
+    cardInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    avatar: {
+        height: 60,
+        width: 60,
+        borderRadius: 18,
+        backgroundColor: '#F1F5F9',
+    },
+    textColumn: {
+        marginLeft: 14,
+        flex: 1,
+    },
+    employeeName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1E293B',
+        marginBottom: 4,
+    },
+    dateRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    dateRange: {
+        fontSize: 11,
+        color: '#64748B',
+        fontWeight: '600',
+    },
+    typeBadge: {
+        backgroundColor: '#FEF2F2',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        alignSelf: 'flex-start',
+    },
+    typeText: {
+        fontSize: 10,
+        color: '#EF4444',
+        fontWeight: '700',
+    },
+    actionColumn: {
+        marginLeft: 10,
+        alignItems: 'flex-end',
+    },
+    buttonStack: {
+        gap: 8,
+    },
+    approveBtn: {
+        backgroundColor: '#10B981',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 12,
         alignItems: 'center',
     },
-    cancelButton: {
-        backgroundColor: '#FED7D7',
-        borderRadius: 20,
+    approveTxt: {
+        color: 'white',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    rejectBtn: {
+        backgroundColor: 'white',
+        paddingHorizontal: 16,
+        paddingVertical: 7,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#EF4444',
+        alignItems: 'center',
+    },
+    rejectTxt: {
+        color: '#EF4444',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    statusTag: {
+        paddingHorizontal: 12,
         paddingVertical: 6,
-        paddingHorizontal: 30,
-        marginBottom: 8,
+        borderRadius: 10,
     },
-    cancelButtonText: {
-        color: '#E53E3E',
-        fontSize: 13,
-        fontWeight: '500',
+    statusTagText: {
+        fontSize: 11,
+        fontWeight: '700',
     },
-    approveButton: {
-        backgroundColor: '#C6F6D5',
-        borderRadius: 20,
-        paddingVertical: 6,
-        paddingHorizontal: 27,
+    loaderArea: {
+        marginTop: 60,
+        alignItems: 'center',
     },
-    approveButtonText: {
-        color: '#38A169',
-        fontSize: 13,
+    emptyContainer: {
+        marginTop: 100,
+        alignItems: 'center',
+        gap: 12,
+    },
+    emptyText: {
+        color: '#94A3B8',
+        fontSize: 14,
         fontWeight: '500',
     },
 })

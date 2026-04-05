@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
     View, 
     Text, 
@@ -13,7 +13,8 @@ import {
     StatusBar
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchHrDashboard } from '@/auth/dataSlice';
+import { fetchHrDashboard, updateEmployee } from '@/auth/dataSlice';
+import { useSocket } from '../../../context/SocketContext';
 import { apiService } from '../../../services/api';
 import { 
     AntDesign, 
@@ -28,7 +29,23 @@ const EmployeeList = () => {
     const navigation = useNavigation();
     const { allEmployees: data, loading } = useSelector(state => state.data.hrDashboard);
     const dispatch = useDispatch();
+    const { socket } = useSocket();
     const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        if (!socket) return;
+        
+        const handleEmployeeChange = (data) => {
+            console.log('Real-time employee update received:', data);
+            dispatch(updateEmployee(data));
+        };
+
+        socket.on('employee_changed', handleEmployeeChange);
+        
+        return () => {
+            socket.off('employee_changed', handleEmployeeChange);
+        };
+    }, [socket, dispatch]);
 
     const filteredEmployees = useMemo(() => {
         if (!searchQuery) return data;
@@ -61,8 +78,8 @@ const EmployeeList = () => {
     const deleteEmployee = async (itemToDelete) => {
         try {
             await apiService.removeEmployee(itemToDelete.id);
+            // No need to call loadEmployees() because socket will handle it
             Alert.alert("Berhasil", "Data karyawan telah dihapus.");
-            loadEmployees();
         } catch (error) {
             Alert.alert("Gagal", "Tidak dapat menghapus data karyawan.");
         }

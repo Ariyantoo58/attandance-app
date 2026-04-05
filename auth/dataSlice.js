@@ -113,6 +113,23 @@ const dataSlice = createSlice({
     addNotification(state, action) {
       state.notifications.unshift(action.payload);
     },
+    updateEmployee(state, action) {
+        const { employee, action: type, employeeId } = action.payload;
+        if (type === 'CREATED') {
+            const exists = state.hrDashboard.allEmployees.find(e => e.id === employee?.id);
+            if (!exists && employee) {
+                state.hrDashboard.allEmployees.unshift(employee);
+            }
+        } else if (type === 'UPDATED') {
+            const index = state.hrDashboard.allEmployees.findIndex(e => e.id === employee?.id);
+            if (index !== -1) {
+                state.hrDashboard.allEmployees[index] = { ...state.hrDashboard.allEmployees[index], ...employee };
+            }
+        } else if (type === 'DELETED') {
+            const idToRemove = employeeId || employee?.id;
+            state.hrDashboard.allEmployees = state.hrDashboard.allEmployees.filter(e => e.id !== idToRemove);
+        }
+    },
     clearData(state) {
       return initialState;
     }
@@ -161,6 +178,7 @@ export const {
     updateTimeOff,
     setNotifications,
     addNotification,
+    updateEmployee,
     clearData 
 } = dataSlice.actions;
 

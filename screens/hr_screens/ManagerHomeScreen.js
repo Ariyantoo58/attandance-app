@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Image, FlatList, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Image, FlatList, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, DrawerActions, useFocusEffect } from '@react-navigation/native';
@@ -63,14 +63,16 @@ const ManagerHomeScreen = () => {
   };
 
   const renderFlatListItem = ({ item }) => (
-    <TouchableOpacity style={[styles.itemContainer]} onPress={() => navigation.navigate(`${item.link}`)}>
+    <TouchableOpacity 
+      style={styles.itemContainer} 
+      onPress={() => navigation.navigate(`${item.link}`)}
+      activeOpacity={0.7}
+    >
       <View style={[styles.iconContainer, getColorById(item.id)]}>
-        {item.icon}
+        {React.cloneElement(item.icon, { size: 24, color: 'white' })}
       </View>
-      <View>
-        <Text style={styles.itemTitle}>{item.title}</Text>
-        <Text style={styles.itemCount}>{item.count}</Text>
-      </View>
+      <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+      <Text style={styles.itemCount}>{item.count}</Text>
     </TouchableOpacity>
   );
 
@@ -78,91 +80,117 @@ const ManagerHomeScreen = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
-            <MaterialCommunityIcons name="menu" size={36} color="white" />
+          <TouchableOpacity 
+            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+            style={styles.menuButton}
+          >
+            <MaterialCommunityIcons name="menu" size={28} color="#0F172A" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("NotificationHR")}>
-            <Ionicons name="notifications-circle-outline" size={38} color="white" style={styles.relative} />
-            <Text style={styles.notificationBadge}>3</Text>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate("NotificationHR")}
+            style={styles.notificationButton}
+          >
+            <Ionicons name="notifications-outline" size={26} color="#3B82F6" />
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationBadgeText}>3</Text>
+            </View>
           </TouchableOpacity>
         </View>
         <View style={styles.headerTextContainer}>
-          <Text style={styles.headerText}>Hi {user?.user?.name || 'Admin'}</Text>
-          <Text style={styles.headerText}>Good Morning</Text>
+          <Text style={styles.greetingText}>Hi {user?.user?.name || 'Admin'},</Text>
+          <Text style={styles.welcomeText}>Good Morning</Text>
         </View>
       </View>
+
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.contentContainer}>
-        <View style={styles.overviewHeader}>
-          <Text style={styles.overviewTitle}>Overview</Text>
-          <Text style={styles.date}>{new Date().toLocaleDateString()}</Text>
-        </View>
-        
-        {(loading && !summary) ? (
-          <ActivityIndicator size="large" color="#4A5568" style={{ marginVertical: 30 }} />
-        ) : (
-          <FlatList
-            data={overviewItems}
-            style={styles.flatList}
-            scrollEnabled={false}
-            numColumns={3}
-            renderItem={renderFlatListItem}
-            keyExtractor={(item) => item.id.toString()}
-          />
-        )}
-
-        <View style={styles.recentLeaveApplicationsContainer}>
-          <View style={styles.recentLeaveHeader}>
-            <Text style={styles.recentLeaveTitle}>Recent Leave Applications</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("LeaveApplications")}>
-              <Text className="font-medium" style={styles.seeAll}>See All</Text>
-            </TouchableOpacity>
+          <View style={styles.overviewHeader}>
+            <Text style={styles.sectionTitle}>Overview</Text>
+            <View style={styles.dateBadge}>
+              <Text style={styles.dateText}>{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+            </View>
           </View>
+          
+          {(loading && !summary) ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#4A5568" />
+            </View>
+          ) : (
+            <FlatList
+              data={overviewItems}
+              style={styles.flatList}
+              contentContainerStyle={styles.flatListContent}
+              scrollEnabled={false}
+              numColumns={3}
+              renderItem={renderFlatListItem}
+              keyExtractor={(item) => item.id.toString()}
+            />
+          )}
 
-          {loading ? (
-             <ActivityIndicator size="small" color="#4A5568" style={{ marginVertical: 10 }} />
-          ) : recentLeaves.length > 0 ? (
-            recentLeaves.map((item) => (
-              <View style={styles.leaveApplicationItem} key={item.id}>
-                <View style={styles.leaveApplicationInfo}>
-                  <Image
-                    source={{ uri: item.employee?.avatarUrl || 'https://img.freepik.com/free-photo/young-bearded-man-with-striped-shirt_273609-5677.jpg' }}
-                    style={styles.leaveApplicationImage}
-                  />
-                  <View style={styles.leaveApplicationText}>
-                    <Text style={styles.leaveApplicantName}>{item.employee?.name}</Text>
-                    <Text style={styles.leaveDates}>{new Date(item.fromdate).toLocaleDateString()} - {new Date(item.todate).toLocaleDateString()}</Text>
-                    <Text style={styles.leaveType}>{item.title}</Text>
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Leave Applications</Text>
+              <TouchableOpacity onPress={() => navigation.navigate("LeaveApplications")}>
+                <Text style={styles.seeAllText}>See All</Text>
+              </TouchableOpacity>
+            </View>
+
+            {loading ? (
+               <ActivityIndicator size="small" color="#4A5568" style={{ marginVertical: 20 }} />
+            ) : recentLeaves.length > 0 ? (
+              recentLeaves.map((item) => (
+                <View style={styles.leaveCard} key={item.id}>
+                  <View style={styles.leaveCardMain}>
+                    <Image
+                      source={{ uri: item.employee?.avatarUrl || 'https://img.freepik.com/free-photo/young-bearded-man-with-striped-shirt_273609-5677.jpg' }}
+                      style={styles.leaveAvatar}
+                    />
+                    <View style={styles.leaveInfo}>
+                      <Text style={styles.leaveName} numberOfLines={1}>{item.employee?.name}</Text>
+                      <View style={styles.leaveDateRow}>
+                        <Ionicons name="calendar-outline" size={12} color="#E53E3E" />
+                        <Text style={styles.leaveDateText}>
+                          {new Date(item.fromdate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })} - {new Date(item.todate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                        </Text>
+                      </View>
+                      <View style={styles.leaveTag}>
+                        <Text style={styles.leaveTagName}>{item.title}</Text>
+                      </View>
+                    </View>
                   </View>
-                </View>
-                <View style={styles.leaveActions}>
-                  <TouchableOpacity style={styles.approveButton} onPress={() => {/* Handle Approve */}}>
-                    <Text style={styles.approveButtonText}>Approve</Text>
+                  <TouchableOpacity style={styles.pillApproveButton} onPress={() => {/* Handle Approve */}}>
+                    <Text style={styles.pillApproveText}>Approve</Text>
                   </TouchableOpacity>
                 </View>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No pending requests</Text>
               </View>
-            ))
-          ) : (
-            <Text style={{ textAlign: 'center', marginVertical: 10, color: 'gray' }}>No pending requests</Text>
-          )}
-        </View>
-
-
-        <View style={styles.attendanceContainer} >
-          <Text style={styles.attendanceTitle}>Total Attendance (Today)</Text>
-          <View style={styles.attendanceList}>
-            {overviewItems.slice(0, 3).map((list) => (
-              <View style={styles.attendanceItem} key={list.id}>
-                <View className={`h-16 w-16 flex-row items-center justify-center ${list.count > 0 ? 'bg-green-100' : 'bg-gray-100'} mx-auto rounded-full`}>
-                  <Text className={`text-[17px] ${list.count > 0 ? 'text-green-600' : 'text-gray-400'} font-medium`}>
-                    {list.count}
-                  </Text>
-                </View>
-                <Text style={styles.attendanceItemTitle} >{list.title}</Text>
-              </View>
-            ))}
+            )}
           </View>
-        </View>
+
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Total Attendance (Today)</Text>
+            <View style={styles.statsGrid}>
+              {overviewItems.slice(0, 3).map((list) => (
+                <View style={styles.statsCard} key={list.id}>
+                  <View style={[
+                    styles.statsCircle, 
+                    { backgroundColor: list.count > 0 ? '#ECFDF5' : '#F9FAFB' }
+                  ]}>
+                    <Text style={[
+                      styles.statsNumber,
+                      { color: list.count > 0 ? '#059669' : '#9CA3AF' }
+                    ]}>
+                      {list.count}
+                    </Text>
+                  </View>
+                  <Text style={styles.statsLabel} numberOfLines={2}>{list.title}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -171,246 +199,309 @@ const ManagerHomeScreen = () => {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#2D3748',
+    backgroundColor: '#EFF6FF',
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 15,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 15,
   },
-  relative: {
+  menuButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   notificationBadge: {
     position: 'absolute',
-    backgroundColor: 'white',
-    color: 'black',
-    borderRadius: 50,
-    height: 16,
+    top: 10,
+    right: 10,
+    backgroundColor: '#EF4444',
     width: 16,
-    textAlign: 'center',
-    fontSize: 10,
-    left: 25,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadgeText: {
+    color: 'white',
+    fontSize: 8,
+    fontWeight: 'bold',
   },
   headerTextContainer: {
-    paddingVertical: 8,
+    marginTop: 5,
   },
-  headerText: {
-    color: 'white',
-    fontSize: 23,
-    fontWeight: '600',
+  greetingText: {
+    color: '#64748B',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  welcomeText: {
+    color: '#0F172A',
+    fontSize: 28,
+    fontWeight: '700',
+    marginTop: 2,
   },
   contentContainer: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 12,
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
+    padding: 20,
     flex: 1,
     paddingBottom: 100,
+    minHeight: Dimensions.get('window').height - 180,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 5,
   },
   overviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  overviewTitle: {
-    fontSize: 17,
-    fontWeight: '600',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
   },
-  date: {
+  dateBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  dateText: {
     fontSize: 12,
-    fontWeight: '500',
-    borderRadius: 20,
-    backgroundColor: '#CBD5E0',
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  loadingContainer: {
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   flatList: {
-    marginLeft: -8,
-    marginTop: -4,
+    marginHorizontal: -5,
+  },
+  flatListContent: {
+    paddingBottom: 10,
   },
   itemContainer: {
     backgroundColor: 'white',
-    paddingVertical: 12,
-    marginLeft: 12,
-    marginTop: 12,
-    paddingHorizontal: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    width: '30%',
+    padding: 12,
+    margin: 5,
+    borderRadius: 20,
+    width: (Dimensions.get('window').width - 50) / 3,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.5)',
   },
   iconContainer: {
-    borderRadius: 50,
-    marginBottom: 8,
-    alignSelf: 'center',
-    height: 60,
-    width: 60,
-    display: 'flex',
+    borderRadius: 16,
+    marginBottom: 10,
+    height: 48,
+    width: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
   itemTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
     textAlign: 'center',
-    fontWeight: '500',
   },
   itemCount: {
-    textAlign: 'center',
-    color: '#38A169',
-    fontWeight: '600'
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginTop: 2,
   },
-  recentLeaveApplicationsContainer: {
-    paddingHorizontal: 8,
-    marginTop: 20,
+  sectionContainer: {
+    marginTop: 28,
   },
-  recentLeaveHeader: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  recentLeaveTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  seeAll: {
-    fontSize: 13,
-    color: '#3182CE',
-  },
-  leaveApplicationItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    marginTop: 8,
-  },
-  leaveApplicationInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 16,
   },
-  leaveApplicationImage: {
-    height: 64,
-    width: 64,
-    borderRadius: 32,
-  },
-  leaveApplicationText: {
-    marginLeft: 8,
-    justifyContent: 'center',
-  },
-  leaveApplicantName: {
-    fontSize: 16,
+  seeAllText: {
+    fontSize: 14,
+    color: '#3B82F6',
     fontWeight: '600',
   },
-  leaveDates: {
-    fontSize: 12,
-    color: '#E53E3E',
-    fontWeight: '500',
-  },
-  leaveType: {
-    fontSize: 12,
-    color: '#A0AEC0',
-    fontWeight: '500',
-  },
-  leaveActions: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#FED7D7',
+  leaveCard: {
+    backgroundColor: 'white',
     borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 30,
-    marginBottom: 8,
-  },
-  cancelButtonText: {
-    color: '#E53E3E',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  approveButton: {
-    backgroundColor: '#C6F6D5',
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 27,
-  },
-  approveButtonText: {
-    color: '#38A169',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  attendanceContainer: {
-    paddingHorizontal: 8,
-    paddingTop: 22,
-    paddingBottom: 20,
-  },
-  attendanceTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  attendanceList: {
+    padding: 12,
+    marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  attendanceItem: {
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    width: '30%',
-    padding: 12,
-    marginTop: 10,
+    borderColor: '#F1F5F9',
   },
-  attendanceIconContainer: {
-    height: 64,
-    width: 64,
+  leaveCardMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  leaveAvatar: {
+    height: 52,
+    width: 52,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+  },
+  leaveInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  leaveName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  leaveDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  leaveDateText: {
+    fontSize: 11,
+    color: '#EF4444',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  leaveTag: {
+    marginTop: 4,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  leaveTagName: {
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  pillApproveButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginLeft: 10,
+  },
+  pillApproveText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  emptyState: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    color: '#94A3B8',
+    fontSize: 14,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  statsCard: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    width: (Dimensions.get('window').width - 60) / 3,
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  statsCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 32,
-    alignSelf: 'center',
+    marginBottom: 12,
   },
-  attendanceCount: {
-    fontSize: 17,
-    fontWeight: '500',
+  statsNumber: {
+    fontSize: 18,
+    fontWeight: '800',
   },
-  attendanceItemTitle: {
+  statsLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
     textAlign: 'center',
-    marginTop: 8,
-    fontWeight: '500',
+    lineHeight: 14,
   },
-  bgGreen: {
-    backgroundColor: '#1fce0f',
-  },
-  bgOrange: {
-    backgroundColor: '#e09021',
-  },
-  bgRed: {
-    backgroundColor: '#ef4646',
-  },
-  bgBlue: {
-    backgroundColor: '#5dddf4',
-  },
-  bgIndigo: {
-    backgroundColor: '#9c84f5',
-  },
-  bgYellow: {
-    backgroundColor: '#f5e025',
-  },
-  bgGray: {
-    backgroundColor: '#EDF2F7',
-  },
-  textGreen: {
-    color: '#38A169',
-  },
-  textOrange: {
-    color: '#DD6B20',
-  },
-  textRed: {
-    color: '#E53E3E',
-  },
+  bgGreen: { backgroundColor: '#10B981' },
+  bgOrange: { backgroundColor: '#F59E0B' },
+  bgRed: { backgroundColor: '#EF4444' },
+  bgBlue: { backgroundColor: '#3B82F6' },
+  bgIndigo: { backgroundColor: '#6366F1' },
+  bgYellow: { backgroundColor: '#EAB308' },
+  bgGray: { backgroundColor: '#94A3B8' },
 });
 
 export default ManagerHomeScreen;

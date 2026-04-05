@@ -1,46 +1,68 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Switch, ScrollView, Alert, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { AntDesign, Ionicons } from '@expo/vector-icons';
-import { apiService } from '../../../services/api';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import RNPickerSelect from 'react-native-picker-select';
-
+import { 
+    View, 
+    Text, 
+    TextInput, 
+    StyleSheet, 
+    ScrollView, 
+    Alert, 
+    TouchableOpacity, 
+    ActivityIndicator, 
+    Platform, 
+    StatusBar,
+    Modal,
+    FlatList,
+    Dimensions
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons, MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
+import { apiService } from '../../../services/api';
+
+const { width, height } = Dimensions.get('window');
 
 const AddNewEmployee = () => {
     const navigation = useNavigation();
+
+    // Account States (Mandatory Step 1)
     const [employeeName, setEmployeeName] = useState('');
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('EMPLOYEE');
-    const [loading, setLoading] = useState(false);
     const [ptkpStatus, setPtkpStatus] = useState('TK0');
 
+    // UI States
+    const [loading, setLoading] = useState(false);
+    
+    // Bottom Sheet / Modal States
+    const [pickerVisible, setPickerVisible] = useState(false);
+    const [pickerType, setPickerType] = useState(''); // 'ptkp', 'role'
+    const [pickerTitle, setPickerTitle] = useState('');
+
     const TAX_OPTIONS = [
-        { label: 'TK/0 (Single)', value: 'TK0' },
-        { label: 'TK/1 (Single, 1 Dep)', value: 'TK1' },
-        { label: 'TK/2 (Single, 2 Dep)', value: 'TK2' },
-        { label: 'TK/3 (Single, 3 Dep)', value: 'TK3' },
-        { label: 'K/0 (Married)', value: 'K0' },
-        { label: 'K/1 (Married, 1 Dep)', value: 'K1' },
-        { label: 'K/2 (Married, 2 Dep)', value: 'K2' },
-        { label: 'K/3 (Married, 3 Dep)', value: 'K3' },
+        { id: 'TK0', name: 'TK/0 (Belum Menikah)' },
+        { id: 'TK1', name: 'TK/1 (1 Tanggungan)' },
+        { id: 'TK2', name: 'TK/2 (2 Tanggungan)' },
+        { id: 'TK3', name: 'TK/3 (3 Tanggungan)' },
+        { id: 'K0', name: 'K/0 (Menikah)' },
+        { id: 'K1', name: 'K/1 (Menikah, 1 Tanggungan)' },
+        { id: 'K2', name: 'K/2 (Menikah, 2 Tanggungan)' },
+        { id: 'K3', name: 'K/3 (Menikah, 3 Tanggungan)' },
     ];
 
-    const roles = [
-        { label: 'Employee', value: 'EMPLOYEE' },
-        { label: 'Manager', value: 'MANAGER' },
-        { label: 'HR', value: 'HR' },
-        { label: 'Admin', value: 'ADMIN' },
+    const ROLE_OPTIONS = [
+        { id: 'EMPLOYEE', name: 'Employee' },
+        { id: 'MANAGER', name: 'Manager' },
+        { id: 'HR', name: 'HR Staff' },
+        { id: 'ADMIN', name: 'Administrator' },
     ];
 
     const handleSubmit = async () => {
         if (!employeeName || !username || !password || !email) {
-            Alert.alert('Error', 'Full Name, Email, Username and Password are required.');
-            return;
+            return Alert.alert('Eror', 'Nama Lengkap, Email, Username & Password wajib diisi.');
         }
+
         setLoading(true);
         try {
             const employeeData = {
@@ -51,280 +73,222 @@ const AddNewEmployee = () => {
                 role,
                 status: 'ACTIVE',
                 employeeNumber: `EMP${Math.floor(1000 + Math.random() * 9000)}`,
-                ptkpStatus: ptkpStatus
+                ptkpStatus,
             };
-            const response = await apiService.createEmployee(employeeData);
 
+            const response = await apiService.createEmployee(employeeData);
             if (response && response.id) {
-                console.log("Creation successful:", response);
-                Alert.alert("Success", "User account has been created!", [
-                    { 
-                        text: "Add Details Later", 
-                        onPress: () => {
-                            clearFormFields();
-                            navigation.navigate("ManagerDrawer", { 
-                                screen: "Dashboard", 
-                                params: { screen: "Employees" } 
-                            });
+                console.log("Account created:", response);
+                Alert.alert(
+                    "Berhasil Terdaftar", 
+                    "Akun login karyawan telah berhasil dibuat!",
+                    [
+                        { 
+                            text: "Nanti Saja", 
+                            onPress: () => {
+                                navigation.navigate("ManagerDrawer", { 
+                                    screen: "Dashboard", 
+                                    params: { screen: "Employees" } 
+                                });
+                            },
+                            style: "cancel"
                         },
-                        style: "cancel"
-                    },
-                    { 
-                        text: "Fill Details Now", 
-                        onPress: () => {
-                            clearFormFields();
-                            navigation.replace("EmployeeEdit", { employee: response });
+                        { 
+                            text: "Lengkapi Detail Sekarang", 
+                            onPress: () => {
+                                navigation.replace("EmployeeEdit", { employee: response });
+                            }
                         }
-                    }
-                ]);
-            } else {
-                console.error("Creation failed with response:", response);
-                throw new Error(response.message || 'Failed to create user');
+                    ]
+                );
             }
         } catch (error) {
-            console.error('Failed to add employee', error);
-            Alert.alert('Error', error.message || 'Failed to add employee.');
+            Alert.alert('Eror', 'Gagal membuat akun karyawan. ' + (error.message || ""));
         } finally {
             setLoading(false);
         }
     };
 
-    const clearFormFields = () => {
-        setEmployeeName('');
-        setUsername('');
-        setPassword('');
-        setEmail('');
-        setRole('EMPLOYEE');
+    const openPicker = (type, title) => {
+        setPickerType(type);
+        setPickerTitle(title);
+        setPickerVisible(true);
+    };
+
+    const handleSelect = (item) => {
+        if (pickerType === 'ptkp') setPtkpStatus(item.id);
+        if (pickerType === 'role') setRole(item.id);
+        setPickerVisible(false);
+    };
+
+    const getSelectedLabel = (type) => {
+        if (type === 'ptkp') return TAX_OPTIONS.find(t => t.id === ptkpStatus)?.name || 'Pilih Status...';
+        if (type === 'role') return ROLE_OPTIONS.find(r => r.id === role)?.name || 'Pilih Role...';
+        return '';
     };
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            {/* Header */}
+            <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
-                <TouchableOpacity 
-                    style={styles.backButton} 
-                    onPress={() => navigation.goBack()}
-                >
-                    <AntDesign name="left" size={20} color="#1E293B" />
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color="#1E293B" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Add New User</Text>
+                <Text style={styles.headerTitle}>Pendaftaran Akun</Text>
                 <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView 
-                style={styles.scrollView} 
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                <View style={styles.formSection}>
-                    <Text style={styles.sectionSubtitle}>Step 1: Create login account for employee</Text>
-                    
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Full Name</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={employeeName}
-                            onChangeText={setEmployeeName}
-                            placeholder="Enter full name"
-                            placeholderTextColor="#94A3B8"
-                        />
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                
+                <View style={styles.infoCard}>
+                    <View style={styles.iconCircle}>
+                        <Ionicons name="person-add-outline" size={30} color="#3B82F6" />
                     </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Email Address</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={email}
-                            onChangeText={setEmail}
-                            placeholder="employee@company.com"
-                            placeholderTextColor="#94A3B8"
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
+                    <View style={styles.infoTextContainer}>
+                        <Text style={styles.infoTitle}>Langkah 1: Buat Akun</Text>
+                        <Text style={styles.infoDesc}>Masukan data dasar untuk akses login karyawan baru.</Text>
                     </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Username</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={username}
-                            onChangeText={setUsername}
-                            placeholder="e.g. ari.oke"
-                            placeholderTextColor="#94A3B8"
-                            autoCapitalize="none"
-                        />
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Password</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={password}
-                            onChangeText={setPassword}
-                            placeholder="Minimum 6 characters"
-                            placeholderTextColor="#94A3B8"
-                            secureTextEntry
-                        />
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>System Role</Text>
-                        <View style={styles.pickerContainer}>
-                            <RNPickerSelect
-                                onValueChange={(value) => setRole(value)}
-                                items={roles}
-                                placeholder={{ label: 'Select Role...', value: null }}
-                                value={role}
-                                style={pickerSelectStyles}
-                                useNativeAndroidPickerStyle={false}
-                                Icon={() => <Ionicons name="chevron-down" size={16} color="#94A3B8" style={{ marginTop: Platform.OS === 'ios' ? 15 : 12, marginRight: 10 }} />}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Tax Status (PTKP)</Text>
-                        <View style={styles.pickerContainer}>
-                            <RNPickerSelect
-                                onValueChange={(value) => setPtkpStatus(value)}
-                                items={TAX_OPTIONS}
-                                placeholder={{ label: 'Select Tax Status...', value: null }}
-                                value={ptkpStatus}
-                                style={pickerSelectStyles}
-                                useNativeAndroidPickerStyle={false}
-                                Icon={() => <Ionicons name="chevron-down" size={16} color="#94A3B8" style={{ marginTop: Platform.OS === 'ios' ? 15 : 12, marginRight: 10 }} />}
-                            />
-                        </View>
-                    </View>
-
-                    {loading ? (
-                        <View style={styles.loaderContainer}>
-                            <ActivityIndicator size="small" color="#1E293B" />
-                        </View>
-                    ) : (
-                        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                            <Text style={styles.submitButtonText}>Save & Continue</Text>
-                        </TouchableOpacity>
-                    )}
                 </View>
+
+                {/* Account Credentials */}
+                <View style={styles.mainCard}>
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Nama Lengkap</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            value={employeeName} 
+                            onChangeText={setEmployeeName} 
+                            placeholder="E.g. Jhon Doe" 
+                        />
+                    </View>
+
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Username</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            value={username} 
+                            onChangeText={setUsername} 
+                            placeholder="e.g. ari.oke" 
+                            autoCapitalize="none" 
+                        />
+                    </View>
+
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Email Perusahaan</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            value={email} 
+                            onChangeText={setEmail} 
+                            placeholder="ari@company.com" 
+                            keyboardType="email-address" 
+                            autoCapitalize="none" 
+                        />
+                    </View>
+
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Password Awal</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            value={password} 
+                            onChangeText={setPassword} 
+                            placeholder="Minimal 6 karakter" 
+                            secureTextEntry 
+                        />
+                    </View>
+
+                    <TouchableOpacity onPress={() => openPicker('role', 'Pilih Role Sistem')} style={styles.selector}>
+                        <View>
+                            <Text style={styles.selectorLabel}>Role Sistem</Text>
+                            <Text style={styles.selectorVal}>{getSelectedLabel('role')}</Text>
+                        </View>
+                        <Ionicons name="shield-checkmark-outline" size={20} color="#3B82F6" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity onPress={() => openPicker('ptkp', 'Status Pajak (PTKP)')} style={styles.selector}>
+                        <View>
+                            <Text style={styles.selectorLabel}>Status Pajak (PTKP)</Text>
+                            <Text style={styles.selectorVal}>{getSelectedLabel('ptkp')}</Text>
+                        </View>
+                        <Ionicons name="document-text-outline" size={20} color="#3B82F6" />
+                    </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity 
+                    style={styles.finalBtn} 
+                    onPress={handleSubmit} 
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color="white" />
+                    ) : (
+                        <>
+                            <Text style={styles.finalBtnText}>DAFTARKAN AKUN SEKARANG</Text>
+                            <AntDesign name="arrowright" size={20} color="white" />
+                        </>
+                    )}
+                </TouchableOpacity>
+
+                <View style={{ height: 60 }} />
             </ScrollView>
+
+            <Modal visible={pickerVisible} transparent animationType="slide">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalBody}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{pickerTitle}</Text>
+                            <TouchableOpacity onPress={() => setPickerVisible(false)}>
+                                <Ionicons name="close" size={24} color="#64748B" />
+                            </TouchableOpacity>
+                        </View>
+                        <FlatList
+                            data={pickerType === 'ptkp' ? TAX_OPTIONS : ROLE_OPTIONS}
+                            keyExtractor={(item) => (item.id).toString()}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity style={styles.optionItem} onPress={() => handleSelect(item)}>
+                                    <View>
+                                        <Text style={styles.optionLabel}>{item.name}</Text>
+                                        {item.id === 'ADMIN' && <Text style={styles.optionSub}>Akses penuh sistem</Text>}
+                                    </View>
+                                    {(ptkpStatus === item.id || role === item.id) && (
+                                        <Ionicons name="checkmark-circle" size={20} color="#3B82F6" />
+                                    )}
+                                </TouchableOpacity>
+                            )}
+                        />
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: '#F8FAFC',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#0F172A',
-        letterSpacing: -0.5,
-    },
-    scrollView: {
-        flex: 1,
-    },
-    scrollContent: {
-        paddingBottom: 40,
-    },
-    formSection: {
-        paddingHorizontal: 20,
-        paddingTop: 20,
-    },
-    sectionSubtitle: {
-        fontSize: 13,
-        color: '#64748B',
-        fontWeight: '500',
-        marginBottom: 24,
-    },
-    formGroup: {
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#334155',
-        marginBottom: 8,
-    },
-    input: {
-        backgroundColor: '#F8FAFC',
-        height: 52,
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        fontSize: 15,
-        color: '#0F172A',
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-    },
-    pickerContainer: {
-        backgroundColor: '#F8FAFC',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-        overflow: 'hidden',
-    },
-    loaderContainer: {
-        height: 54,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    submitButton: {
-        backgroundColor: '#0F172A',
-        height: 54,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    submitButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '700',
-    },
+    container: { flex: 1, backgroundColor: '#EFF6FF' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+    backButton: { padding: 8, backgroundColor: '#F8FAFC', borderRadius: 12 },
+    headerTitle: { fontSize: 17, fontWeight: '800', color: '#1E293B' },
+    scrollContent: { padding: 20 },
+    infoCard: { flexDirection: 'row', alignItems: 'center', marginBottom: 25, backgroundColor: 'white', padding: 20, borderRadius: 24, borderWidth: 1, borderColor: '#BFDBFE' },
+    iconCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center' },
+    infoTextContainer: { flex: 1, marginLeft: 15 },
+    infoTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B' },
+    infoDesc: { fontSize: 13, color: '#64748B', marginTop: 4, lineHeight: 18 },
+    mainCard: { backgroundColor: 'white', borderRadius: 28, padding: 25, marginBottom: 25, shadowColor: '#3B82F6', shadowOffset: { width:0, height:10 }, shadowOpacity: 0.05, shadowRadius: 20, elevation: 5 },
+    field: { marginBottom: 22 },
+    label: { fontSize: 13, fontWeight: '700', color: '#64748B', marginBottom: 10 },
+    input: { backgroundColor: '#F8FAFC', borderRadius: 16, height: 56, paddingHorizontal: 18, fontSize: 15, color: '#1E293B', borderWidth: 1, borderColor: '#E2E8F0' },
+    selector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18, backgroundColor: '#F8FAFC', borderRadius: 16, marginBottom: 15, borderWidth: 1, borderColor: '#E2E8F0' },
+    selectorLabel: { fontSize: 11, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' },
+    selectorVal: { fontSize: 15, color: '#1E293B', fontWeight: '700', marginTop: 4 },
+    finalBtn: { backgroundColor: '#3B82F6', height: 64, borderRadius: 20, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', shadowColor: '#3B82F6', shadowOffset: { width:0, height:8 }, shadowOpacity: 0.2, shadowRadius: 15, elevation: 8 },
+    finalBtnText: { color: 'white', fontSize: 15, fontWeight: '900', letterSpacing: 0.5, marginRight: 10 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'flex-end' },
+    modalBody: { backgroundColor: 'white', borderTopLeftRadius: 35, borderTopRightRadius: 35, paddingBottom: 40, maxHeight: height * 0.7 },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+    modalTitle: { fontSize: 18, fontWeight: '900', color: '#1E293B' },
+    optionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
+    optionLabel: { fontSize: 16, color: '#1E293B', fontWeight: '700' },
+    optionSub: { fontSize: 12, color: '#64748B', marginTop: 2 }
 });
-
-const pickerSelectStyles = {
-    inputIOS: {
-        fontSize: 16,
-        paddingVertical: 15,
-        paddingHorizontal: 15,
-        color: '#0F172A',
-        paddingRight: 30,
-        height: 50,
-        width: '100%',
-    },
-    inputAndroid: {
-        fontSize: 15,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        color: '#0F172A',
-        paddingRight: 30,
-    },
-};
 
 export default AddNewEmployee;

@@ -86,17 +86,30 @@ const authSlice = createSlice({
     },
     updateUserProfile(state, action) {
       if (state.user) {
-        // If we have a nested structure (user.employee), update it if the IDs match
-        const isEmployeeUpdate = action.payload.id && state.user.user?.employeeId === action.payload.id;
-        const isSelfUpdate = action.payload.id && state.user.user?.employee?.id === action.payload.id;
+        const updateData = action.payload;
+        const loggedInUser = state.user.user || state.user;
+        const employeeId = loggedInUser.employeeId || loggedInUser.employee?.id || loggedInUser.id;
 
-        if (isEmployeeUpdate || isSelfUpdate) {
-            state.user.user.employee = { ...state.user.user.employee, ...action.payload };
-        } else {
-            // General update or top-level user update
-            state.user = { ...state.user, ...action.payload };
+        // If the update payload has an ID, check if it matches the logged-in user/employee
+        const isMatch = updateData.id ? (updateData.id === employeeId) : true;
+        
+        if (isMatch) {
+            if (state.user.user) {
+                // Nested structure
+                if (state.user.user.employee) {
+                    state.user.user.employee = { ...state.user.user.employee, ...updateData };
+                } else if (state.user.user.employeeId === updateData.id) {
+                    // It's the employee but object not nested yet (unlikely but safe)
+                    state.user.user = { ...state.user.user, ...updateData };
+                } else {
+                    state.user.user = { ...state.user.user, ...updateData };
+                }
+            } else {
+                // Flat structure
+                state.user = { ...state.user, ...updateData };
+            }
+            AsyncStorage.setItem('user', JSON.stringify(state.user));
         }
-        AsyncStorage.setItem('user', JSON.stringify(state.user));
       }
     }
   },
