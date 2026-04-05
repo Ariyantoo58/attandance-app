@@ -6,6 +6,8 @@ import { apiService } from '../../../services/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import RNPickerSelect from 'react-native-picker-select';
 
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 const AddNewEmployee = () => {
     const navigation = useNavigation();
     const [employeeName, setEmployeeName] = useState('');
@@ -83,133 +85,212 @@ const AddNewEmployee = () => {
     };
 
     return (
-        <ScrollView className="bg-white flex-1">
-            <View style={styles.header} className="bg-gray-700 px-5">
-                <Ionicons onPress={() => navigation.goBack()} name="arrow-back-circle-outline" size={34} color="white" />
-                <Text style={styles.headerText} className="text-white">
-                     Add New User
-                </Text>
+        <SafeAreaView style={styles.container} edges={['top']}>
+            {/* Header */}
+            <View style={styles.header}>
+                <TouchableOpacity 
+                    style={styles.backButton} 
+                    onPress={() => navigation.goBack()}
+                >
+                    <AntDesign name="left" size={20} color="#1E293B" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Add New User</Text>
+                <View style={{ width: 40 }} />
             </View>
-            
-            <View className="px-5 pt-4">
-                <Text className="text-gray-500 mb-4">Step 1: Create login account for employee</Text>
-                
-                <Text style={styles.label}>Full Name :</Text>
-                <TextInput
-                    style={styles.input}
-                    value={employeeName}
-                    onChangeText={setEmployeeName}
-                    placeholder="Enter full name"
-                />
 
-                <Text style={styles.label}>Email Address :</Text>
-                <TextInput
-                    style={styles.input}
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="e.g. employee@company.com"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                />
-
-                <Text style={styles.label}>Username :</Text>
-                <TextInput
-                    style={styles.input}
-                    value={username}
-                    onChangeText={setUsername}
-                    placeholder="e.g. ari.oke"
-                    autoCapitalize="none"
-                />
-
-                <Text style={styles.label}>Password :</Text>
-                <TextInput
-                    style={styles.input}
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Min. 6 chars"
-                    secureTextEntry
-                />
-
-                <Text style={styles.label}>System Role :</Text>
-                <View style={styles.pickerContainer}>
-                    <RNPickerSelect
-                        onValueChange={(value) => setRole(value)}
-                        items={roles}
-                        placeholder={{ label: 'Select Role...', value: null }}
-                        value={role}
-                        style={pickerSelectStyles}
-                    />
-                </View>
-
-                {loading ? (
-                    <View className="bg-gray-700 rounded-lg p-4 mt-8">
-                        <ActivityIndicator size="small" color="#fff" />
+            <ScrollView 
+                style={styles.scrollView} 
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={styles.formSection}>
+                    <Text style={styles.sectionSubtitle}>Step 1: Create login account for employee</Text>
+                    
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Full Name</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={employeeName}
+                            onChangeText={setEmployeeName}
+                            placeholder="Enter full name"
+                            placeholderTextColor="#94A3B8"
+                        />
                     </View>
-                ) : (
-                    <TouchableOpacity className="p-4 mt-8 rounded-lg bg-gray-700 shadow-md" onPress={handleSubmit}>
-                        <Text className="text-center text-white text-[16px] font-medium">Save & Continue</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
-        </ScrollView>
+
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Email Address</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={email}
+                            onChangeText={setEmail}
+                            placeholder="employee@company.com"
+                            placeholderTextColor="#94A3B8"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
+                    </View>
+
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Username</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={username}
+                            onChangeText={setUsername}
+                            placeholder="e.g. ari.oke"
+                            placeholderTextColor="#94A3B8"
+                            autoCapitalize="none"
+                        />
+                    </View>
+
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Password</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="Minimum 6 characters"
+                            placeholderTextColor="#94A3B8"
+                            secureTextEntry
+                        />
+                    </View>
+
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>System Role</Text>
+                        <View style={styles.pickerContainer}>
+                            <RNPickerSelect
+                                onValueChange={(value) => setRole(value)}
+                                items={roles}
+                                placeholder={{ label: 'Select Role...', value: null }}
+                                value={role}
+                                style={pickerSelectStyles}
+                            />
+                        </View>
+                    </View>
+
+                    {loading ? (
+                        <View style={styles.loaderContainer}>
+                            <ActivityIndicator size="small" color="#1E293B" />
+                        </View>
+                    ) : (
+                        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+                            <Text style={styles.submitButtonText}>Save & Continue</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 5,
-        paddingTop: 35,
-        paddingBottom: 10
-    },
-    headerText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginLeft: 45,
-    },
-    label: {
-        marginTop: 8,
-        fontWeight: 'bold',
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        padding: 5,
-        marginVertical: 5,
-        borderRadius: 10,
-    },
-    dateButton: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        padding: 10,
-        marginVertical: 5,
-        borderRadius: 10,
-        flexDirection: 'row',
         justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#F8FAFC',
+        justifyContent: 'center',
         alignItems: 'center',
     },
-    pickerContainer: {
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#0F172A',
+        letterSpacing: -0.5,
+    },
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingBottom: 40,
+    },
+    formSection: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
+    },
+    sectionSubtitle: {
+        fontSize: 13,
+        color: '#64748B',
+        fontWeight: '500',
+        marginBottom: 24,
+    },
+    formGroup: {
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#334155',
+        marginBottom: 8,
+    },
+    input: {
+        backgroundColor: '#F8FAFC',
+        height: 52,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        fontSize: 15,
+        color: '#0F172A',
         borderWidth: 1,
-        borderColor: '#ccc',
-        marginVertical: 5,
-        borderRadius: 10,
+        borderColor: '#F1F5F9',
+    },
+    pickerContainer: {
+        backgroundColor: '#F8FAFC',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+        overflow: 'hidden',
+    },
+    loaderContainer: {
+        height: 54,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    submitButton: {
+        backgroundColor: '#0F172A',
+        height: 54,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    submitButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '700',
     },
 });
 
 const pickerSelectStyles = StyleSheet.create({
     inputIOS: {
-        fontSize: 16,
-        paddingVertical: 12,
-        paddingHorizontal: 10,
-        color: 'black',
+        fontSize: 15,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        color: '#0F172A',
         paddingRight: 30,
     },
     inputAndroid: {
-        fontSize: 16,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        color: 'black',
+        fontSize: 15,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        color: '#0F172A',
         paddingRight: 30,
     },
 });

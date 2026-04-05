@@ -209,28 +209,117 @@ const TaskCreation = () => {
                     </View>
                 </View>
 
-                {showDatePicker && (
-                    <DateTimePicker
-                        value={new Date(startDate)}
-                        mode="date"
-                        display="default"
-                        onChange={(event, date) => {
-                            setShowDatePicker(false);
-                            if (date) setStartDate(date.toISOString().split('T')[0]);
-                        }}
-                    />
+                {/* START DATE PICKER */}
+                {Platform.OS === 'ios' ? (
+                    <Modal
+                        visible={showDatePicker}
+                        transparent={true}
+                        animationType="fade"
+                        onRequestClose={() => setShowDatePicker(false)}
+                    >
+                        <TouchableOpacity 
+                            style={styles.modalOverlay} 
+                            activeOpacity={1} 
+                            onPress={() => setShowDatePicker(false)}
+                        >
+                            <View style={styles.datePickerModalContent}>
+                                <View style={styles.datePickerHeader}>
+                                    <Text style={styles.datePickerTitle}>Start Date</Text>
+                                    <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                                        <Text style={styles.datePickerDoneText}>Done</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <DateTimePicker
+                                    value={startDate ? new Date(startDate) : new Date()}
+                                    mode="date"
+                                    display="inline"
+                                    onChange={(event, date) => {
+                                        if (date) {
+                                            // Using YYYY-MM-DD local format to avoid TZ issues
+                                            const year = date.getFullYear();
+                                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                                            const day = String(date.getDate()).padStart(2, '0');
+                                            setStartDate(`${year}-${month}-${day}`);
+                                        }
+                                    }}
+                                    themeVariant="light"
+                                />
+                            </View>
+                        </TouchableOpacity>
+                    </Modal>
+                ) : (
+                    showDatePicker && (
+                        <DateTimePicker
+                            value={startDate ? new Date(startDate) : new Date()}
+                            mode="date"
+                            display="default"
+                            onChange={(event, date) => {
+                                setShowDatePicker(false);
+                                if (date) {
+                                    const year = date.getFullYear();
+                                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                                    const day = String(date.getDate()).padStart(2, '0');
+                                    setStartDate(`${year}-${month}-${day}`);
+                                }
+                            }}
+                        />
+                    )
                 )}
 
-                {showDueDatePicker && (
-                    <DateTimePicker
-                        value={dueDate ? new Date(dueDate) : new Date()}
-                        mode="date"
-                        display="default"
-                        onChange={(event, date) => {
-                            setShowDueDatePicker(false);
-                            if (date) setDueDate(date.toISOString().split('T')[0]);
-                        }}
-                    />
+                {/* DUE DATE PICKER */}
+                {Platform.OS === 'ios' ? (
+                    <Modal
+                        visible={showDueDatePicker}
+                        transparent={true}
+                        animationType="fade"
+                        onRequestClose={() => setShowDueDatePicker(false)}
+                    >
+                        <TouchableOpacity 
+                            style={styles.modalOverlay} 
+                            activeOpacity={1} 
+                            onPress={() => setShowDueDatePicker(false)}
+                        >
+                            <View style={styles.datePickerModalContent}>
+                                <View style={styles.datePickerHeader}>
+                                    <Text style={styles.datePickerTitle}>Due Date</Text>
+                                    <TouchableOpacity onPress={() => setShowDueDatePicker(false)}>
+                                        <Text style={styles.datePickerDoneText}>Done</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <DateTimePicker
+                                    value={dueDate ? new Date(dueDate) : new Date()}
+                                    mode="date"
+                                    display="inline"
+                                    onChange={(event, date) => {
+                                        if (date) {
+                                            const year = date.getFullYear();
+                                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                                            const day = String(date.getDate()).padStart(2, '0');
+                                            setDueDate(`${year}-${month}-${day}`);
+                                        }
+                                    }}
+                                    themeVariant="light"
+                                />
+                            </View>
+                        </TouchableOpacity>
+                    </Modal>
+                ) : (
+                    showDueDatePicker && (
+                        <DateTimePicker
+                            value={dueDate ? new Date(dueDate) : new Date()}
+                            mode="date"
+                            display="default"
+                            onChange={(event, date) => {
+                                setShowDueDatePicker(false);
+                                if (date) {
+                                    const year = date.getFullYear();
+                                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                                    const day = String(date.getDate()).padStart(2, '0');
+                                    setDueDate(`${year}-${month}-${day}`);
+                                }
+                            }}
+                        />
+                    )
                 )}
 
                 <TouchableOpacity 
@@ -475,6 +564,37 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
         fontSize: 16,
+    },
+    // Date Picker Modal Styles
+    datePickerModalContent: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 20,
+        width: '90%',
+        maxWidth: 400,
+        alignSelf: 'center',
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 20,
+    },
+    datePickerHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+        paddingHorizontal: 5,
+    },
+    datePickerTitle: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#0F172A',
+    },
+    datePickerDoneText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#00a2e4',
     },
 });
 

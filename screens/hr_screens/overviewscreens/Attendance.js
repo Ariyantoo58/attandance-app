@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet, Image, ActivityIndicator, Alert, Dimensions, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet, Image, ActivityIndicator, Alert, Dimensions, Platform, StatusBar } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -62,7 +62,9 @@ const Attendance = () => {
   };
 
   const onDateChange = (event, date) => {
-    setShowDatePicker(Platform.OS === 'ios');
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
     if (date) {
       setSelectedDate(date);
     }
@@ -145,49 +147,84 @@ const Attendance = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.header}>Daily Attendance</Text>
-            <TouchableOpacity 
-              style={styles.dateSelectorBtn} 
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={styles.dateSubheader}>{moment(selectedDate).format('DD MMM YYYY')}</Text>
-              <Ionicons name="chevron-down" size={14} color="#6B7280" style={{ marginLeft: 5 }} />
-            </TouchableOpacity>
-          </View>
-          {showDatePicker && (
-            <DateTimePicker
-              value={selectedDate}
-              mode="date"
-              display="default"
-              onChange={onDateChange}
-              maximumDate={new Date()} // Optional: restrict to past and today
-            />
-          )}
-          <View style={styles.tabsContainer}>
-            <TouchableOpacity 
-                style={[styles.tabBtn, viewMode === 'list' && styles.activeTabBtn]} 
-                onPress={() => setViewMode('list')}
-            >
-                <Ionicons name="list" size={20} color={viewMode === 'list' ? '#FFFFFF' : '#6B7280'} />
-            </TouchableOpacity>
-            <TouchableOpacity 
-                style={[styles.tabBtn, viewMode === 'map' && styles.activeTabBtn]} 
-                onPress={() => setViewMode('map')}
-            >
-                <Ionicons name="map" size={20} color={viewMode === 'map' ? '#FFFFFF' : '#6B7280'} />
-            </TouchableOpacity>
-          </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" />
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Daily Attendance</Text>
+          <Text style={styles.headerSubtitle}>{moment(selectedDate).format('dddd, DD MMM')}</Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.calendarBtn} 
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Ionicons name="calendar-outline" size={20} color="#0F172A" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.tabsWrapper}>
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity 
+              style={[styles.tabBtn, viewMode === 'list' && styles.activeTabBtn]} 
+              onPress={() => setViewMode('list')}
+          >
+              <Text style={[styles.tabText, viewMode === 'list' && styles.activeTabText]}>List View</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+              style={[styles.tabBtn, viewMode === 'map' && styles.activeTabBtn]} 
+              onPress={() => setViewMode('map')}
+          >
+              <Text style={[styles.tabText, viewMode === 'map' && styles.activeTabText]}>Map View</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
+      {Platform.OS === 'ios' ? (
+        <Modal
+          visible={showDatePicker}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowDatePicker(false)}
+        >
+          <TouchableOpacity 
+            style={styles.modalOverlay} 
+            activeOpacity={1} 
+            onPress={() => setShowDatePicker(false)}
+          >
+            <View style={styles.datePickerModalContent}>
+              <View style={styles.datePickerHeader}>
+                <Text style={styles.datePickerTitle}>Select Date</Text>
+                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                  <Text style={styles.datePickerDoneText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={selectedDate}
+                mode="date"
+                display="inline"
+                onChange={onDateChange}
+                maximumDate={new Date()}
+                themeVariant="light"
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      ) : (
+        showDatePicker && (
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            display="default"
+            onChange={onDateChange}
+            maximumDate={new Date()}
+          />
+        )
+      )}
+
       {loading ? (
-          <View style={styles.centerBox}>
-            <ActivityIndicator size="large" color="#3B82F6" />
-          </View>
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="small" color="#0F172A" />
+        </View>
       ) : viewMode === 'map' ? (
         <View style={styles.fullMapContainer}>
           <MapView
@@ -268,6 +305,7 @@ const Attendance = () => {
                 key={log.id} 
                 style={styles.employeeCard}
                 onPress={() => toggleHistoryModal(log.employee)}
+                activeOpacity={0.7}
             >
               <Image 
                 source={{ uri: log.employee?.avatarUrl || 'https://i.pravatar.cc/150?u=' + log.employee?.id }} 
@@ -276,37 +314,41 @@ const Attendance = () => {
               <View style={styles.employeeInfo}>
                 <View style={styles.cardHeader}>
                     <Text style={styles.employeeName} numberOfLines={1}>{log.employee?.name}</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: log.clockIn ? '#D1FAE5' : '#FEE2E2' }]}>
-                        <Text style={[styles.statusText, { color: log.clockIn ? '#059669' : '#DC2626' }]}>
+                    <View style={[styles.statusBadge, { backgroundColor: log.clockIn ? '#F0FDF4' : '#FEF2F2' }]}>
+                        <Text style={[styles.statusText, { color: log.clockIn ? '#16A34A' : '#DC2626' }]}>
                             {log.clockIn ? 'Present' : 'Absent'}
                         </Text>
                     </View>
                 </View>
                 
                 <View style={styles.locationInfo}>
-                    <Ionicons name="location-outline" size={12} color="#6B7280" />
-                    <Text style={styles.locationLabelText} numberOfLines={1} ellipsizeMode="tail"> 
-                      {log.clockInLocation || 'No data'} {log.clockOutLocation ? `• ${log.clockOutLocation}` : ''}
+                    <Ionicons name="location-outline" size={12} color="#94A3B8" />
+                    <Text style={styles.locationLabelText} numberOfLines={1}> 
+                      {log.clockInLocation || 'No data'}
                     </Text>
                 </View>
 
                 <View style={styles.timeRow}>
                     <View style={styles.timePill}>
-                         <MaterialCommunityIcons name="clock-in" size={12} color="#10B981" />
-                         <Text style={styles.timeText}> {log.clockIn ? moment(log.clockIn).format('HH:mm') : '--:--'}</Text>
+                         <MaterialCommunityIcons name="clock-in" size={14} color="#10B981" />
+                         <Text style={styles.timeText}>{log.clockIn ? moment(log.clockIn).format('HH:mm') : '--:--'}</Text>
                     </View>
-                    <View style={styles.timePillSeparator} />
+                    <View style={styles.timeSeparator} />
                     <View style={styles.timePill}>
-                         <MaterialCommunityIcons name="clock-out" size={12} color="#EF4444" />
-                         <Text style={styles.timeText}> {log.clockOut ? moment(log.clockOut).format('HH:mm') : '--:--'}</Text>
+                         <MaterialCommunityIcons name="clock-out" size={14} color="#EF4444" />
+                         <Text style={styles.timeText}>{log.clockOut ? moment(log.clockOut).format('HH:mm') : '--:--'}</Text>
                     </View>
                 </View>
               </View>
+              <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
             </TouchableOpacity>
           )) : (
             <View style={styles.emptyContainer}>
-                <Ionicons name="calendar-outline" size={64} color="#D1D5DB" />
-                <Text style={styles.emptyText}>No attendance logs for {moment(selectedDate).format('DD MMM YYYY')}</Text>
+                <View style={styles.emptyIconBg}>
+                  <Ionicons name="calendar-outline" size={40} color="#94A3B8" />
+                </View>
+                <Text style={styles.emptyTitle}>No attendance yet</Text>
+                <Text style={styles.emptySubtitle}>There are no logs for {moment(selectedDate).format('DD MMM YYYY')}</Text>
             </View>
           )}
         </ScrollView>
@@ -533,110 +575,128 @@ const Attendance = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFFFF',
   },
-  headerContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
-  headerTop: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
+  headerLeft: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  calendarBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
-    padding: 2,
-  },
-  tabBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  activeTabBtn: {
-    backgroundColor: '#3B82F6',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+  tabsWrapper: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
-  header: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  dateSubheader: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  dateSelectorBtn: {
+  tabsContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    paddingVertical: 2,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    padding: 4,
   },
-  centerBox: {
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  activeTabBtn: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  activeTabText: {
+    color: '#0F172A',
+  },
+  loaderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 100,
+    paddingBottom: 40,
   },
   employeeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
   },
   employeeImage: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    marginRight: 15,
-    backgroundColor: '#E5E7EB',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+    backgroundColor: '#F1F5F9',
   },
   employeeInfo: {
     flex: 1,
-    justifyContent: 'center',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   employeeName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#1F2937',
-    flex: 1,
-    marginRight: 8,
+    color: '#1E293B',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   locationInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    opacity: 0.8,
+    marginBottom: 6,
   },
   locationLabelText: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '500',
+    fontSize: 12,
+    color: '#94A3B8',
     marginLeft: 4,
-    flex: 1,
   },
   timeRow: {
     flexDirection: 'row',
@@ -645,35 +705,44 @@ const styles = StyleSheet.create({
   timePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
   },
   timeText: {
     fontSize: 12,
-    color: '#374151',
+    color: '#475569',
     fontWeight: '600',
+    marginLeft: 4,
   },
-  timePillSeparator: {
-    width: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    minWidth: 65,
-    alignItems: 'center',
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
+  timeSeparator: {
+    width: 12,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginHorizontal: 8,
   },
   emptyContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 100,
+  },
+  emptyIconBg: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
   },
   emptyText: {
     marginTop: 15,
@@ -993,6 +1062,37 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
     marginLeft: 8,
+  },
+  // Date Picker Modal Styles
+  datePickerModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+    alignSelf: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 5,
+  },
+  datePickerTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  datePickerDoneText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3B82F6',
   },
 });
 

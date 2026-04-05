@@ -25,7 +25,7 @@ const WelcomeScreen = () => {
                 />
 
                 <View style={styles.buttonContainer}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={[styles.button, styles.employeeButton]}
                         onPress={() => navigation.navigate('EmployeeLogin')}
                     >
@@ -33,7 +33,7 @@ const WelcomeScreen = () => {
                         <Text style={styles.buttonText}>Employee Access</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={[styles.button, styles.managerButton]}
                         onPress={() => navigation.navigate('ManagerLogin')}
                     >
@@ -42,7 +42,8 @@ const WelcomeScreen = () => {
                     </TouchableOpacity>
                 </View>
             </View>
-            <Text style={styles.footer}>© 2024 HR Excellence System</Text>
+            <Text style={styles.footer}>© 2026 HR Excellence System</Text>
+            <Text style={styles.footer}>Powered By Aridevs</Text>
         </SafeAreaView>
     );
 };

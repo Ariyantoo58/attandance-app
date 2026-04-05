@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Platform, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Platform, StyleSheet, ActivityIndicator, Modal } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -69,12 +69,19 @@ const Send_Timeoff_Form = () => {
     };
 
     const onChange = (event, selectedDate) => {
-        setShowDateTimePicker(false);
+        if (Platform.OS === 'android') {
+            setShowDateTimePicker(false);
+        }
         if (selectedDate) {
+            const year = selectedDate.getFullYear();
+            const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+            const day = String(selectedDate.getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+
             if (selectedField === 'startDate') {
-                setStartDate(selectedDate.toISOString().split('T')[0]);
+                setStartDate(formattedDate);
             } else if (selectedField === 'endDate') {
-                setEndDate(selectedDate.toISOString().split('T')[0]);
+                setEndDate(formattedDate);
             } else if (selectedField === 'halfDayTime') {
                 setHalfDayTime(selectedDate.toISOString());
             }
@@ -160,13 +167,56 @@ const Send_Timeoff_Form = () => {
                     <Text style={styles.sendButtonText}>Submit</Text>
                 )}
             </TouchableOpacity>
-            {showDateTimePicker && (
-                <DateTimePicker
-                    value={new Date()}
-                    mode={mode}
-                    display="default"
-                    onChange={onChange}
-                />
+            {Platform.OS === 'ios' ? (
+                <Modal
+                    visible={showDateTimePicker}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setShowDateTimePicker(false)}
+                >
+                    <TouchableOpacity 
+                        style={styles.modalOverlay} 
+                        activeOpacity={1} 
+                        onPress={() => setShowDateTimePicker(false)}
+                    >
+                        <View style={styles.datePickerModalContent}>
+                            <View style={styles.datePickerHeader}>
+                                <Text style={styles.datePickerTitle}>
+                                    {selectedField === 'halfDayTime' ? 'Select Time' : 'Select Date'}
+                                </Text>
+                                <TouchableOpacity onPress={() => setShowDateTimePicker(false)}>
+                                    <Text style={styles.datePickerDoneText}>Done</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <DateTimePicker
+                                value={
+                                    selectedField === 'startDate' && startDate ? new Date(startDate) : 
+                                    selectedField === 'endDate' && endDate ? new Date(endDate) : 
+                                    selectedField === 'halfDayTime' && halfDayTime ? new Date(halfDayTime) : 
+                                    new Date()
+                                }
+                                mode={mode}
+                                display="inline"
+                                onChange={onChange}
+                                themeVariant="light"
+                            />
+                        </View>
+                    </TouchableOpacity>
+                </Modal>
+            ) : (
+                showDateTimePicker && (
+                    <DateTimePicker
+                        value={
+                            selectedField === 'startDate' && startDate ? new Date(startDate) : 
+                            selectedField === 'endDate' && endDate ? new Date(endDate) : 
+                            selectedField === 'halfDayTime' && halfDayTime ? new Date(halfDayTime) : 
+                            new Date()
+                        }
+                        mode={mode}
+                        display="default"
+                        onChange={onChange}
+                    />
+                )
             )}
         </View>
     );
@@ -233,7 +283,43 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         backgroundColor: '#fff',
         overflow: 'hidden'
-    }
+    },
+    // Date Picker Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+    },
+    datePickerModalContent: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 20,
+        width: '90%',
+        maxWidth: 400,
+        alignSelf: 'center',
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 20,
+    },
+    datePickerHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+        paddingHorizontal: 5,
+    },
+    datePickerTitle: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#0F172A',
+    },
+    datePickerDoneText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#00a2e4',
+    },
 });
 
 const pickerSelectStyles = StyleSheet.create({
