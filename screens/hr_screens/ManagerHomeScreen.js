@@ -9,6 +9,7 @@ import { EmployeesAttendance as StaticAttendance } from '@/services/hrservices/E
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/auth/authSlice';
 import { apiService } from '@/services/api';
+import { useSocket } from '@/context/SocketContext';
 
 const ManagerHomeScreen = () => {
   const navigation = useNavigation();
@@ -19,11 +20,39 @@ const ManagerHomeScreen = () => {
   const [recentLeaves, setRecentLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const { socket } = useSocket();
+
   useFocusEffect(
     useCallback(() => {
       loadDashboard();
     }, [])
   );
+
+  React.useEffect(() => {
+    if (socket) {
+      const handleUpdate = (data) => {
+        console.log('Real-time dashboard update event:', data);
+        loadDashboard(); // Simplified: refresh everything on relevant events
+      };
+
+      socket.on('attendance_updated', handleUpdate);
+      socket.on('time_off:requested', handleUpdate);
+      socket.on('correction:requested', handleUpdate);
+      socket.on('employee_changed', handleUpdate);
+      socket.on('notification', (notif) => {
+        console.log('In-app notification received:', notif);
+        // We could also show a toast here if we had a toast provider
+      });
+
+      return () => {
+        socket.off('attendance_updated', handleUpdate);
+        socket.off('time_off:requested', handleUpdate);
+        socket.off('correction:requested', handleUpdate);
+        socket.off('employee_changed', handleUpdate);
+        socket.off('notification');
+      };
+    }
+  }, [socket]);
 
   const loadDashboard = async () => {
     try {

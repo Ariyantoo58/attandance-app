@@ -4,6 +4,7 @@ import { AntDesign, Feather, MaterialCommunityIcons, MaterialIcons } from '@expo
 import { apiService } from '../../../services/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
+import { useSocket } from '../../../context/SocketContext';
 
 const MyCorrectionList = () => {
   const navigation = useNavigation();
@@ -12,27 +13,61 @@ const MyCorrectionList = () => {
   const [loading, setLoading] = useState(true);
   const authState = useSelector(state => state.auth.user);
   const employeeId = authState?.employeeId || authState?.user?.employeeId;
+  const { socket } = useSocket();
 
-  useFocusEffect(
-    useCallback(() => {
-      if (employeeId) {
-        loadCorrections();
-      }
-    }, [employeeId])
-  );
-
-  const loadCorrections = async () => {
+  const loadCorrections = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
+      
       const data = await apiService.getMyAttendanceCorrections(employeeId);
       setCorrections(data);
     } catch (error) {
       console.error('Failed to load corrections:', error);
-      Alert.alert('Error', 'Failed to load correction history');
+      if (!silent) Alert.alert('Error', 'Failed to load correction history');
     } finally {
       setLoading(false);
     }
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (employeeId) {
+        console.log('MyCorrectionList focused, refreshing... Count:', corrections.length);
+        loadCorrections(corrections.length > 0);
+      }
+    }, [employeeId, corrections.length])
+  );
+
+  useEffect(() => {
+    if (socket && employeeId) {
+      const handleNewCorrection = (newReq) => {
+        console.log('Received correction:requested in MyCorrectionList:', newReq.id);
+        if (newReq.employeeId === employeeId) {
+          setCorrections(prev => {
+            if (prev.find(c => c.id === newReq.id)) return prev;
+            return [newReq, ...prev];
+          });
+        }
+      };
+
+      const handleCorrectionUpdate = (updatedReq) => {
+        console.log('Received correction:changed in MyCorrectionList:', updatedReq.id);
+        if (updatedReq.employeeId === employeeId) {
+          setCorrections(prev => prev.map(c => 
+            c.id === updatedReq.id ? { ...c, ...updatedReq } : c
+          ));
+        }
+      };
+
+      socket.on('correction:requested', handleNewCorrection);
+      socket.on('correction:changed', handleCorrectionUpdate);
+
+      return () => {
+        socket.off('correction:requested', handleNewCorrection);
+        socket.off('correction:changed', handleCorrectionUpdate);
+      };
+    }
+  }, [socket, employeeId]);
 
   const filteredCorrections = corrections.filter(item =>
     filter === 'All' ? true : item.status === filter
@@ -65,7 +100,9 @@ const MyCorrectionList = () => {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <MaterialIcons name="arrow-back" size={20} color="black" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Corrections</Text>
+        <View className="flex-row items-center">
+            <Text style={styles.headerTitle}>My Corrections</Text>
+        </View>
         <TouchableOpacity onPress={() => navigation.navigate("AttendanceCorrectionRequest")}>
           <Feather name="plus-circle" size={24} color="#00a2e4" />
         </TouchableOpacity>

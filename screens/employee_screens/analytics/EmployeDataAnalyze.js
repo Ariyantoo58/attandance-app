@@ -135,12 +135,22 @@ const EmployeeDataAnalyze = () => {
 
         const currentData = selectedChart === 'attendance' ? chartData.attendance : chartData.work;
 
-        if (selectedChart === 'attendance' && attendance.length === 0) {
+        if (!currentData || (selectedChart === 'attendance' && attendance.length === 0)) {
             return (
                 <View style={styles.centerBox}>
                     <Ionicons name="bar-chart-outline" size={80} color="#e2e8f0" />
                     <Text style={styles.emptyText}>No data available yet</Text>
                     <Text style={styles.emptySubText}>Start clocking in to see your analytics</Text>
+                </View>
+            );
+        }
+
+        // Defensive check for chart properties
+        if (!currentData.pie || !currentData.bar || !currentData.line) {
+            return (
+                <View style={styles.centerBox}>
+                    <ActivityIndicator size="small" color="#0ea5e9" />
+                    <Text style={styles.loadingText}>Preparing charts...</Text>
                 </View>
             );
         }

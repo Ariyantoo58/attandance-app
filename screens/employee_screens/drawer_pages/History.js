@@ -6,6 +6,7 @@ import { AntDesign, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@exp
 import { useSelector } from 'react-redux';
 import { apiService } from '../../../services/api';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSocket } from '../../../context/SocketContext';
 
 const { width } = Dimensions.get('window');
 
@@ -14,6 +15,7 @@ const History = () => {
   const { user } = useSelector(state => state.auth);
   const employeeId = user?.user?.employeeId;
 
+  const { socket } = useSocket();
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -30,6 +32,24 @@ const History = () => {
       }
     }, [employeeId, filter])
   );
+
+  React.useEffect(() => {
+    if (socket) {
+      const handleAttendanceUpdate = (data) => {
+        console.log('Real-time attendance update received:', data);
+        if (data.employeeId === employeeId) {
+          setPage(0);
+          fetchHistory(0, true);
+        }
+      };
+
+      socket.on('attendance_updated', handleAttendanceUpdate);
+
+      return () => {
+        socket.off('attendance_updated', handleAttendanceUpdate);
+      };
+    }
+  }, [socket, employeeId]);
 
   const fetchHistory = async (skip = 0, isInitial = false) => {
     // Ensure skip is a number

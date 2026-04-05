@@ -5,6 +5,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { apiService } from '../../../services/api';
 import { updateUserProfile } from '../../../auth/authSlice';
+import { useSocket } from '../../../context/SocketContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import RNPickerSelect from 'react-native-picker-select';
 
@@ -83,11 +84,28 @@ const ProfileSetting = () => {
         }
     }, [employeeId]);
 
+    const { socket } = useSocket();
+
     useFocusEffect(
         useCallback(() => {
             loadProfile();
         }, [loadProfile])
     );
+
+    useEffect(() => {
+        if (socket) {
+            socket.on('employee_changed', (data) => {
+                if (data.employee?.id === employeeId || data.employeeId === employeeId) {
+                    console.log('Profile update received via socket');
+                    loadProfile();
+                }
+            });
+
+            return () => {
+                socket.off('employee_changed');
+            };
+        }
+    }, [socket, employeeId, loadProfile]);
 
     const handleSave = async () => {
         if (!name) {

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIn
 import { AntDesign, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { apiService } from '../../../services/api';
+import { useSocket } from '../../../context/SocketContext';
 
 const AttendanceCorrectionManager = () => {
     const navigation = useNavigation();
@@ -13,9 +14,24 @@ const AttendanceCorrectionManager = () => {
     const [showNoteModal, setShowNoteModal] = useState(false);
     const [actionType, setActionType] = useState(''); // 'APPROVE' or 'REJECT'
 
+    const { socket } = useSocket();
+
     useEffect(() => {
         loadRequests();
     }, []);
+
+    useEffect(() => {
+        if (socket) {
+            socket.on('correction:requested', (data) => {
+                console.log('New correction request received via socket');
+                loadRequests();
+            });
+
+            return () => {
+                socket.off('correction:requested');
+            };
+        }
+    }, [socket]);
 
     const loadRequests = async () => {
         try {

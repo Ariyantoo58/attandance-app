@@ -9,6 +9,7 @@ import { useSelector } from 'react-redux';
 import { calculatePayrollAutomation, TAX_STATUS } from '../../../services/taxCalculator';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { useSocket } from '../../../context/SocketContext';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -23,11 +24,28 @@ const PaySlip = () => {
     const [employeePtkp, setEmployeePtkp] = useState('TK0');
     const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
 
+    const { socket } = useSocket();
+
     useEffect(() => {
         if (employeeId) {
             loadPayroll();
         }
     }, [employeeId]);
+
+    useEffect(() => {
+        if (socket && employeeId) {
+            socket.on('payroll_changed', (data) => {
+                if (data.employeeId === employeeId) {
+                    console.log('Your payroll was updated via socket');
+                    loadPayroll();
+                }
+            });
+
+            return () => {
+                socket.off('payroll_changed');
+            };
+        }
+    }, [socket, employeeId]);
 
     const loadPayroll = async () => {
         try {

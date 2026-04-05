@@ -4,6 +4,7 @@ import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { apiService } from '../../../services/api';
 import { useSelector } from 'react-redux';
+import { useSocket } from '../../../context/SocketContext';
 
 const Leave_Applications = () => {
     const navigation = useNavigation();
@@ -13,9 +14,30 @@ const Leave_Applications = () => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const { socket } = useSocket();
+
     useEffect(() => {
         loadRequests();
     }, []);
+
+    useEffect(() => {
+        if (socket) {
+            socket.on('time_off:requested', (data) => {
+                console.log('New leave request received via socket:', data);
+                loadRequests();
+            });
+
+            socket.on('time_off:changed', (data) => {
+                console.log('Leave request status changed via socket:', data);
+                loadRequests();
+            });
+
+            return () => {
+                socket.off('time_off:requested');
+                socket.off('time_off:changed');
+            };
+        }
+    }, [socket]);
 
     const loadRequests = async () => {
         try {

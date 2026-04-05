@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { apiService } from '../../../services/api';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
+import { useSocket } from '../../../context/SocketContext';
 
 const TimeOff = () => {
   const navigate = useNavigation();
@@ -11,16 +12,12 @@ const TimeOff = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
+  const { socket } = useSocket();
 
-  useEffect(() => {
-    if (employeeId) {
-      loadTimeOff();
-    }
-  }, [employeeId]);
-
-  const loadTimeOff = async () => {
+  const loadTimeOff = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
+      
       const data = await apiService.getTimeOffRequests(employeeId);
       setTasks(data);
     } catch (error) {
@@ -29,6 +26,49 @@ const TimeOff = () => {
       setLoading(false);
     }
   };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (employeeId) {
+        console.log('TimeOff screen focused, triggering refresh. Tasks count:', tasks.length);
+        loadTimeOff(tasks.length > 0); 
+      }
+    }, [employeeId, tasks.length])
+  );
+
+  useEffect(() => {
+    if (socket && employeeId) {
+      const handleNewRequest = (newRequest) => {
+        console.log('Received time_off:requested event in TimeOff.js:', newRequest.id);
+        if (newRequest.employeeId === employeeId) {
+            console.log('Appending new request to local state');
+            // Append and avoid duplicates
+            setTasks(prev => {
+                const exists = prev.find(t => t.id === newRequest.id);
+                if (exists) return prev;
+                return [newRequest, ...prev];
+            });
+        }
+      };
+
+      const handleStatusChange = (updatedRequest) => {
+        console.log('Received time_off:changed event in TimeOff.js:', updatedRequest.id);
+        if (updatedRequest.employeeId === employeeId) {
+            setTasks(prev => prev.map(t => 
+                t.id === updatedRequest.id ? { ...t, ...updatedRequest } : t
+            ));
+        }
+      };
+
+      socket.on('time_off:requested', handleNewRequest);
+      socket.on('time_off:changed', handleStatusChange);
+
+      return () => {
+        socket.off('time_off:requested', handleNewRequest);
+        socket.off('time_off:changed', handleStatusChange);
+      };
+    }
+  }, [socket, employeeId]);
 
   const filteredTasks = tasks.filter(task =>
     filter === 'All' ? true : task.status === filter
@@ -65,7 +105,9 @@ const TimeOff = () => {
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className="pt-12 px-5 bg-blue-50">
       <View className="flex-row items-center justify-between">
-        <Text className="text-[20px] font-semibold">Time Off</Text>
+        <View className="flex-row items-center">
+            <Text className="text-[20px] font-semibold">Time Off</Text>
+        </View>
         <TouchableOpacity className="bg-white rounded-full p-0.5" onPress={() => navigate.navigate("Send_Timeoff_Form")}>
           <Feather name="plus-circle" size={24} color="black" />
         </TouchableOpacity>

@@ -41,9 +41,14 @@ import FaceRecognitionScreen from './screens/employee_screens/FaceRecognitionScr
 import ManagerCustomDrawerContent from './screens/hr_screens/drawescreens/ManagerCustomDrawerContent';
 import EmployeeEdit from './screens/hr_screens/add_new_employee/EmployeeEdit';
 import TaskDetail from './screens/common/TaskDetail';
-import AttendanceCorrectionRequest from './screens/employee_screens/attendance_correction/AttendanceCorrectionRequest';
 import MyCorrectionList from './screens/employee_screens/attendance_correction/MyCorrectionList';
 import AttendanceCorrectionManager from './screens/hr_screens/overviewscreens/AttendanceCorrectionManager';
+import AttendanceCorrectionRequest from './screens/employee_screens/attendance_correction/AttendanceCorrectionRequest';
+import { SocketProvider } from './context/SocketContext';
+import { registerForPushNotificationsAsync, saveTokenToBackend, setupNotificationListeners } from './services/NotificationManager';
+import { useSocket } from './context/SocketContext';
+import { useDispatch } from 'react-redux';
+import { updateUserProfile } from './auth/authSlice';
 // import AutorityScreen from './screens/AutorityScreen'
 
 const Stack = createNativeStackNavigator();
@@ -330,7 +335,31 @@ function ManagerStackNavigator() {
 function AppNavigator() {
     const { isAuthenticated, loading, isHydrated, user } = useSelector(state => state.auth);
     const [role, setRole] = React.useState(roles.none);
-    // const dispatch = useDispatch();
+    const dispatch = useDispatch();
+    const { socket } = useSocket();
+
+    // Global Profile Sync
+    React.useEffect(() => {
+        if (socket && isAuthenticated && user?.user?.employeeId) {
+            console.log('Registering global profile sync listener for:', user.user.employeeId);
+            
+            const handleEmployeeUpdate = (data) => {
+                console.log('employee_changed event received:', data);
+                // If the updated employee matches current user
+                if (data.employee?.id === user.user.employeeId) {
+                    console.log('Current user profile updated via socket, refreshing Redux...');
+                    dispatch(updateUserProfile(data.employee));
+                }
+            };
+
+            socket.on('employee_changed', handleEmployeeUpdate);
+            
+            return () => {
+                console.log('Removing global profile sync listener');
+                socket.off('employee_changed', handleEmployeeUpdate);
+            };
+        }
+    }, [socket, isAuthenticated, user?.user?.employeeId]);
 
     React.useEffect(() => {
         const userRole = user?.user?.role?.toLowerCase();
@@ -362,6 +391,40 @@ function AppNavigator() {
 
         if (isHydrated) loadRole();
     }, [isHydrated]);
+
+    // Handle Push Notifications
+    React.useEffect(() => {
+        let notificationListener;
+        let responseListener;
+
+        const initNotifications = async () => {
+            if (isAuthenticated) {
+                const token = await registerForPushNotificationsAsync();
+                if (token) {
+                    await saveTokenToBackend(token);
+                }
+                
+                const listeners = setupNotificationListeners();
+                notificationListener = listeners.notificationListener;
+                responseListener = listeners.responseListener;
+            }
+        };
+
+        initNotifications();
+
+        return () => {
+            if (notificationListener) {
+                import('expo-notifications').then(Notifications => 
+                    Notifications.removeNotificationSubscription(notificationListener)
+                );
+            }
+            if (responseListener) {
+                import('expo-notifications').then(Notifications => 
+                    Notifications.removeNotificationSubscription(responseListener)
+                );
+            }
+        };
+    }, [isAuthenticated]);
 
     if (!isHydrated) {
         return (
@@ -402,9 +465,11 @@ export default function App() {
     return (
         <SafeAreaProvider>
             <Provider store={store}>
-                <MenuProvider>
-                    <AppNavigator />
-                </MenuProvider>
+                <SocketProvider>
+                    <MenuProvider>
+                        <AppNavigator />
+                    </MenuProvider>
+                </SocketProvider>
             </Provider>
         </SafeAreaProvider>
     );

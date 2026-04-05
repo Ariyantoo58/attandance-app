@@ -86,7 +86,16 @@ const authSlice = createSlice({
     },
     updateUserProfile(state, action) {
       if (state.user) {
-        state.user = { ...state.user, ...action.payload };
+        // If we have a nested structure (user.employee), update it if the IDs match
+        const isEmployeeUpdate = action.payload.id && state.user.user?.employeeId === action.payload.id;
+        const isSelfUpdate = action.payload.id && state.user.user?.employee?.id === action.payload.id;
+
+        if (isEmployeeUpdate || isSelfUpdate) {
+            state.user.user.employee = { ...state.user.user.employee, ...action.payload };
+        } else {
+            // General update or top-level user update
+            state.user = { ...state.user, ...action.payload };
+        }
         AsyncStorage.setItem('user', JSON.stringify(state.user));
       }
     }

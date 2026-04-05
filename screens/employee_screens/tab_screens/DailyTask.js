@@ -3,7 +3,8 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } fr
 import { EvilIcons, AntDesign } from '@expo/vector-icons';
 import { apiService } from '../../../services/api';
 import { useSelector } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useSocket } from '../../../context/SocketContext';
 
 const DailyTask = () => {
   const [filter, setFilter] = useState('All');
@@ -11,16 +12,12 @@ const DailyTask = () => {
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
   const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
+  const { socket } = useSocket();
 
-  useEffect(() => {
-    if (employeeId) {
-      loadTasks();
-    }
-  }, [employeeId]);
-
-  const loadTasks = async () => {
+  const loadTasks = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
+      
       const data = await apiService.getTasks(employeeId);
       setTasks(data);
     } catch (error) {
@@ -29,6 +26,44 @@ const DailyTask = () => {
       setLoading(false);
     }
   };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (employeeId) {
+        console.log('DailyTask focused, refreshing... Current count:', tasks.length);
+        loadTasks(tasks.length > 0);
+      }
+    }, [employeeId, tasks.length])
+  );
+
+  useEffect(() => {
+    if (socket && employeeId) {
+      const handleTaskCreated = (data) => {
+        console.log('Received task:created event:', data.title);
+        // If this employee is in the list of assigned employees
+        if (data.employeeIds?.includes(employeeId)) {
+          loadTasks(true); // Silent refresh to get full objects
+        }
+      };
+
+      const handleTaskUpdated = (updatedTask) => {
+        console.log('Received task:updated event:', updatedTask.id);
+        if (updatedTask.employeeId === employeeId) {
+          setTasks(prev => prev.map(t => 
+            t.id === updatedTask.id ? { ...t, ...updatedTask } : t
+          ));
+        }
+      };
+
+      socket.on('task:created', handleTaskCreated);
+      socket.on('task:updated', handleTaskUpdated);
+
+      return () => {
+        socket.off('task:created', handleTaskCreated);
+        socket.off('task:updated', handleTaskUpdated);
+      };
+    }
+  }, [socket, employeeId]);
 
   const filteredTasks = tasks.filter(task =>
     filter === 'All' ? true : task.status.toUpperCase() === filter.toUpperCase()
@@ -52,8 +87,9 @@ const DailyTask = () => {
           text: "Update", 
           onPress: async () => {
             try {
-              await apiService.updateTaskStatus(taskId, nextStatus);
-              loadTasks(); // Refresh list
+              // Optimistically update local state if possible, or just silent refresh
+              const updated = await apiService.updateTaskStatus(taskId, nextStatus);
+              // The socket listener will catch 'task:updated' and refresh the specific item
             } catch (error) {
               console.error('Failed to update status:', error);
               Alert.alert("Error", "Failed to update task status.");
@@ -97,7 +133,9 @@ const DailyTask = () => {
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className="pt-12 px-5 bg-blue-50">
       <View className="flex-row items-center justify-between">
-        <Text className="text-[20px] font-semibold">Task</Text>
+        <View className="flex-row items-center">
+            <Text className="text-[20px] font-semibold">Task</Text>
+        </View>
         <TouchableOpacity 
           onPress={() => navigation.navigate('TaskCreation', { initialEmployeeId: employeeId })}
           className="bg-[#00a2e4] w-8 h-8 rounded-full items-center justify-center shadow-lg"

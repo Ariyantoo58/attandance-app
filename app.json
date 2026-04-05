@@ -12,13 +12,21 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.antigravity.hr"
     },
     "android": {
+      "package": "com.antigravity.hr",
       "adaptiveIcon": {
         "foregroundImage": "./assets/secretary.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/secretary.png"
@@ -38,6 +46,11 @@
           "locationAlwaysAndWhenInUsePermission": "Izinkan aplikasi mengetahui lokasi Anda untuk validasi presensi."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "46c39119-de6c-4128-b237-d5f52ef3aa95"
+      }
+    }
   }
 }

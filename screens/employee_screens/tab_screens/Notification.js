@@ -5,6 +5,7 @@ import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
 import { apiService } from '../../../services/api';
 import { useSelector } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSocket } from '../../../context/SocketContext';
 
 const Notification = () => {
   const navigation = useNavigation();
@@ -13,11 +14,26 @@ const Notification = () => {
   const [selectedNotif, setSelectedNotif] = useState(null);
   const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
 
+  const { socket } = useSocket();
+
   useEffect(() => {
     if (employeeId) {
       loadNotifications();
     }
   }, [employeeId]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on('notification', (data) => {
+        console.log('Real-time notification received:', data);
+        loadNotifications();
+      });
+
+      return () => {
+        socket.off('notification');
+      };
+    }
+  }, [socket]);
 
   const loadNotifications = async () => {
     try {

@@ -21,6 +21,7 @@ import { apiService } from '../../../services/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { calculatePayrollAutomation, TAX_STATUS } from '../../../services/taxCalculator';
 import RNPickerSelect from 'react-native-picker-select';
+import { useSocket } from '../../../context/SocketContext';
 
 const formatCurrency = (value) => {
     return `Rp ${Math.floor(value || 0).toLocaleString('id-ID')}`;
@@ -76,9 +77,30 @@ const PaySlipofEmployee = () => {
         otherDeductions: '0',
     });
 
+    const { socket } = useSocket();
+
     useEffect(() => {
         fetchEmployees();
     }, []);
+
+    useEffect(() => {
+        if (socket) {
+            socket.on('payroll_changed', (data) => {
+                console.log('Payroll update received via socket');
+                fetchEmployees();
+            });
+
+            socket.on('employee_changed', (data) => {
+                console.log('Employee data changed via socket');
+                fetchEmployees();
+            });
+
+            return () => {
+                socket.off('payroll_changed');
+                socket.off('employee_changed');
+            };
+        }
+    }, [socket]);
 
     const fetchEmployees = async () => {
         try {
