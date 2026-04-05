@@ -152,6 +152,15 @@ function DrawerNavigator() {
                 }}
             />
             <Drawer.Screen
+                name="Payslips"
+                component={PaySlip}
+                options={{
+                    drawerIcon: ({ focused, color, size }) => (
+                        <Ionicons name="receipt-outline" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Drawer.Screen
                 name="Setting"
                 component={ProfileSetting}
                 options={{
@@ -253,6 +262,15 @@ function ManagerDrawer() {
                 options={{
                     drawerIcon: ({ color, size }) => (
                         <Ionicons name="calendar-clear" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Drawer.Screen
+                name="Payroll"
+                component={PaySlipofEmployee}
+                options={{
+                    drawerIcon: ({ color, size }) => (
+                        <Ionicons name="receipt-sharp" size={size} color={color} />
                     ),
                 }}
             />

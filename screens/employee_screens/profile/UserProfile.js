@@ -51,17 +51,6 @@ const UserProfile = () => {
               {user?.user?.employee?.designation || user?.user?.employee?.position?.title || user?.user?.role || 'Team Member'}
             </Text>
           </View>
-          <TouchableOpacity className="bg-[#00a2e4] py-3 rounded-lg mx-4" onPress={() => navigation.navigate("PaySlip")}>
-            <View className="flex-row items-center space-x-2 justify-center">
-              <Ionicons name="wallet-outline" size={24} color="white" />
-              <Text className="text-[18px] text-white font-semibold">
-                Monthly Salary :
-              </Text>
-              <Text className="text-white text-[16px] font-medium">
-                ${user?.user?.employee?.salary || '0'}
-              </Text>
-            </View>
-          </TouchableOpacity>
         </View>
       </View>
       {/* ------------------------------------ */}

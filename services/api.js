@@ -76,6 +76,12 @@ export const apiService = {
     });
     return response.data;
   },
+  getMonthlyAttendance: async (employeeId, month, year) => {
+    const response = await apiClient.get(`/attendance/monthly/${employeeId}`, {
+      params: { month, year }
+    });
+    return response.data;
+  },
 
   // Time Off
   getTimeOffRequests: async (employeeId) => {
@@ -112,6 +118,16 @@ export const apiService = {
   // Payroll
   getPayroll: async (employeeId) => {
     const response = await apiClient.get(`/payroll/employee/${employeeId}`);
+    return response.data;
+  },
+  getMonthlyPayrolls: async (month, year) => {
+    const response = await apiClient.get('/payroll/monthly', {
+      params: { month, year }
+    });
+    return response.data;
+  },
+  createPayroll: async (data) => {
+    const response = await apiClient.post('/payroll', data);
     return response.data;
   },
 

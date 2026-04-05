@@ -147,6 +147,8 @@ const TaskCreation = () => {
                                         { label: 'Marketing', value: 'MARKETING' },
                                     ]}
                                     style={pickerSelectStyles}
+                                    useNativeAndroidPickerStyle={false}
+                                    Icon={() => <Ionicons name="chevron-down" size={16} color="#94A3B8" style={{ marginTop: Platform.OS === 'ios' ? 12 : 10, marginRight: 10 }} />}
                                 />
                             </View>
                         </View>
@@ -162,6 +164,8 @@ const TaskCreation = () => {
                                         { label: 'High', value: 'HIGH' },
                                     ]}
                                     style={pickerSelectStyles}
+                                    useNativeAndroidPickerStyle={false}
+                                    Icon={() => <Ionicons name="chevron-down" size={16} color="#94A3B8" style={{ marginTop: Platform.OS === 'ios' ? 12 : 10, marginRight: 10 }} />}
                                 />
                             </View>
                         </View>

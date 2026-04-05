@@ -43,6 +43,19 @@ const EmployeeEdit = () => {
     const [gender, setGender] = useState(employee.gender || null);
     const [loading, setLoading] = useState(false);
     const [faceStatus, setFaceStatus] = useState({ registered: false, message: '' });
+    const [ptkpStatus, setPtkpStatus] = useState(employee.ptkpStatus || 'TK0');
+
+    const TAX_OPTIONS = [
+        { label: 'TK/0 (Single)', value: 'TK0' },
+        { label: 'TK/1 (Single, 1 Dep)', value: 'TK1' },
+        { label: 'TK/2 (Single, 2 Dep)', value: 'TK2' },
+        { label: 'TK/3 (Single, 3 Dep)', value: 'TK3' },
+        { label: 'K/0 (Married)', value: 'K0' },
+        { label: 'K/1 (Married, 1 Dep)', value: 'K1' },
+        { label: 'K/2 (Married, 2 Dep)', value: 'K2' },
+        { label: 'K/3 (Married, 3 Dep)', value: 'K3' },
+    ];
+
 
     useFocusEffect(
         React.useCallback(() => {
@@ -109,6 +122,19 @@ const EmployeeEdit = () => {
         if (selectedDate) setBirthDay(selectedDate);
     };
 
+    const handleSalaryChange = (val) => {
+        if (val === '') {
+            setSalary('');
+            return;
+        }
+        // Always strip non-numeric characters before setting raw number
+        let raw = val.replace(/[^0-9]/g, '');
+        if (raw.length > 1 && raw.startsWith('0')) {
+            raw = raw.replace(/^0+/, '');
+        }
+        setSalary(raw);
+    };
+
     const handleUpdate = async () => {
         if (!employeeName) {
             Alert.alert('Error', 'Name is required.');
@@ -135,7 +161,8 @@ const EmployeeEdit = () => {
                 achievement: achievement,
                 marks10: marks10,
                 marks12: marks12,
-                graduationMarks: graduationMarks
+                graduationMarks: graduationMarks,
+                ptkpStatus: ptkpStatus
             };
             const response = await apiService.updateEmployeeProfile(employee.id, updateData);
 
@@ -250,6 +277,8 @@ const EmployeeEdit = () => {
                             placeholder={{ label: 'Select Gender...', value: null }}
                             value={gender}
                             style={pickerSelectStyles}
+                            useNativeAndroidPickerStyle={false}
+                            Icon={() => <Ionicons name="chevron-down" size={20} color="#9CA3AF" style={{ marginTop: Platform.OS === 'ios' ? 15 : 12, marginRight: 10 }} />}
                         />
                     </View>
 
@@ -261,6 +290,8 @@ const EmployeeEdit = () => {
                             placeholder={{ label: 'Select Department...', value: null }}
                             value={selectedDepartment}
                             style={pickerSelectStyles}
+                            useNativeAndroidPickerStyle={false}
+                            Icon={() => <Ionicons name="chevron-down" size={20} color="#9CA3AF" style={{ marginTop: Platform.OS === 'ios' ? 15 : 12, marginRight: 10 }} />}
                         />
                     </View>
 
@@ -272,6 +303,8 @@ const EmployeeEdit = () => {
                             placeholder={{ label: 'Select Position...', value: null }}
                             value={selectedPosition}
                             style={pickerSelectStyles}
+                            useNativeAndroidPickerStyle={false}
+                            Icon={() => <Ionicons name="chevron-down" size={20} color="#9CA3AF" style={{ marginTop: Platform.OS === 'ios' ? 15 : 12, marginRight: 10 }} />}
                         />
                     </View>
 
@@ -282,13 +315,30 @@ const EmployeeEdit = () => {
                         onChangeText={setDesignation}
                     />
 
-                    <Text style={styles.label}>Salary</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={salary}
-                        onChangeText={setSalary}
-                        keyboardType="numeric"
-                    />
+                    <Text style={styles.label}>Basic Salary</Text>
+                    <View style={styles.inputWithPrefix}>
+                        <Text style={styles.prefixText}>Rp</Text>
+                        <TextInput
+                            style={[styles.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, marginBottom: 0 }]}
+                            value={salary === '0' ? '' : salary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+                            onChangeText={handleSalaryChange}
+                            keyboardType={Platform.OS === 'ios' ? 'number-pad' : 'numeric'}
+                            placeholder="0"
+                        />
+                    </View>
+
+                    <Text style={styles.label}>Tax Status (PTKP)</Text>
+                    <View style={styles.pickerWrapper}>
+                        <RNPickerSelect
+                            onValueChange={(value) => setPtkpStatus(value)}
+                            items={TAX_OPTIONS}
+                            placeholder={{ label: 'Select Tax Status...', value: null }}
+                            value={ptkpStatus}
+                            style={pickerSelectStyles}
+                            useNativeAndroidPickerStyle={false}
+                            Icon={() => <Ionicons name="chevron-down" size={20} color="#9CA3AF" style={{ marginTop: Platform.OS === 'ios' ? 15 : 12, marginRight: 10 }} />}
+                        />
+                    </View>
 
                     <Text style={styles.label}>Join Date</Text>
                     <TouchableOpacity onPress={() => setShowJoinPicker(true)} style={styles.dateButton}>
@@ -571,26 +621,45 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontSize: 16,
     },
+    inputWithPrefix: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 5,
+    },
+    prefixText: {
+        backgroundColor: '#E5E7EB',
+        height: 50,
+        paddingHorizontal: 12,
+        lineHeight: 50,
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderTopLeftRadius: 10,
+        borderBottomLeftRadius: 10,
+        fontWeight: '700',
+        color: '#4B5563',
+    }
 });
 
-const pickerSelectStyles = StyleSheet.create({
+const pickerSelectStyles = {
     inputIOS: {
         fontSize: 16,
-        paddingVertical: 12,
-        paddingHorizontal: 10,
+        paddingVertical: 15,
+        paddingHorizontal: 15,
         color: '#1A202C',
-        paddingRight: 30,
+        paddingRight: 30, // to ensure the text is never behind the icon
+        height: 50,
+        width: '100%',
     },
     inputAndroid: {
         fontSize: 16,
         paddingHorizontal: 10,
         paddingVertical: 8,
         color: '#1A202C',
-        paddingRight: 30,
+        paddingRight: 30, // to ensure the text is never behind the icon
     },
     placeholder: {
         color: '#A0AEC0',
     }
-});
+};
 
 export default EmployeeEdit;

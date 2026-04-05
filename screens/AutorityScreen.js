@@ -68,7 +68,7 @@ const AutorityScreen = () => {
             </View>
             <View className="flex-row justify-center mt-4 space-x-5 items-center">
               <Text className="font-semibold text-[18px] text-gray-500">
-                -$10.5k
+                -Rp 10.5jt
               </Text>
               <Image
                 source={BarChart}

@@ -84,7 +84,7 @@ const ProfileDetails = () => {
                     <ProfileDetail label="Employee No" value={profile.employeeNumber || '-'} />
                     <ProfileDetail label="Department" value={profile.department?.name || profile.departmentName || '-'} />
                     <ProfileDetail label="Join Date" value={profile.joinDate ? new Date(profile.joinDate).toLocaleDateString() : '-'} />
-                    <ProfileDetail label="Salary" value={profile.salary?.toLocaleString() || '-'} />
+                    <ProfileDetail label="Salary" value={profile.salary?.toLocaleString('id-ID') ? `Rp ${profile.salary.toLocaleString('id-ID')}` : '-'} />
                 </View>
 
                 <View style={[styles.profileDetails, { marginTop: 20 }]}>

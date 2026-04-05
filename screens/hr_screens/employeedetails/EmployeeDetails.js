@@ -69,7 +69,7 @@ const EmployeeDetails = ({ route }) => {
                     <DetailRow label="Gender" value={employee.gender || '-'} />
                     <DetailRow label="Mobile No" value={employee.phoneNumber || '-'} />
                     <DetailRow label="Address" value={employee.address || '-'} />
-                    <DetailRow label="Salary" value={employee.salary ? `$ ${employee.salary.toLocaleString()}` : '-'} />
+                    <DetailRow label="Salary" value={employee.salary ? `Rp ${employee.salary.toLocaleString('id-ID')}` : '-'} />
                     <DetailRow label="Birth Date" value={employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString() : '-'} />
                     <DetailRow label="Join Date" value={employee.joinDate ? new Date(employee.joinDate).toLocaleDateString() : '-'} />
                 </View>

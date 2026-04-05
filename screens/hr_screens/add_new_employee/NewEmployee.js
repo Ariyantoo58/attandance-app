@@ -16,6 +16,18 @@ const AddNewEmployee = () => {
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('EMPLOYEE');
     const [loading, setLoading] = useState(false);
+    const [ptkpStatus, setPtkpStatus] = useState('TK0');
+
+    const TAX_OPTIONS = [
+        { label: 'TK/0 (Single)', value: 'TK0' },
+        { label: 'TK/1 (Single, 1 Dep)', value: 'TK1' },
+        { label: 'TK/2 (Single, 2 Dep)', value: 'TK2' },
+        { label: 'TK/3 (Single, 3 Dep)', value: 'TK3' },
+        { label: 'K/0 (Married)', value: 'K0' },
+        { label: 'K/1 (Married, 1 Dep)', value: 'K1' },
+        { label: 'K/2 (Married, 2 Dep)', value: 'K2' },
+        { label: 'K/3 (Married, 3 Dep)', value: 'K3' },
+    ];
 
     const roles = [
         { label: 'Employee', value: 'EMPLOYEE' },
@@ -38,7 +50,8 @@ const AddNewEmployee = () => {
                 email,
                 role,
                 status: 'ACTIVE',
-                employeeNumber: `EMP${Math.floor(1000 + Math.random() * 9000)}` 
+                employeeNumber: `EMP${Math.floor(1000 + Math.random() * 9000)}`,
+                ptkpStatus: ptkpStatus
             };
             const response = await apiService.createEmployee(employeeData);
 
@@ -163,6 +176,23 @@ const AddNewEmployee = () => {
                                 placeholder={{ label: 'Select Role...', value: null }}
                                 value={role}
                                 style={pickerSelectStyles}
+                                useNativeAndroidPickerStyle={false}
+                                Icon={() => <Ionicons name="chevron-down" size={16} color="#94A3B8" style={{ marginTop: Platform.OS === 'ios' ? 15 : 12, marginRight: 10 }} />}
+                            />
+                        </View>
+                    </View>
+
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Tax Status (PTKP)</Text>
+                        <View style={styles.pickerContainer}>
+                            <RNPickerSelect
+                                onValueChange={(value) => setPtkpStatus(value)}
+                                items={TAX_OPTIONS}
+                                placeholder={{ label: 'Select Tax Status...', value: null }}
+                                value={ptkpStatus}
+                                style={pickerSelectStyles}
+                                useNativeAndroidPickerStyle={false}
+                                Icon={() => <Ionicons name="chevron-down" size={16} color="#94A3B8" style={{ marginTop: Platform.OS === 'ios' ? 15 : 12, marginRight: 10 }} />}
                             />
                         </View>
                     </View>
@@ -278,13 +308,15 @@ const styles = StyleSheet.create({
     },
 });
 
-const pickerSelectStyles = StyleSheet.create({
+const pickerSelectStyles = {
     inputIOS: {
-        fontSize: 15,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
+        fontSize: 16,
+        paddingVertical: 15,
+        paddingHorizontal: 15,
         color: '#0F172A',
         paddingRight: 30,
+        height: 50,
+        width: '100%',
     },
     inputAndroid: {
         fontSize: 15,
@@ -293,6 +325,6 @@ const pickerSelectStyles = StyleSheet.create({
         color: '#0F172A',
         paddingRight: 30,
     },
-});
+};
 
 export default AddNewEmployee;

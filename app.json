@@ -24,7 +24,20 @@
       "favicon": "./assets/secretary.png"
     },
     "plugins": [
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Izinkan aplikasi mengakses kamera untuk fitur pengenalan wajah.",
+          "microphonePermission": "Izinkan aplikasi mengakses mikrofon."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Izinkan aplikasi mengetahui lokasi Anda untuk validasi presensi."
+        }
+      ]
     ]
   }
 }

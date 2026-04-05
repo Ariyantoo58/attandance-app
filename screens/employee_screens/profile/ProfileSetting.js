@@ -6,6 +6,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { apiService } from '../../../services/api';
 import { updateUserProfile } from '../../../auth/authSlice';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import RNPickerSelect from 'react-native-picker-select';
 
 const ProfileSetting = () => {
     const navigation = useNavigation();
@@ -33,6 +34,18 @@ const ProfileSetting = () => {
     const [gender, setGender] = useState('');
     const [mobileNo, setMobileNo] = useState('');
     const [address, setAddress] = useState('');
+    const [ptkpStatus, setPtkpStatus] = useState('TK0');
+
+    const TAX_OPTIONS = [
+        { label: 'TK/0 (Single)', value: 'TK0' },
+        { label: 'TK/1 (Single, 1 Dep)', value: 'TK1' },
+        { label: 'TK/2 (Single, 2 Dep)', value: 'TK2' },
+        { label: 'TK/3 (Single, 3 Dep)', value: 'TK3' },
+        { label: 'K/0 (Married)', value: 'K0' },
+        { label: 'K/1 (Married, 1 Dep)', value: 'K1' },
+        { label: 'K/2 (Married, 2 Dep)', value: 'K2' },
+        { label: 'K/3 (Married, 3 Dep)', value: 'K3' },
+    ];
 
     const loadProfile = useCallback(async () => {
         if (!employeeId) return;
@@ -61,6 +74,7 @@ const ProfileSetting = () => {
                 setGender(profile.gender || '');
                 setMobileNo(profile.phoneNumber || '');
                 setAddress(profile.address || '');
+                setPtkpStatus(profile.ptkpStatus || 'TK0');
             }
         } catch (error) {
             console.error('Failed to load profile:', error);
@@ -96,6 +110,7 @@ const ProfileSetting = () => {
                 gender,
                 phoneNumber: mobileNo,
                 address,
+                ptkpStatus,
             };
             await apiService.updateEmployeeProfile(employeeId, updateData);
             dispatch(updateUserProfile({ name, avatarUrl, designation, gender }));
@@ -249,6 +264,14 @@ const ProfileSetting = () => {
                             </TouchableOpacity>
                         </View>
 
+                        <Text style={styles.label}>Tax Status (PTKP)</Text>
+                        <View style={[styles.input, { justifyContent: 'center', backgroundColor: '#F3F4F6' }]}>
+                             <Text style={{ color: '#64748B' }}>
+                                 {TAX_OPTIONS.find(opt => opt.value === ptkpStatus)?.label || ptkpStatus}
+                             </Text>
+                        </View>
+                        <Text style={styles.helperText}>This status is managed by HR and affects your PPH21 tax calculation.</Text>
+
                         <Text style={styles.label}>Education & Bio</Text>
                         <TextInput placeholder="Highest Study" style={styles.input} value={study} onChangeText={setStudy} />
                         <TextInput placeholder="Experience" style={styles.input} value={experience} onChangeText={setExperience} />
@@ -360,6 +383,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#1F2937',
     },
+    pickerWrapper: {
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 10,
+        backgroundColor: 'white',
+        marginBottom: 5,
+        height: 52,
+        justifyContent: 'center',
+    },
+    helperText: {
+        fontSize: 12,
+        color: '#64748B',
+        marginTop: 4,
+        fontStyle: 'italic',
+    },
     avatarPicker: {
         marginBottom: 10,
     },
@@ -467,5 +505,22 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
 });
+
+const pickerSelectStyles = {
+    inputIOS: {
+        fontSize: 16,
+        paddingVertical: 12,
+        paddingHorizontal: 10,
+        color: '#2D3748',
+        paddingRight: 30,
+    },
+    inputAndroid: {
+        fontSize: 16,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        color: '#2D3748',
+        paddingRight: 30,
+    },
+};
 
 export default ProfileSetting;

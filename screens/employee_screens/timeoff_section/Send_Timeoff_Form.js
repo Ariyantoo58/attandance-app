@@ -109,6 +109,8 @@ const Send_Timeoff_Form = () => {
                             { label: 'Other', value: 'Other' },
                         ]}
                         style={pickerSelectStyles}
+                        useNativeAndroidPickerStyle={false}
+                        Icon={() => <AntDesign name="caretdown" size={12} color="#666" style={{ marginTop: Platform.OS === 'ios' ? 18 : 15, marginRight: 15 }} />}
                     />
                 </View>
             </View>
@@ -133,6 +135,8 @@ const Send_Timeoff_Form = () => {
                             { label: 'Holiday', value: 'Holiday' },
                         ]}
                         style={pickerSelectStyles}
+                        useNativeAndroidPickerStyle={false}
+                        Icon={() => <AntDesign name="caretdown" size={12} color="#666" style={{ marginTop: Platform.OS === 'ios' ? 18 : 15, marginRight: 15 }} />}
                     />
                 </View>
             </View>
@@ -322,15 +326,21 @@ const styles = StyleSheet.create({
     },
 });
 
-const pickerSelectStyles = StyleSheet.create({
+const pickerSelectStyles = {
     inputIOS: {
         height: 50,
-        paddingHorizontal: 10,
+        paddingHorizontal: 15,
+        fontSize: 16,
+        color: '#1e293b',
+        paddingRight: 30,
     },
     inputAndroid: {
         height: 50,
-        paddingHorizontal: 10,
+        paddingHorizontal: 15,
+        fontSize: 16,
+        color: '#1e293b',
+        paddingRight: 30,
     }
-});
+};
 
 export default Send_Timeoff_Form;
