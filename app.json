@@ -32,6 +32,7 @@
       "favicon": "./assets/secretary.png"
     },
     "plugins": [
+      "expo-notifications",
       "@react-native-community/datetimepicker",
       [
         "expo-camera",

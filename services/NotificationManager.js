@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { API_BASE_URL } from '../config';
 
 // Configure how notifications are handled when the app is foregrounded
@@ -27,8 +28,20 @@ export const registerForPushNotificationsAsync = async () => {
       console.log('Failed to get push token for push notification!');
       return;
     }
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log('Expo Push Token:', token);
+
+    const projectId = 
+      Constants?.expoConfig?.extra?.eas?.projectId ?? 
+      Constants?.easConfig?.projectId;
+
+    if (!projectId) {
+      console.log('Project ID not found in app config');
+      return;
+    }
+
+    token = (await Notifications.getExpoPushTokenAsync({
+      projectId: projectId,
+    })).data;
+    console.log('Expo Push Token (APK):', token);
   } else {
     console.log('Must use physical device for Push Notifications');
   }
