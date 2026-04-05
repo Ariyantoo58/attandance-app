@@ -1,6 +1,13 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 import { API_BASE_URL } from '../config';
+
+let logoutAction = () => {};
+
+export const setLogoutAction = (action) => {
+  logoutAction = action;
+};
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -52,7 +59,16 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshError) {
         // Clear tokens and logout if refresh fails
-        await AsyncStorage.clear();
+        await AsyncStorage.removeItem('accessToken');
+        await AsyncStorage.removeItem('refreshToken');
+        await AsyncStorage.removeItem('isAuthenticated');
+        await AsyncStorage.removeItem('user');
+        
+        Alert.alert(
+          'Sesi Berakhir',
+          'Sesi Anda telah habis. Silakan login kembali.',
+          [{ text: 'OK', onPress: () => logoutAction() }]
+        );
         return Promise.reject(refreshError);
       }
     }

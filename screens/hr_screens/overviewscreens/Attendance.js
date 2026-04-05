@@ -67,7 +67,9 @@ const Attendance = () => {
 
   const loadDaily = async (date) => {
     try {
-      setLoading(true);
+      if (dailyLogs.length === 0) {
+        setLoading(true);
+      }
       const formattedDate = moment(date).format('YYYY-MM-DD');
       const data = await apiService.getDailyAttendance(formattedDate);
       setDailyLogs(data);

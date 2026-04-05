@@ -51,10 +51,11 @@ import { useSocket } from './context/SocketContext';
 import { useDispatch } from 'react-redux';
 import { updateUserProfile } from './auth/authSlice';
 import { 
-    fetchHrDashboard, 
+    fetchHrDashboard,
     fetchEmployeeTasks, 
     fetchEmployeeTimeOff,
     fetchNotifications,
+    fetchEmployeeAttendance,
     updateRecentLeave,
     updateTask,
     updateTimeOff,
@@ -362,6 +363,7 @@ function AppNavigator() {
                 dispatch(fetchEmployeeTasks(employeeId));
                 dispatch(fetchEmployeeTimeOff(employeeId));
                 dispatch(fetchNotifications(employeeId));
+                dispatch(fetchEmployeeAttendance(employeeId));
             }
 
             const handleEmployeeUpdate = (data) => {

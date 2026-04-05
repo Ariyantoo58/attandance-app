@@ -3,7 +3,8 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { AntDesign, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { setEmployeeAttendance } from '../../../auth/dataSlice';
 import { apiService } from '../../../services/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSocket } from '../../../context/SocketContext';
@@ -12,17 +13,26 @@ const { width } = Dimensions.get('window');
 
 const History = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
   const { user } = useSelector(state => state.auth);
+  const reduxAttendance = useSelector(state => state.data.employeeData.attendanceHistory);
   const employeeId = user?.user?.employeeId;
 
   const { socket } = useSocket();
-  const [attendance, setAttendance] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [attendance, setAttendance] = useState(reduxAttendance || []);
+  const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState('All');
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const PAGE_SIZE = 10;
+
+  // Update local state if redux state changes (e.g. initial fetch from App.js)
+  React.useEffect(() => {
+    if (reduxAttendance?.length > 0 && attendance.length === 0) {
+      setAttendance(reduxAttendance);
+    }
+  }, [reduxAttendance]);
 
   useFocusEffect(
     useCallback(() => {
@@ -57,7 +67,9 @@ const History = () => {
     
     try {
       if (isInitial) {
-        setLoading(true);
+        if (attendance.length === 0) {
+          setLoading(true);
+        }
         setHasMore(true);
       } else {
         setLoadingMore(true);
@@ -67,6 +79,10 @@ const History = () => {
       
       if (isInitial) {
         setAttendance(data);
+        // Sync first page with Redux for persistence across tab switches
+        if (filter === 'All' && skipVal === 0) {
+            dispatch(setEmployeeAttendance(data));
+        }
       } else {
         // Append unique items only to avoid key duplicates
         setAttendance(prev => {
@@ -195,7 +211,7 @@ const History = () => {
           ))}
         </View>
 
-        {loading ? (
+        {loading && attendance.length === 0 ? (
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color="#00a2e4" />
           </View>

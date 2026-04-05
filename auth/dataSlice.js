@@ -44,6 +44,15 @@ export const fetchNotifications = createAsyncThunk('data/fetchNotifications', as
   }
 });
 
+export const fetchEmployeeAttendance = createAsyncThunk('data/fetchEmployeeAttendance', async (employeeId, { rejectWithValue }) => {
+  try {
+    const attendance = await apiService.getAttendanceHistory(employeeId, 0, 10);
+    return attendance;
+  } catch (error) {
+    return rejectWithValue(error.message);
+  }
+});
+
 const initialState = {
   hrDashboard: {
     summary: null,
@@ -57,6 +66,7 @@ const initialState = {
   employeeData: {
     tasks: [],
     timeOff: [],
+    attendanceHistory: [],
     loading: false,
     error: null,
   },
@@ -130,6 +140,9 @@ const dataSlice = createSlice({
             state.hrDashboard.allEmployees = state.hrDashboard.allEmployees.filter(e => e.id !== idToRemove);
         }
     },
+    setEmployeeAttendance(state, action) {
+      state.employeeData.attendanceHistory = action.payload;
+    },
     clearData(state) {
       return initialState;
     }
@@ -164,6 +177,10 @@ const dataSlice = createSlice({
       // Notifications
       .addCase(fetchNotifications.fulfilled, (state, action) => {
         state.notifications = action.payload;
+      })
+      // Employee Attendance
+      .addCase(fetchEmployeeAttendance.fulfilled, (state, action) => {
+        state.employeeData.attendanceHistory = action.payload;
       });
   },
 });
@@ -179,6 +196,7 @@ export const {
     setNotifications,
     addNotification,
     updateEmployee,
+    setEmployeeAttendance, 
     clearData 
 } = dataSlice.actions;
 

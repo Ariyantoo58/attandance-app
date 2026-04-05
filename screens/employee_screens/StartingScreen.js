@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation, DrawerActions, useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/auth/authSlice';
+import { fetchEmployeeTasks, fetchEmployeeAttendance, fetchNotifications } from '@/auth/dataSlice';
 import { AntDesign, EvilIcons, Ionicons } from '@expo/vector-icons';
 import { apiService } from '@/services/api';
 
@@ -13,9 +14,9 @@ const StartingScreen = () => {
   const { user } = useSelector(state => state.auth);
   const employeeId = user?.user?.employeeId;
   
-  const [tasks, setTasks] = useState([]);
-  const [attendance, setAttendance] = useState([]);
-  const [notifCount, setNotifCount] = useState(0);
+  const { tasks, attendanceHistory: attendance } = useSelector(state => state.data.employeeData);
+  const { notifications } = useSelector(state => state.data);
+  const notifCount = notifications.filter(n => !n.isRead).length;
   const [loading, setLoading] = useState(false);
 
   useFocusEffect(
@@ -27,29 +28,22 @@ const StartingScreen = () => {
   );
 
   const loadDashboardData = async () => {
-    // Only show loading if we don't have data yet
     const isFirstLoad = tasks.length === 0 && attendance.length === 0;
     
+    if (isFirstLoad) {
+      setLoading(true);
+    }
+    
     try {
-      if (isFirstLoad) {
-        setLoading(true);
-      }
-      
-      const [tasksData, attendanceData, notifsData] = await Promise.all([
-        apiService.getTasks(employeeId),
-        apiService.getAttendanceHistory(employeeId),
-        apiService.getNotifications(employeeId)
+      await Promise.all([
+        dispatch(fetchEmployeeTasks(employeeId)),
+        dispatch(fetchEmployeeAttendance(employeeId)),
+        dispatch(fetchNotifications(employeeId))
       ]);
-      
-      setTasks(tasksData);
-      setAttendance(attendanceData);
-      setNotifCount(notifsData.filter(n => !n.isRead).length);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
-      if (isFirstLoad) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
@@ -154,7 +148,7 @@ const StartingScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {loading ? (
+        {loading && tasks.length === 0 ? (
           <ActivityIndicator size="small" color="#00a2e4" className="mt-5" />
         ) : tasks.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }} className="mt-4 flex-row">
@@ -182,7 +176,7 @@ const StartingScreen = () => {
             <AntDesign name="right" size={14} color="gray" className="ml-2" />
           </TouchableOpacity>
         </View>
-        {loading ? (
+        {loading && attendance.length === 0 ? (
           <ActivityIndicator size="small" color="#00a2e4" className="mt-5" />
         ) : attendance.length > 0 ? (
           <View className="space-y-3">
