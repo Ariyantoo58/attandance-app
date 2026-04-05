@@ -7,6 +7,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import StartingScreen from './screens/employee_screens/StartingScreen';
 import EmployeeLogin from './screens/loginscreens/EmployeeLogin';
 import ManagerLogin from './screens/loginscreens/ManagerLogin';
@@ -464,6 +465,7 @@ function AppNavigator() {
 export default function App() {
     return (
         <SafeAreaProvider>
+            <StatusBar style="auto" />
             <Provider store={store}>
                 <SocketProvider>
                     <MenuProvider>

@@ -16,7 +16,7 @@ const StartingScreen = () => {
   const [tasks, setTasks] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [notifCount, setNotifCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -27,20 +27,29 @@ const StartingScreen = () => {
   );
 
   const loadDashboardData = async () => {
+    // Only show loading if we don't have data yet
+    const isFirstLoad = tasks.length === 0 && attendance.length === 0;
+    
     try {
-      setLoading(true);
+      if (isFirstLoad) {
+        setLoading(true);
+      }
+      
       const [tasksData, attendanceData, notifsData] = await Promise.all([
         apiService.getTasks(employeeId),
         apiService.getAttendanceHistory(employeeId),
         apiService.getNotifications(employeeId)
       ]);
+      
       setTasks(tasksData);
       setAttendance(attendanceData);
       setNotifCount(notifsData.filter(n => !n.isRead).length);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
-      setLoading(false);
+      if (isFirstLoad) {
+        setLoading(false);
+      }
     }
   };
 

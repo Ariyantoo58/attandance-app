@@ -17,6 +17,10 @@
     },
     "android": {
       "package": "com.antigravity.hr",
+      "statusBar": {
+        "translucent": true,
+        "backgroundColor": "#00000000"
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/secretary.png",
         "backgroundColor": "#ffffff"

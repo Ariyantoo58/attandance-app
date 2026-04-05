@@ -29,6 +29,23 @@ const Attendance = () => {
   });
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const mapRef = React.useRef(null);
+
+  const handleZoom = (isZoomIn) => {
+    if (!region) return;
+    
+    const newRegion = {
+      ...region,
+      latitudeDelta: isZoomIn ? region.latitudeDelta / 2 : region.latitudeDelta * 2,
+      longitudeDelta: isZoomIn ? region.longitudeDelta / 2 : region.longitudeDelta * 2,
+    };
+    
+    // Safety check to prevent extreme zooming
+    if (newRegion.latitudeDelta < 0.0001 || newRegion.latitudeDelta > 150) return;
+
+    setRegion(newRegion);
+    mapRef.current?.animateToRegion(newRegion, 300);
+  };
 
   useEffect(() => {
     loadDaily(selectedDate);
@@ -228,8 +245,10 @@ const Attendance = () => {
       ) : viewMode === 'map' ? (
         <View style={styles.fullMapContainer}>
           <MapView
+            ref={mapRef}
             style={styles.fullMap}
             region={region}
+            onRegionChangeComplete={(newRegion) => setRegion(newRegion)}
           >
             {dailyLogs.map(log => {
                 const results = [];
@@ -290,6 +309,23 @@ const Attendance = () => {
             })}
           </MapView>
           
+          <View style={styles.mapControls}>
+            <TouchableOpacity 
+              style={styles.zoomBtn} 
+              onPress={() => handleZoom(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="add" size={24} color="#1E293B" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.zoomBtn} 
+              onPress={() => handleZoom(false)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="remove" size={24} color="#1E293B" />
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.mapStatsBtn}>
              <Ionicons name="people" size={16} color="#3B82F6" />
              <Text style={styles.mapStatsText}>{dailyLogs.filter(l => (l.clockInLat || l.clockOutLat)).length} People Tracked</Text>
@@ -1093,6 +1129,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#3B82F6',
+  },
+  mapControls: {
+    position: 'absolute',
+    right: 20,
+    top: 50,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: 'hidden',
+  },
+  zoomBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
 });
 

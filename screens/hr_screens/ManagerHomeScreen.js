@@ -56,7 +56,9 @@ const ManagerHomeScreen = () => {
 
   const loadDashboard = async () => {
     try {
-      setLoading(true);
+      if (!summary) {
+        setLoading(true);
+      }
       const [summaryData, leavesData] = await Promise.all([
         apiService.getHrSummary(),
         apiService.getRecentLeaves()
