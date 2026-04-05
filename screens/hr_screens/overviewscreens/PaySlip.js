@@ -21,6 +21,8 @@ import { apiService } from '../../../services/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { calculatePayrollAutomation, TAX_STATUS } from '../../../services/taxCalculator';
 import RNPickerSelect from 'react-native-picker-select';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchHrDashboard } from '@/auth/dataSlice';
 import { useSocket } from '../../../context/SocketContext';
 
 const formatCurrency = (value) => {
@@ -57,9 +59,11 @@ const FormInput = ({ label, value, field, icon, color = "#4A90E2", onNumericChan
 );
 
 const PaySlipofEmployee = () => {
-    const [employees, setEmployees] = useState([]);
+    const { allEmployees: employees, loading: storeLoading } = useSelector(state => state.data.hrDashboard);
+    const dispatch = useDispatch();
+
     const [monthlyPayrolls, setMonthlyPayrolls] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -79,20 +83,19 @@ const PaySlipofEmployee = () => {
 
     const { socket } = useSocket();
 
+    // Initial fetch for payrolls
     useEffect(() => {
-        fetchEmployees();
+        fetchPayrolls();
     }, []);
 
     useEffect(() => {
         if (socket) {
             socket.on('payroll_changed', (data) => {
-                console.log('Payroll update received via socket');
-                fetchEmployees();
+                fetchPayrolls();
             });
 
             socket.on('employee_changed', (data) => {
-                console.log('Employee data changed via socket');
-                fetchEmployees();
+                dispatch(fetchHrDashboard());
             });
 
             return () => {
@@ -102,26 +105,24 @@ const PaySlipofEmployee = () => {
         }
     }, [socket]);
 
-    const fetchEmployees = async () => {
+    const fetchPayrolls = async () => {
         try {
             setLoading(true);
             const now = new Date();
             const month = now.getMonth() + 1;
             const year = now.getFullYear();
-
-            const [empData, payrollData] = await Promise.all([
-                apiService.getAllEmployees(),
-                apiService.getMonthlyPayrolls(month, year)
-            ]);
-
-            setEmployees(empData);
+            const payrollData = await apiService.getMonthlyPayrolls(month, year);
             setMonthlyPayrolls(payrollData);
         } catch (error) {
-            console.error('Error fetching data:', error);
-            Alert.alert('Error', 'Failed to load employees or payroll records');
+            console.error('Error fetching payrolls:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchEmployees = async () => {
+        await dispatch(fetchHrDashboard());
+        await fetchPayrolls();
     };
 
     useEffect(() => {
@@ -237,7 +238,7 @@ const PaySlipofEmployee = () => {
                     { text: 'Close', style: 'cancel' }
                 ]
             );
-            await fetchEmployees(); // Refresh the list to show updated status
+            await fetchEmployees();
             setModalVisible(false);
         } catch (error) {
             console.error('Error submitting payroll:', error);
@@ -429,20 +430,14 @@ const PaySlipofEmployee = () => {
     };
 
     const handleNumericChange = React.useCallback((val, field) => {
-        // If empty, keep it empty to allow the user to delete
         if (val === '') {
             setForm(prev => ({ ...prev, [field]: '' }));
             return;
         }
- 
-        // Remove non-numeric characters (like dots) to get the raw number
         let raw = val.replace(/[^0-9]/g, '');
-        
-        // Remove leading zeros if there's more than one digit
         if (raw.length > 1 && raw.startsWith('0')) {
             raw = raw.replace(/^0+/, '');
         }
-        
         setForm(prev => ({ ...prev, [field]: raw }));
     }, []);
 
@@ -594,7 +589,6 @@ const PaySlipofEmployee = () => {
                                 onNumericChange={handleNumericChange}
                             />
 
-                            {/* Detailed Breakdown */}
                             <View style={styles.breakdownCard}>
                                 <Text style={styles.breakdownTitle}>Automation Details</Text>
                                 <CalculationDetail 
@@ -617,21 +611,21 @@ const PaySlipofEmployee = () => {
                             <View style={{ height: 100 }} />
                         </ScrollView>
 
-                            <View style={styles.modalFooter}>
-                                <View style={styles.totalPreview}>
-                                    <View style={styles.totalRow}>
-                                        <Text style={styles.totalLabel}>Gross Earnings</Text>
-                                        <Text style={styles.totalValue}>{formatCurrency(earnings)}</Text>
-                                    </View>
-                                    <View style={styles.totalRow}>
-                                        <Text style={styles.totalLabel}>Total Deductions</Text>
-                                        <Text style={[styles.totalValue, { color: '#F56565' }]}>- {formatCurrency(deductions)}</Text>
-                                    </View>
-                                    <View style={[styles.totalRow, styles.netRow]}>
-                                        <Text style={styles.netLabel}>NET SALARY</Text>
-                                        <Text style={styles.netValue}>{formatCurrency(net)}</Text>
-                                    </View>
+                        <View style={styles.modalFooter}>
+                            <View style={styles.totalPreview}>
+                                <View style={styles.totalRow}>
+                                    <Text style={styles.totalLabel}>Gross Earnings</Text>
+                                    <Text style={styles.totalValue}>{formatCurrency(earnings)}</Text>
                                 </View>
+                                <View style={styles.totalRow}>
+                                    <Text style={styles.totalLabel}>Total Deductions</Text>
+                                    <Text style={[styles.totalValue, { color: '#F56565' }]}>- {formatCurrency(deductions)}</Text>
+                                </View>
+                                <View style={[styles.totalRow, styles.netRow]}>
+                                    <Text style={styles.netLabel}>NET SALARY</Text>
+                                    <Text style={styles.netValue}>{formatCurrency(net)}</Text>
+                                </View>
+                            </View>
 
                             <TouchableOpacity 
                                 style={[styles.submitButton, submitting && styles.disabledButton]} 

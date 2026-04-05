@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { apiService } from '../../../services/api';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchHrDashboard } from '@/auth/dataSlice';
 import { useSocket } from '../../../context/SocketContext';
 
 const Leave_Applications = () => {
@@ -11,45 +12,13 @@ const Leave_Applications = () => {
     const authState = useSelector(state => state.auth.user);
     const userId = authState?.id || authState?.user?.id;
     const [filter, setFilter] = useState('Waiting');
-    const [requests, setRequests] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { leaveRequests: requests, loading } = useSelector(state => state.data.hrDashboard);
+    const dispatch = useDispatch();
 
     const { socket } = useSocket();
 
-    useEffect(() => {
-        loadRequests();
-    }, []);
-
-    useEffect(() => {
-        if (socket) {
-            socket.on('time_off:requested', (data) => {
-                console.log('New leave request received via socket:', data);
-                loadRequests();
-            });
-
-            socket.on('time_off:changed', (data) => {
-                console.log('Leave request status changed via socket:', data);
-                loadRequests();
-            });
-
-            return () => {
-                socket.off('time_off:requested');
-                socket.off('time_off:changed');
-            };
-        }
-    }, [socket]);
-
-    const loadRequests = async () => {
-        try {
-            setLoading(true);
-            const data = await apiService.getAllTimeOffRequests();
-            setRequests(data);
-        } catch (error) {
-            console.error('Failed to load leave requests:', error);
-            Alert.alert('Error', 'Failed to load requests');
-        } finally {
-            setLoading(false);
-        }
+    const loadRequests = () => {
+        dispatch(fetchHrDashboard());
     };
 
     const handleUpdateStatus = async (id, status) => {
@@ -106,7 +75,7 @@ const Leave_Applications = () => {
                         </TouchableOpacity>
                     ))}
                 </View>
-                {loading ? (
+                {(loading && requests.length === 0) ? (
                     <ActivityIndicator size="large" color="#2D3748" style={{ marginTop: 50 }} />
                 ) : filteredTasks.length > 0 ? (
                     filteredTasks.map((task) => (

@@ -1,10 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Platform, StyleSheet, ScrollView, ActivityIndicator, Alert, Modal, FlatList } from 'react-native';
+import { 
+    View, 
+    Text, 
+    TouchableOpacity, 
+    TextInput, 
+    Platform, 
+    StyleSheet, 
+    ScrollView, 
+    ActivityIndicator, 
+    Alert, 
+    Modal, 
+    FlatList,
+    StatusBar,
+    Dimensions
+} from 'react-native';
 import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchHrDashboard } from '@/auth/dataSlice';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import RNPickerSelect from 'react-native-picker-select';
+import { Calendar } from 'react-native-calendars';
 import { apiService } from '../../../services/api';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { height } = Dimensions.get('window');
 
 const TaskCreation = () => {
     const navigation = useNavigation();
@@ -12,32 +30,21 @@ const TaskCreation = () => {
     const initialEmployeeId = route.params?.initialEmployeeId;
 
     const [selectedEmployeeIds, setSelectedEmployeeIds] = useState(initialEmployeeId ? [initialEmployeeId] : []);
-    const [employees, setEmployees] = useState([]);
+    const { allEmployees: employees, loading: fetchingEmployees } = useSelector(state => state.data.hrDashboard);
+    const dispatch = useDispatch();
+
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState('MEDIUM');
     const [category, setCategory] = useState('GENERAL');
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [dueDate, setDueDate] = useState('');
+    
+    // UI States
     const [loading, setLoading] = useState(false);
-    const [fetchingEmployees, setFetchingEmployees] = useState(true);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [showDueDatePicker, setShowDueDatePicker] = useState(false);
-    const [isPickerModalVisible, setPickerModalVisible] = useState(false);
-
-    useEffect(() => {
-        const fetchEmployees = async () => {
-            try {
-                const data = await apiService.getAllEmployees();
-                setEmployees(data);
-            } catch (error) {
-                console.error('Failed to fetch employees:', error);
-            } finally {
-                setFetchingEmployees(false);
-            }
-        };
-        fetchEmployees();
-    }, []);
+    const [pickerVisible, setPickerVisible] = useState(false);
+    const [pickerType, setPickerType] = useState(''); // 'emp', 'cat', 'pri', 'start', 'due'
+    const [pickerTitle, setPickerTitle] = useState('');
 
     const toggleEmployee = (id) => {
         if (selectedEmployeeIds.includes(id)) {
@@ -49,7 +56,7 @@ const TaskCreation = () => {
 
     const handleSend = async () => {
         if (selectedEmployeeIds.length === 0 || !title) {
-            Alert.alert("Error", "Please select at least one employee and enter a title.");
+            Alert.alert("Eror", "Pilih minimal satu karyawan dan isi judul tugas.");
             return;
         }
 
@@ -66,11 +73,10 @@ const TaskCreation = () => {
             };
 
             await apiService.assignTask(requestData);
-            Alert.alert("Success", "Tasks assigned successfully!");
+            Alert.alert("Berhasil", "Tugas berhasil diberikan!");
             navigation.goBack();
         } catch (error) {
-            console.error('Failed to assign task:', error);
-            Alert.alert("Error", "Failed to assign task. Please try again.");
+            Alert.alert("Eror", "Gagal memberikan tugas.");
         } finally {
             setLoading(false);
         }
@@ -83,540 +89,224 @@ const TaskCreation = () => {
             .join(', ');
     };
 
+    const openPicker = (type, title) => {
+        setPickerType(type);
+        setPickerTitle(title);
+        setPickerVisible(true);
+    };
+
+    const CATEGORIES = [
+        { id: 'GENERAL', name: 'General' },
+        { id: 'DEVELOPMENT', name: 'Dev' },
+        { id: 'DESIGN', name: 'Design' },
+        { id: 'MARKETING', name: 'Marketing' },
+    ];
+
+    const PRIORITIES = [
+        { id: 'LOW', name: 'Low Priority' },
+        { id: 'MEDIUM', name: 'Medium Priority' },
+        { id: 'HIGH', name: 'High Priority' },
+    ];
+
     return (
-        <View style={styles.container}>
-            {/* Header */}
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
-                <TouchableOpacity 
-                    style={styles.backButton} 
-                    onPress={() => navigation.goBack()}
-                >
-                    <AntDesign name="left" size={20} color="#1F2937" />
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color="#1E293B" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>
-                    {initialEmployeeId ? "Self Task" : "Assign Multi-Task"}
-                </Text>
-                <View style={{ width: 40 }} />
+                <Text style={styles.headerTitle}>{initialEmployeeId ? "Tugas Mandiri" : "Beri Tugas Baru"}</Text>
+                <TouchableOpacity onPress={handleSend} disabled={loading} style={styles.saveBtn}>
+                    {loading ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.saveBtnText}>Beri</Text>}
+                </TouchableOpacity>
             </View>
 
-            <ScrollView 
-                style={styles.scrollView} 
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                <View style={styles.section}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                
+                {/* Information Card */}
+                <View style={styles.mainCard}>
+                    <Text style={styles.cardHeader}>Inti Tugas</Text>
+
                     {!initialEmployeeId && (
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>Assign to Employees</Text>
-                            <TouchableOpacity 
-                                style={[styles.pickerContainer, { padding: 12, minHeight: 48, justifyContent: 'center' }]}
-                                onPress={() => setPickerModalVisible(true)}
-                            >
-                                <Text style={{ color: selectedEmployeeIds.length > 0 ? '#1E293B' : '#94A3B8' }} numberOfLines={1}>
-                                    {selectedEmployeeIds.length > 0 ? getSelectedNames() : 'Select one or more people...'}
+                        <TouchableOpacity onPress={() => openPicker('emp', 'Pilih Karyawan')} style={styles.selector}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.selectorLabel}>Diberikan Kepada</Text>
+                                <Text style={styles.selectorVal} numberOfLines={1}>
+                                    {selectedEmployeeIds.length > 0 ? `${selectedEmployeeIds.length} Karyawan terpilih` : 'Pilih satu atau lebih...'}
                                 </Text>
-                                <Ionicons name="chevron-down" size={16} color="#64748B" style={{ position: 'absolute', right: 12 }} />
-                            </TouchableOpacity>
-                            {selectedEmployeeIds.length > 0 && (
-                                <Text style={styles.selectedCount}>{selectedEmployeeIds.length} person(s) selected</Text>
-                            )}
-                        </View>
+                            </View>
+                            <Ionicons name="people-outline" size={20} color="#2563EB" />
+                        </TouchableOpacity>
                     )}
-                    
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Task Title</Text>
-                        <TextInput
-                            value={title}
-                            onChangeText={setTitle}
-                            placeholder="Type here..."
-                            style={styles.textInput}
+
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Judul Tugas</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            value={title} 
+                            onChangeText={setTitle} 
+                            placeholder="Contoh: Laporan Mingguan"
                         />
                     </View>
+
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Deskripsi (Opsional)</Text>
+                        <TextInput 
+                            style={[styles.input, styles.textArea]} 
+                            value={description} 
+                            onChangeText={setDescription} 
+                            multiline 
+                            placeholder="Detail tugas yang perlu dilakukan..."
+                        />
+                    </View>
+                </View>
+
+                {/* Configuration Card */}
+                <View style={styles.mainCard}>
+                    <Text style={styles.cardHeader}>Kategori & Prioritas</Text>
+                    
+                    <View style={styles.row}>
+                        <TouchableOpacity onPress={() => openPicker('cat', 'Pilih Kategori')} style={[styles.selector, { flex: 1, marginRight: 10 }]}>
+                            <View>
+                                <Text style={styles.selectorLabel}>Kategori</Text>
+                                <Text style={styles.selectorVal}>{CATEGORIES.find(c => c.id === category)?.name}</Text>
+                            </View>
+                            <Ionicons name="apps-outline" size={18} color="#2563EB" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => openPicker('pri', 'Pilih Prioritas')} style={[styles.selector, { flex: 1 }]}>
+                            <View>
+                                <Text style={styles.selectorLabel}>Prioritas</Text>
+                                <Text style={styles.selectorVal}>{PRIORITIES.find(p => p.id === priority)?.name}</Text>
+                            </View>
+                            <Ionicons name="flag-outline" size={18} color="#2563EB" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Timeline Card */}
+                <View style={styles.mainCard}>
+                    <Text style={styles.cardHeader}>Jadwal (Timeline)</Text>
 
                     <View style={styles.row}>
-                        <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
-                            <Text style={styles.label}>Category</Text>
-                            <View style={styles.pickerContainer}>
-                                <RNPickerSelect
-                                    onValueChange={(value) => setCategory(value)}
-                                    value={category}
-                                    items={[
-                                        { label: 'General', value: 'GENERAL' },
-                                        { label: 'Dev', value: 'DEVELOPMENT' },
-                                        { label: 'Design', value: 'DESIGN' },
-                                        { label: 'Marketing', value: 'MARKETING' },
-                                    ]}
-                                    style={pickerSelectStyles}
-                                    useNativeAndroidPickerStyle={false}
-                                    Icon={() => <Ionicons name="chevron-down" size={16} color="#94A3B8" style={{ marginTop: Platform.OS === 'ios' ? 12 : 10, marginRight: 10 }} />}
-                                />
+                        <TouchableOpacity onPress={() => openPicker('start', 'Tanggal Mulai')} style={[styles.selector, { flex: 1, marginRight: 10 }]}>
+                            <View>
+                                <Text style={styles.selectorLabel}>Mulai</Text>
+                                <Text style={styles.selectorVal}>{startDate}</Text>
                             </View>
-                        </View>
-                        <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
-                            <Text style={styles.label}>Priority</Text>
-                            <View style={styles.pickerContainer}>
-                                <RNPickerSelect
-                                    onValueChange={(value) => setPriority(value)}
-                                    value={priority}
-                                    items={[
-                                        { label: 'Low', value: 'LOW' },
-                                        { label: 'Medium', value: 'MEDIUM' },
-                                        { label: 'High', value: 'HIGH' },
-                                    ]}
-                                    style={pickerSelectStyles}
-                                    useNativeAndroidPickerStyle={false}
-                                    Icon={() => <Ionicons name="chevron-down" size={16} color="#94A3B8" style={{ marginTop: Platform.OS === 'ios' ? 12 : 10, marginRight: 10 }} />}
-                                />
-                            </View>
-                        </View>
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Description</Text>
-                        <TextInput
-                            multiline
-                            numberOfLines={4}
-                            value={description}
-                            onChangeText={setDescription}
-                            placeholder="Details about the task..."
-                            style={[styles.textInput, styles.textArea]}
-                        />
-                    </View>
-                </View>
-
-                <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Timeline</Text>
-                </View>
-
-                <View style={styles.section}>
-                    <View style={styles.datesRow}>
-                        <View style={styles.dateCol}>
-                            <Text style={styles.label}>Start Date</Text>
-                            <TouchableOpacity 
-                                onPress={() => setShowDatePicker(true)} 
-                                style={styles.datePickerButton}
-                            >
-                                <Ionicons name="calendar-outline" size={18} color="#00a2e4" />
-                                <Text style={styles.dateText}>{startDate}</Text>
-                            </TouchableOpacity>
-                        </View>
-                        <View style={styles.dateCol}>
-                            <Text style={styles.label}>Due Date</Text>
-                            <TouchableOpacity 
-                                onPress={() => setShowDueDatePicker(true)} 
-                                style={styles.datePickerButton}
-                            >
-                                <Ionicons name="time-outline" size={18} color="#F75353" />
-                                <Text style={styles.dateText}>{dueDate || 'Open'}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-
-                {/* START DATE PICKER */}
-                {Platform.OS === 'ios' ? (
-                    <Modal
-                        visible={showDatePicker}
-                        transparent={true}
-                        animationType="fade"
-                        onRequestClose={() => setShowDatePicker(false)}
-                    >
-                        <TouchableOpacity 
-                            style={styles.modalOverlay} 
-                            activeOpacity={1} 
-                            onPress={() => setShowDatePicker(false)}
-                        >
-                            <View style={styles.datePickerModalContent}>
-                                <View style={styles.datePickerHeader}>
-                                    <Text style={styles.datePickerTitle}>Start Date</Text>
-                                    <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                                        <Text style={styles.datePickerDoneText}>Done</Text>
-                                    </TouchableOpacity>
-                                </View>
-                                <DateTimePicker
-                                    value={startDate ? new Date(startDate) : new Date()}
-                                    mode="date"
-                                    display="inline"
-                                    onChange={(event, date) => {
-                                        if (date) {
-                                            // Using YYYY-MM-DD local format to avoid TZ issues
-                                            const year = date.getFullYear();
-                                            const month = String(date.getMonth() + 1).padStart(2, '0');
-                                            const day = String(date.getDate()).padStart(2, '0');
-                                            setStartDate(`${year}-${month}-${day}`);
-                                        }
-                                    }}
-                                    themeVariant="light"
-                                />
-                            </View>
+                            <Ionicons name="calendar-outline" size={18} color="#2563EB" />
                         </TouchableOpacity>
-                    </Modal>
-                ) : (
-                    showDatePicker && (
-                        <DateTimePicker
-                            value={startDate ? new Date(startDate) : new Date()}
-                            mode="date"
-                            display="default"
-                            onChange={(event, date) => {
-                                setShowDatePicker(false);
-                                if (date) {
-                                    const year = date.getFullYear();
-                                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                                    const day = String(date.getDate()).padStart(2, '0');
-                                    setStartDate(`${year}-${month}-${day}`);
-                                }
-                            }}
-                        />
-                    )
-                )}
 
-                {/* DUE DATE PICKER */}
-                {Platform.OS === 'ios' ? (
-                    <Modal
-                        visible={showDueDatePicker}
-                        transparent={true}
-                        animationType="fade"
-                        onRequestClose={() => setShowDueDatePicker(false)}
-                    >
-                        <TouchableOpacity 
-                            style={styles.modalOverlay} 
-                            activeOpacity={1} 
-                            onPress={() => setShowDueDatePicker(false)}
-                        >
-                            <View style={styles.datePickerModalContent}>
-                                <View style={styles.datePickerHeader}>
-                                    <Text style={styles.datePickerTitle}>Due Date</Text>
-                                    <TouchableOpacity onPress={() => setShowDueDatePicker(false)}>
-                                        <Text style={styles.datePickerDoneText}>Done</Text>
-                                    </TouchableOpacity>
-                                </View>
-                                <DateTimePicker
-                                    value={dueDate ? new Date(dueDate) : new Date()}
-                                    mode="date"
-                                    display="inline"
-                                    onChange={(event, date) => {
-                                        if (date) {
-                                            const year = date.getFullYear();
-                                            const month = String(date.getMonth() + 1).padStart(2, '0');
-                                            const day = String(date.getDate()).padStart(2, '0');
-                                            setDueDate(`${year}-${month}-${day}`);
-                                        }
-                                    }}
-                                    themeVariant="light"
-                                />
+                        <TouchableOpacity onPress={() => openPicker('due', 'Batas Waktu')} style={[styles.selector, { flex: 1 }]}>
+                            <View>
+                                <Text style={styles.selectorLabel}>Selesai</Text>
+                                <Text style={styles.selectorVal}>{dueDate || 'Tanpa Batas'}</Text>
                             </View>
+                            <Ionicons name="time-outline" size={18} color="#F59E0B" />
                         </TouchableOpacity>
-                    </Modal>
-                ) : (
-                    showDueDatePicker && (
-                        <DateTimePicker
-                            value={dueDate ? new Date(dueDate) : new Date()}
-                            mode="date"
-                            display="default"
-                            onChange={(event, date) => {
-                                setShowDueDatePicker(false);
-                                if (date) {
-                                    const year = date.getFullYear();
-                                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                                    const day = String(date.getDate()).padStart(2, '0');
-                                    setDueDate(`${year}-${month}-${day}`);
-                                }
-                            }}
-                        />
-                    )
-                )}
+                    </View>
+                </View>
 
-                <TouchableOpacity 
-                    onPress={handleSend} 
-                    disabled={loading} 
-                    style={[styles.submitButton, loading && { opacity: 0.7 }]}
-                >
-                    {loading ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <Text style={styles.submitButtonText}>
-                            {initialEmployeeId ? "Submit Personal Task" : `Assign to ${selectedEmployeeIds.length} People`}
-                        </Text>
-                    )}
+                <TouchableOpacity style={styles.finalSubmit} onPress={handleSend} disabled={loading}>
+                    {loading ? <ActivityIndicator color="white" /> : <Text style={styles.submitText}>KONFIRMASI TUGAS</Text>}
                 </TouchableOpacity>
+
+                <View style={{ height: 60 }} />
             </ScrollView>
 
-            {/* Multiple Employee Picker Modal */}
-            <Modal
-                visible={isPickerModalVisible}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setPickerModalVisible(false)}
-            >
+            {/* Custom Picker Modal */}
+            <Modal visible={pickerVisible} transparent animationType="slide">
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+                    <View style={styles.modalBody}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Select Employees</Text>
-                            <TouchableOpacity onPress={() => setPickerModalVisible(false)}>
-                                <Ionicons name="close" size={24} color="black" />
+                            <Text style={styles.modalTitle}>{pickerTitle}</Text>
+                            <TouchableOpacity onPress={() => setPickerVisible(false)}>
+                                <Ionicons name="close" size={24} color="#64748B" />
                             </TouchableOpacity>
                         </View>
-                        <FlatList
-                            data={employees}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity 
-                                    style={[
-                                        styles.employeeItem,
-                                        selectedEmployeeIds.includes(item.id) && styles.employeeItemSelected
-                                    ]}
-                                    onPress={() => toggleEmployee(item.id)}
-                                >
-                                    <Text style={[
-                                        styles.employeeName,
-                                        selectedEmployeeIds.includes(item.id) && styles.employeeNameSelected
-                                    ]}>{item.name}</Text>
-                                    {selectedEmployeeIds.includes(item.id) && (
-                                        <Ionicons name="checkmark-circle" size={20} color="#00a2e4" />
-                                    )}
-                                </TouchableOpacity>
-                            )}
-                            style={{ maxHeight: 400 }}
-                        />
-                        <TouchableOpacity 
-                            style={styles.doneButton}
-                            onPress={() => setPickerModalVisible(false)}
-                        >
-                            <Text style={styles.doneButtonText}>Done</Text>
-                        </TouchableOpacity>
+
+                        {(pickerType === 'start' || pickerType === 'due') ? (
+                            <Calendar
+                                current={pickerType === 'start' ? startDate : (dueDate || undefined)}
+                                onDayPress={(day) => {
+                                    if (pickerType === 'start') setStartDate(day.dateString);
+                                    else setDueDate(day.dateString);
+                                    setPickerVisible(false);
+                                }}
+                                theme={{
+                                    todayTextColor: '#2563EB',
+                                    selectedDayBackgroundColor: '#2563EB',
+                                    arrowColor: '#2563EB',
+                                }}
+                            />
+                        ) : (
+                            <FlatList
+                                data={pickerType === 'cat' ? CATEGORIES : (pickerType === 'pri' ? PRIORITIES : employees)}
+                                keyExtractor={(item) => item.id.toString()}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity 
+                                        style={[styles.optionItem, (selectedEmployeeIds.includes(item.id) || category === item.id || priority === item.id) && styles.optionActive]} 
+                                        onPress={() => {
+                                            if (pickerType === 'emp') toggleEmployee(item.id);
+                                            else {
+                                                if (pickerType === 'cat') setCategory(item.id);
+                                                if (pickerType === 'pri') setPriority(item.id);
+                                                setPickerVisible(false);
+                                            }
+                                        }}
+                                    >
+                                        <Text style={[styles.optionLabel, (selectedEmployeeIds.includes(item.id) || category === item.id || priority === item.id) && styles.optionLabelActive]}>
+                                            {item.name || item.title}
+                                        </Text>
+                                        {(selectedEmployeeIds.includes(item.id) || category === item.id || priority === item.id) && (
+                                            <Ionicons name="checkmark-circle" size={20} color="#2563EB" />
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                                ListFooterComponent={pickerType === 'emp' && (
+                                    <TouchableOpacity style={styles.doneBtn} onPress={() => setPickerVisible(false)}>
+                                        <Text style={styles.doneBtnText}>Selesai ({selectedEmployeeIds.length})</Text>
+                                    </TouchableOpacity>
+                                )}
+                            />
+                        )}
                     </View>
                 </View>
             </Modal>
-        </View>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#F8FAFC',
-    },
-    header: {
-        paddingTop: 50,
-        paddingBottom: 15,
-        paddingHorizontal: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0',
-    },
-    backButton: {
-        padding: 5,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1E293B',
-    },
-    scrollView: {
-        flex: 1,
-    },
-    scrollContent: {
-        padding: 20,
-        paddingBottom: 40,
-    },
-    section: {
-        backgroundColor: 'white',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-    },
-    sectionHeader: {
-        marginBottom: 10,
-        paddingHorizontal: 5,
-    },
-    sectionTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#64748B',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    row: {
-        flexDirection: 'row',
-    },
-    formGroup: {
-        marginBottom: 16,
-    },
-    label: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#475569',
-        marginBottom: 6,
-    },
-    textInput: {
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 15,
-        color: '#1E293B',
-        borderWidth: 1,
-        borderColor: '#CBD5E1',
-    },
-    textArea: {
-        height: 100,
-        textAlignVertical: 'top',
-    },
-    pickerContainer: {
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#CBD5E1',
-        overflow: 'hidden',
-    },
-    selectedCount: {
-        fontSize: 12,
-        color: '#00a2e4',
-        marginTop: 4,
-        fontWeight: '600',
-    },
-    datesRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    dateCol: {
-        width: '48%',
-    },
-    datePickerButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F1F5F9',
-        borderRadius: 8,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: '#CBD5E1',
-    },
-    dateText: {
-        marginLeft: 8,
-        fontSize: 14,
-        color: '#334155',
-        fontWeight: '500',
-    },
-    submitButton: {
-        backgroundColor: '#00a2e4',
-        height: 54,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 5,
-    },
-    submitButtonText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: 'white',
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: 'white',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 20,
-        paddingBottom: 40,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    employeeItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-    },
-    employeeItemSelected: {
-        backgroundColor: '#F0F9FF',
-        borderRadius: 8,
-        paddingHorizontal: 10,
-    },
-    employeeName: {
-        fontSize: 16,
-        color: '#334155',
-    },
-    employeeNameSelected: {
-        fontWeight: 'bold',
-        color: '#00a2e4',
-    },
-    doneButton: {
-        backgroundColor: '#1E293B',
-        padding: 15,
-        borderRadius: 12,
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    doneButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    // Date Picker Modal Styles
-    datePickerModalContent: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 24,
-        padding: 20,
-        width: '90%',
-        maxWidth: 400,
-        alignSelf: 'center',
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 20,
-    },
-    datePickerHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 10,
-        paddingHorizontal: 5,
-    },
-    datePickerTitle: {
-        fontSize: 17,
-        fontWeight: '700',
-        color: '#0F172A',
-    },
-    datePickerDoneText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#00a2e4',
-    },
+    container: { flex: 1, backgroundColor: '#F1F5F9' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+    backButton: { padding: 8, backgroundColor: '#F8FAFC', borderRadius: 12 },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B' },
+    saveBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#2563EB', borderRadius: 12, shadowColor: '#2563EB', shadowOpacity: 0.2, shadowRadius: 5 },
+    saveBtnText: { color: 'white', fontWeight: 'bold' },
+    scrollContent: { padding: 16 },
+    mainCard: { backgroundColor: 'white', borderRadius: 24, padding: 20, marginBottom: 16, elevation: 2, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 15 },
+    cardHeader: { fontSize: 16, fontWeight: '900', color: '#1E293B', marginBottom: 20 },
+    field: { marginBottom: 20 },
+    label: { fontSize: 13, fontWeight: '700', color: '#64748B', marginBottom: 10 },
+    input: { backgroundColor: '#F8FAFC', borderRadius: 14, height: 50, paddingHorizontal: 15, fontSize: 14, color: '#1E293B', borderWidth: 1, borderColor: '#E2E8F0' },
+    textArea: { height: 100, textAlignVertical: 'top', paddingTop: 15 },
+    row: { flexDirection: 'row' },
+    selector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15, backgroundColor: '#F8FAFC', borderRadius: 14, borderWidth: 1, borderColor: '#E2E8F0', height: 56, marginBottom: 15 },
+    selectorLabel: { fontSize: 11, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' },
+    selectorVal: { fontSize: 14, color: '#1E293B', fontWeight: '700', marginTop: 4 },
+    finalSubmit: { backgroundColor: '#1E293B', height: 58, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginTop: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 6 },
+    submitText: { color: 'white', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    modalBody: { backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingBottom: 40, maxHeight: height * 0.8 },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+    modalTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B' },
+    optionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
+    optionActive: { backgroundColor: '#F0F9FF' },
+    optionLabel: { fontSize: 15, color: '#334155', fontWeight: '600' },
+    optionLabelActive: { color: '#2563EB', fontWeight: '800' },
+    doneBtn: { margin: 20, backgroundColor: '#2563EB', height: 52, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+    doneBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
 });
-
-const pickerSelectStyles = {
-    inputIOS: {
-        fontSize: 15,
-        paddingVertical: 12,
-        paddingHorizontal: 12,
-        color: '#1E293B',
-        paddingRight: 30,
-    },
-    inputAndroid: {
-        fontSize: 15,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        color: '#1E293B',
-        paddingRight: 30,
-    },
-};
 
 export default TaskCreation;

@@ -8,6 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { EmployeesAttendance as StaticAttendance } from '@/services/hrservices/EmployeeAttendanceObj';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/auth/authSlice';
+import { fetchHrDashboard } from '@/auth/dataSlice';
 import { apiService } from '@/services/api';
 import { useSocket } from '@/context/SocketContext';
 
@@ -16,60 +17,11 @@ const ManagerHomeScreen = () => {
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.auth);
   
-  const [summary, setSummary] = useState(null);
-  const [recentLeaves, setRecentLeaves] = useState([]);
-  const [loading, setLoading] = useState(true);
-
+  const { summary, recentLeaves, loading } = useSelector(state => state.data.hrDashboard);
   const { socket } = useSocket();
 
-  useFocusEffect(
-    useCallback(() => {
-      loadDashboard();
-    }, [])
-  );
-
-  React.useEffect(() => {
-    if (socket) {
-      const handleUpdate = (data) => {
-        console.log('Real-time dashboard update event:', data);
-        loadDashboard(); // Simplified: refresh everything on relevant events
-      };
-
-      socket.on('attendance_updated', handleUpdate);
-      socket.on('time_off:requested', handleUpdate);
-      socket.on('correction:requested', handleUpdate);
-      socket.on('employee_changed', handleUpdate);
-      socket.on('notification', (notif) => {
-        console.log('In-app notification received:', notif);
-        // We could also show a toast here if we had a toast provider
-      });
-
-      return () => {
-        socket.off('attendance_updated', handleUpdate);
-        socket.off('time_off:requested', handleUpdate);
-        socket.off('correction:requested', handleUpdate);
-        socket.off('employee_changed', handleUpdate);
-        socket.off('notification');
-      };
-    }
-  }, [socket]);
-
-  const loadDashboard = async () => {
-    try {
-      if (!summary) {
-        setLoading(true);
-      }
-      const [summaryData, leavesData] = await Promise.all([
-        apiService.getHrSummary(),
-        apiService.getRecentLeaves()
-      ]);
-      setSummary(summaryData);
-      setRecentLeaves(leavesData);
-    } catch (error) {
-      console.error('Failed to load HR dashboard:', error);
-    } finally {
-      setLoading(false);
-    }
+  const loadDashboard = () => {
+    dispatch(fetchHrDashboard());
   };
 
   const overviewItems = StaticOverview.map(item => {
@@ -146,7 +98,7 @@ const ManagerHomeScreen = () => {
           <Text style={styles.date}>{new Date().toLocaleDateString()}</Text>
         </View>
         
-        {loading ? (
+        {(loading && !summary) ? (
           <ActivityIndicator size="large" color="#4A5568" style={{ marginVertical: 30 }} />
         ) : (
           <FlatList

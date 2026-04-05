@@ -50,6 +50,17 @@ import { registerForPushNotificationsAsync, saveTokenToBackend, setupNotificatio
 import { useSocket } from './context/SocketContext';
 import { useDispatch } from 'react-redux';
 import { updateUserProfile } from './auth/authSlice';
+import { 
+    fetchHrDashboard, 
+    fetchEmployeeTasks, 
+    fetchEmployeeTimeOff,
+    fetchNotifications,
+    updateRecentLeave,
+    updateTask,
+    updateTimeOff,
+    addNotification,
+    setHrSummary
+} from './auth/dataSlice';
 // import AutorityScreen from './screens/AutorityScreen'
 
 const Stack = createNativeStackNavigator();
@@ -339,28 +350,91 @@ function AppNavigator() {
     const dispatch = useDispatch();
     const { socket } = useSocket();
 
-    // Global Profile Sync
+    // Global Profile & Data Sync
     React.useEffect(() => {
-        if (socket && isAuthenticated && user?.user?.employeeId) {
-            console.log('Registering global profile sync listener for:', user.user.employeeId);
+        if (socket && isAuthenticated) {
+            const employeeId = user?.user?.employeeId || user?.user?.employee?.id;
             
+            // Initial data fetch
+            if (role === roles.manager) {
+                dispatch(fetchHrDashboard());
+            } else if (role === roles.employee && employeeId) {
+                dispatch(fetchEmployeeTasks(employeeId));
+                dispatch(fetchEmployeeTimeOff(employeeId));
+                dispatch(fetchNotifications(employeeId));
+            }
+
             const handleEmployeeUpdate = (data) => {
-                console.log('employee_changed event received:', data);
-                // If the updated employee matches current user
-                if (data.employee?.id === user.user.employeeId) {
-                    console.log('Current user profile updated via socket, refreshing Redux...');
+                if (data.employee?.id === employeeId) {
                     dispatch(updateUserProfile(data.employee));
+                }
+                if (role === roles.manager) {
+                    dispatch(fetchHrDashboard()); // Full refresh for manager on any employee change might be heavy, but it's safe
                 }
             };
 
+            const handleAttendanceUpdate = (data) => {
+                if (role === roles.manager) {
+                    // Update summary counts
+                    dispatch(fetchHrDashboard()); 
+                }
+            };
+
+            const handleTimeOffUpdate = (data) => {
+                if (role === roles.manager) {
+                    dispatch(fetchHrDashboard());
+                } else if (data.employeeId === employeeId || data.employee?.id === employeeId) {
+                    // It could be a full object or just a status update
+                    if (data.id) {
+                        dispatch(updateTimeOff(data));
+                    } else {
+                        dispatch(fetchEmployeeTimeOff(employeeId));
+                    }
+                }
+            };
+
+            const handleTaskUpdate = (data) => {
+                if (role === roles.manager) {
+                    dispatch(fetchHrDashboard());
+                }
+                
+                // If it's a new task creation, we only get partial data in broadcast, so refresh
+                if (!data.id) {
+                   if (data.employeeIds?.includes(employeeId)) {
+                       dispatch(fetchEmployeeTasks(employeeId));
+                   }
+                   return;
+                }
+
+                // Check if task involves current user
+                if (data.employeeId === employeeId) {
+                    dispatch(updateTask(data));
+                }
+            };
+
+            const handleNotification = (notif) => {
+                dispatch(addNotification(notif));
+            };
+
             socket.on('employee_changed', handleEmployeeUpdate);
+            socket.on('attendance_updated', handleAttendanceUpdate);
+            socket.on('time_off:requested', handleTimeOffUpdate);
+            socket.on('time_off:changed', handleTimeOffUpdate);
+            socket.on('task:created', handleTaskUpdate);
+            socket.on('task:updated', handleTaskUpdate);
+            socket.on('notification', handleNotification);
             
             return () => {
-                console.log('Removing global profile sync listener');
                 socket.off('employee_changed', handleEmployeeUpdate);
+                socket.off('attendance_updated', handleAttendanceUpdate);
+                socket.off('time_off:requested', handleTimeOffUpdate);
+                socket.off('time_off:updated', handleTimeOffUpdate);
+                socket.off('task:created', handleTaskUpdate);
+                socket.off('task:updated', handleTaskUpdate);
+                socket.off('notification', handleNotification);
             };
         }
-    }, [socket, isAuthenticated, user?.user?.employeeId]);
+    }, [socket, isAuthenticated, user, role]);
 
     React.useEffect(() => {
         const userRole = user?.user?.role?.toLowerCase();

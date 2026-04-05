@@ -10,60 +10,10 @@ import { useSocket } from '../../../context/SocketContext';
 const TimeOff = () => {
   const navigate = useNavigation();
   const [filter, setFilter] = useState('All');
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const timeOff = useSelector(state => state.data.employeeData.timeOff);
+  const loading = useSelector(state => state.data.employeeData.loading);
   const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
   const { socket } = useSocket();
-
-  const loadTimeOff = async (silent = false) => {
-    try {
-      if (!silent) setLoading(true);
-      const data = await apiService.getTimeOffRequests(employeeId);
-      setTasks(data);
-    } catch (error) {
-      console.error('Failed to load timeoff:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useFocusEffect(
-    React.useCallback(() => {
-      if (employeeId) {
-        loadTimeOff(tasks.length > 0); 
-      }
-    }, [employeeId, tasks.length])
-  );
-
-  useEffect(() => {
-    if (socket && employeeId) {
-      const handleNewRequest = (newRequest) => {
-        if (newRequest.employeeId === employeeId) {
-          setTasks(prev => {
-            const exists = prev.find(t => t.id === newRequest.id);
-            if (exists) return prev;
-            return [newRequest, ...prev];
-          });
-        }
-      };
-
-      const handleStatusChange = (updatedRequest) => {
-        if (updatedRequest.employeeId === employeeId) {
-          setTasks(prev => prev.map(t => 
-            t.id === updatedRequest.id ? { ...t, ...updatedRequest } : t
-          ));
-        }
-      };
-
-      socket.on('time_off:requested', handleNewRequest);
-      socket.on('time_off:changed', handleStatusChange);
-
-      return () => {
-        socket.off('time_off:requested', handleNewRequest);
-        socket.off('time_off:changed', handleStatusChange);
-      };
-    }
-  }, [socket, employeeId]);
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -88,7 +38,7 @@ const TimeOff = () => {
     return statusConfig[normalized] || statusConfig.DEFAULT;
   };
 
-  const filteredTasks = tasks.filter(task =>
+  const filteredTasks = timeOff.filter(task =>
     filter === 'All' ? true : task.status === filter
   );
 

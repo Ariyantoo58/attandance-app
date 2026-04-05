@@ -1,13 +1,41 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Alert, TouchableOpacity, ActivityIndicator, Platform, Switch, Image } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+    View, 
+    Text, 
+    TextInput, 
+    StyleSheet, 
+    ScrollView, 
+    Alert, 
+    TouchableOpacity, 
+    ActivityIndicator, 
+    Platform, 
+    Switch, 
+    Image, 
+    StatusBar,
+    KeyboardAvoidingView,
+    Modal,
+    FlatList,
+    Dimensions
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import { Ionicons, AntDesign } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { apiService } from '../../../services/api';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import RNPickerSelect from 'react-native-picker-select';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateUserProfile } from '../../../auth/authSlice';
+
+const { width, height } = Dimensions.get('window');
+
+// Configure Calendar for Indonesian
+LocaleConfig.locales['id'] = {
+    monthNames: ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'],
+    monthNamesShort: ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'],
+    dayNames: ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'],
+    dayNamesShort: ['Min','Sen','Sel','Rab','Kam','Jum','Sab'],
+    today: 'Hari ini'
+};
+LocaleConfig.defaultLocale = 'id';
 
 const EmployeeEdit = () => {
     const navigation = useNavigation();
@@ -18,203 +46,160 @@ const EmployeeEdit = () => {
     const { user } = useSelector(state => state.auth);
     const loggedInEmployeeId = user?.user?.employeeId || user?.user?.employee?.id;
 
+    // Form States
     const [employeeName, setEmployeeName] = useState(employee.name || '');
     const [designation, setDesignation] = useState(employee.designation || '');
     const [salary, setSalary] = useState(employee.salary?.toString() || '');
-    const [joinDate, setJoinDate] = useState(employee.joinDate ? new Date(employee.joinDate) : new Date());
-    const [birthDay, setBirthDay] = useState(employee.dateOfBirth ? new Date(employee.dateOfBirth) : new Date('2000-01-01'));
+    const [joinDate, setJoinDate] = useState(employee.joinDate ? employee.joinDate.split('T')[0] : new Date().toISOString().split('T')[0]);
+    const [birthDay, setBirthDay] = useState(employee.dateOfBirth ? employee.dateOfBirth.split('T')[0] : '1995-01-01');
     const [departments, setDepartments] = useState([]);
-    const [selectedDepartment, setSelectedDepartment] = useState(employee.departmentId || null);
-    const [showJoinPicker, setShowJoinPicker] = useState(false);
-    const [showBirthPicker, setShowBirthPicker] = useState(false);
+    const [positions, setPositions] = useState([]);
+    const [selectedDepartmentId, setSelectedDepartmentId] = useState(employee.departmentId || null);
+    const [selectedPositionId, setSelectedPositionId] = useState(employee.positionId || null);
+    const [ptkpStatus, setPtkpStatus] = useState(employee.ptkpStatus || 'TK0');
+    const [gender, setGender] = useState(employee.gender || 'MALE');
     const [activeEmployee, setActiveEmployee] = useState(employee.status === 'ACTIVE');
     const [number, setNumber] = useState(employee.phoneNumber || '');
     const [address, setAddress] = useState(employee.address || '');
     const [employeeNumber, setEmployeeNumber] = useState(employee.employeeNumber || '');
+    const [avatarUrl, setAvatarUrl] = useState(employee.avatarUrl || '');
+    
+    // Academic & Experience
     const [study, setStudy] = useState(employee.study || '');
     const [experience, setExperience] = useState(employee.experience || '');
     const [achievement, setAchievement] = useState(employee.achievement || '');
-    const [marks10, setMarks10] = useState(employee.marks10 || '');
-    const [marks12, setMarks12] = useState(employee.marks12 || '');
-    const [graduationMarks, setGraduationMarks] = useState(employee.graduationMarks || '');
-    const [avatarUrl, setAvatarUrl] = useState(employee.avatarUrl || '');
-    const [positions, setPositions] = useState([]);
-    const [selectedPosition, setSelectedPosition] = useState(employee.positionId || null);
-    const [gender, setGender] = useState(employee.gender || null);
+    const [marks10, setMarks10] = useState(employee.marks10?.toString() || '');
+    const [marks12, setMarks12] = useState(employee.marks12?.toString() || '');
+    const [graduationMarks, setGraduationMarks] = useState(employee.graduationMarks?.toString() || '');
+
+    // UI States
     const [loading, setLoading] = useState(false);
-    const [faceStatus, setFaceStatus] = useState({ registered: false, message: '' });
-    const [ptkpStatus, setPtkpStatus] = useState(employee.ptkpStatus || 'TK0');
+    const [fetching, setFetching] = useState(true);
+    const [faceStatus, setFaceStatus] = useState({ registered: false });
+    
+    // Bottom Sheet / Modal States
+    const [pickerVisible, setPickerVisible] = useState(false);
+    const [pickerType, setPickerType] = useState(''); // 'dept', 'pos', 'ptkp', 'birth', 'join'
+    const [pickerTitle, setPickerTitle] = useState('');
 
     const TAX_OPTIONS = [
-        { label: 'TK/0 (Single)', value: 'TK0' },
-        { label: 'TK/1 (Single, 1 Dep)', value: 'TK1' },
-        { label: 'TK/2 (Single, 2 Dep)', value: 'TK2' },
-        { label: 'TK/3 (Single, 3 Dep)', value: 'TK3' },
-        { label: 'K/0 (Married)', value: 'K0' },
-        { label: 'K/1 (Married, 1 Dep)', value: 'K1' },
-        { label: 'K/2 (Married, 2 Dep)', value: 'K2' },
-        { label: 'K/3 (Married, 3 Dep)', value: 'K3' },
+        { id: 'TK0', name: 'TK/0 (Belum Menikah)' },
+        { id: 'TK1', name: 'TK/1 (1 Tanggungan)' },
+        { id: 'TK2', name: 'TK/2 (2 Tanggungan)' },
+        { id: 'TK3', name: 'TK/3 (3 Tanggungan)' },
+        { id: 'K0', name: 'K/0 (Menikah)' },
+        { id: 'K1', name: 'K/1 (Menikah, 1 Tanggungan)' },
+        { id: 'K2', name: 'K/2 (Menikah, 2 Tanggungan)' },
+        { id: 'K3', name: 'K/3 (Menikah, 3 Tanggungan)' },
     ];
 
-
     useFocusEffect(
-        React.useCallback(() => {
+        useCallback(() => {
             const fetchData = async () => {
-                setLoading(true);
+                setFetching(true);
                 try {
-                    const depts = await apiService.getDepartments();
-                    if (Array.isArray(depts)) {
-                        setDepartments(depts.map(d => ({ label: d.name, value: d.id })));
-                    }
-
-                    const posts = await apiService.getPositions();
-                    if (Array.isArray(posts)) {
-                        setPositions(posts.map(p => ({ label: p.title, value: p.id })));
-                    }
-
-                    const status = await apiService.checkFaceStatus(employee.id);
-                    if (status) {
-                        setFaceStatus(status);
-                    }
+                    const [depts, posts, status] = await Promise.all([
+                        apiService.getDepartments(),
+                        apiService.getPositions(),
+                        apiService.checkFaceStatus(employee.id)
+                    ]);
+                    if (Array.isArray(depts)) setDepartments(depts);
+                    if (Array.isArray(posts)) setPositions(posts);
+                    if (status) setFaceStatus(status);
                 } catch (error) {
                     console.error('Failed to fetch screen data:', error);
                 } finally {
-                    setLoading(false);
+                    setFetching(false);
                 }
             };
             fetchData();
         }, [employee.id])
     );
 
-    const handleResetFace = async () => {
-        Alert.alert(
-            "Clear Face Data",
-            `Are you sure you want to clear face verification data for ${employeeName}?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Clear Data",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            setLoading(true);
-                            await apiService.resetFaceData(employee.id);
-                            setFaceStatus({ registered: false, message: 'Data cleared' });
-                            Alert.alert("Success", "Employee face data cleared successfully.");
-                        } catch (error) {
-                            Alert.alert("Error", "Failed to clear face data.");
-                        } finally {
-                            setLoading(false);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    const onJoinDateChange = (event, selectedDate) => {
-        setShowJoinPicker(Platform.OS === 'ios');
-        if (selectedDate) setJoinDate(selectedDate);
-    };
-
-    const onBirthDateChange = (event, selectedDate) => {
-        setShowBirthPicker(Platform.OS === 'ios');
-        if (selectedDate) setBirthDay(selectedDate);
-    };
-
-    const handleSalaryChange = (val) => {
-        if (val === '') {
-            setSalary('');
-            return;
-        }
-        // Always strip non-numeric characters before setting raw number
-        let raw = val.replace(/[^0-9]/g, '');
-        if (raw.length > 1 && raw.startsWith('0')) {
-            raw = raw.replace(/^0+/, '');
-        }
-        setSalary(raw);
-    };
-
     const handleUpdate = async () => {
-        if (!employeeName) {
-            Alert.alert('Error', 'Name is required.');
-            return;
-        }
+        if (!employeeName) return Alert.alert('Eror', 'Nama wajib diisi.');
         setLoading(true);
         try {
             const updateData = {
                 name: employeeName,
                 salary: parseFloat(salary) || 0,
-                joinDate: joinDate,
-                dateOfBirth: birthDay,
+                joinDate: new Date(joinDate),
+                dateOfBirth: new Date(birthDay),
                 status: activeEmployee ? 'ACTIVE' : 'INACTIVE',
                 phoneNumber: number,
                 address: address,
                 designation: designation,
-                departmentId: selectedDepartment,
-                positionId: selectedPosition,
+                departmentId: selectedDepartmentId,
+                positionId: selectedPositionId,
                 gender: gender,
                 employeeNumber: employeeNumber,
                 avatarUrl: avatarUrl,
-                study: study,
-                experience: experience,
-                achievement: achievement,
-                marks10: marks10,
-                marks12: marks12,
-                graduationMarks: graduationMarks,
-                ptkpStatus: ptkpStatus
+                ptkpStatus: ptkpStatus,
+                study,
+                experience,
+                achievement,
+                marks10: parseFloat(marks10) || 0,
+                marks12: parseFloat(marks12) || 0,
+                graduationMarks: parseFloat(graduationMarks) || 0
             };
-            const response = await apiService.updateEmployeeProfile(employee.id, updateData);
-
-            if (response && response.id) {
-                // If editing self, update the Redux state to reflect changes instantly (e.g. in Drawer)
-                if (employee.id === loggedInEmployeeId) {
-                    dispatch(updateUserProfile({
-                        name: employeeName,
-                        avatarUrl: avatarUrl,
-                        designation: designation,
-                        gender: gender,
-                    }));
-                }
-
-                Alert.alert("Success", "Employee details updated successfully");
-                navigation.navigate("ManagerDrawer", {
-                    screen: "Dashboard",
-                    params: { screen: "Employees" }
-                });
-            } else {
-                throw new Error(response.message || 'Failed to update employee');
+            await apiService.updateEmployeeProfile(employee.id, updateData);
+            if (employee.id === loggedInEmployeeId) {
+                dispatch(updateUserProfile({ name: employeeName, avatarUrl, designation, gender }));
             }
+            Alert.alert("Berhasil", "Data karyawan diperbarui.");
+            navigation.goBack();
         } catch (error) {
-            console.error('Failed to update employee', error);
-            Alert.alert('Error', error.message || 'Failed to update employee. Please check your connection.');
+            Alert.alert('Eror', 'Gagal memperbarui data.');
         } finally {
             setLoading(false);
         }
     };
 
+    const openPicker = (type, title) => {
+        setPickerType(type);
+        setPickerTitle(title);
+        setPickerVisible(true);
+    };
+
+    const handleSelect = (item) => {
+        if (pickerType === 'dept') setSelectedDepartmentId(item.id);
+        if (pickerType === 'pos') setSelectedPositionId(item.id);
+        if (pickerType === 'ptkp') setPtkpStatus(item.id);
+        setPickerVisible(false);
+    };
+
+    const getSelectedLabel = (type) => {
+        if (type === 'dept') return departments.find(d => d.id === selectedDepartmentId)?.name || 'Pilih Departemen...';
+        if (type === 'pos') return positions.find(p => p.id === selectedPositionId)?.title || 'Pilih Jabatan...';
+        if (type === 'ptkp') return TAX_OPTIONS.find(t => t.id === ptkpStatus)?.name || 'Pilih Status...';
+        return '';
+    };
+
+    if (fetching) return (
+        <View style={styles.center}>
+            <ActivityIndicator size="large" color="#2563EB" />
+            <Text style={styles.loadingText}>Menyiapkan portal...</Text>
+        </View>
+    );
+
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F4F6', paddingTop: 40 }}>
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
-                <TouchableOpacity style={styles.headerBackButton} onPress={() => navigation.goBack()}>
-                    <AntDesign name="left" size={18} color="white" />
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color="#1E293B" />
                 </TouchableOpacity>
-                <Text style={styles.headerText}>Edit Employee</Text>
-                <View style={{ width: 32 }} />
+                <Text style={styles.headerTitle}>Manajemen Karyawan</Text>
+                <TouchableOpacity onPress={handleUpdate} disabled={loading} style={styles.saveBtn}>
+                    {loading ? <ActivityIndicator size="small" color="#2563EB" /> : <Text style={styles.saveBtnText}>Simpan</Text>}
+                </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                <View style={styles.formCard}>
-                    <Text style={styles.label}>Full Name</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={employeeName}
-                        onChangeText={setEmployeeName}
-                        placeholder="Enter full name"
-                    />
-
-                    <Text style={styles.label}>Select Avatar</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarPicker}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                {/* Avatar Selection */}
+                <View style={styles.avatarSection}>
+                    <Text style={styles.sectionLabel}>Avatar Karyawan</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarList}>
                         {[
                             'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611722.jpg',
                             'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611746.jpg',
@@ -225,441 +210,310 @@ const EmployeeEdit = () => {
                             'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611768.jpg',
                             'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611753.jpg',
                             'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611759.jpg',
-                            'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611771.jpg',
-                            'https://img.freepik.com/free-psd/3d-render-avatar-character_23-2150611777.jpg'
-                        ].map((url, index) => (
-                            <TouchableOpacity
-                                key={index}
-                                onPress={() => setAvatarUrl(url)}
-                                style={[
-                                    styles.avatarOption,
-                                    avatarUrl === url && styles.avatarSelected
-                                ]}
-                            >
-                                <Image source={{ uri: url }} style={styles.avatarImage} resizeMode="cover" />
-                                {avatarUrl === url && (
-                                    <View style={styles.checkBadge}>
-                                        <Ionicons name="checkmark-circle" size={20} color="#3FC28A" />
-                                    </View>
-                                )}
+                        ].map((url, i) => (
+                            <TouchableOpacity key={i} onPress={() => setAvatarUrl(url)} style={[styles.avatarBox, avatarUrl === url && styles.avatarActive]}>
+                                <Image source={{ uri: url }} style={styles.avatarImg} />
+                                {avatarUrl === url && <View style={styles.activeBadge}><Ionicons name="checkmark" size={12} color="white" /></View>}
                             </TouchableOpacity>
                         ))}
-                        <TouchableOpacity
-                            onPress={() => setAvatarUrl('')}
-                            style={[
-                                styles.avatarOption,
-                                avatarUrl === '' && styles.avatarSelected,
-                                { backgroundColor: '#edf2f7', justifyContent: 'center', alignItems: 'center' }
-                            ]}
-                        >
-                            <Ionicons name="person" size={24} color="#a0aec0" />
-                            <Text style={{ fontSize: 10, color: '#4a5568', textAlign: 'center', marginTop: 2 }}>Initials</Text>
-                        </TouchableOpacity>
                     </ScrollView>
+                </View>
 
-                    <Text style={styles.label}>Employee Number</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={employeeNumber}
-                        onChangeText={setEmployeeNumber}
-                        placeholder="e.g. EMP1001"
-                    />
-
-                    <Text style={styles.label}>Gender</Text>
-                    <View style={styles.pickerWrapper}>
-                        <RNPickerSelect
-                            onValueChange={(value) => setGender(value)}
-                            items={[
-                                { label: 'Male', value: 'MALE' },
-                                { label: 'Female', value: 'FEMALE' },
-                                { label: 'Other', value: 'OTHER' },
-                            ]}
-                            placeholder={{ label: 'Select Gender...', value: null }}
-                            value={gender}
-                            style={pickerSelectStyles}
-                            useNativeAndroidPickerStyle={false}
-                            Icon={() => <Ionicons name="chevron-down" size={20} color="#9CA3AF" style={{ marginTop: Platform.OS === 'ios' ? 15 : 12, marginRight: 10 }} />}
-                        />
+                {/* Identity Card */}
+                <View style={styles.mainCard}>
+                    <Text style={styles.cardHeader}>Identitas Utama</Text>
+                    
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Nama Lengkap</Text>
+                        <TextInput style={styles.input} value={employeeName} onChangeText={setEmployeeName} placeholder="E.g. Jhon Doe" />
                     </View>
 
-                    <Text style={styles.label}>Department</Text>
-                    <View style={styles.pickerWrapper}>
-                        <RNPickerSelect
-                            onValueChange={(value) => setSelectedDepartment(value)}
-                            items={departments}
-                            placeholder={{ label: 'Select Department...', value: null }}
-                            value={selectedDepartment}
-                            style={pickerSelectStyles}
-                            useNativeAndroidPickerStyle={false}
-                            Icon={() => <Ionicons name="chevron-down" size={20} color="#9CA3AF" style={{ marginTop: Platform.OS === 'ios' ? 15 : 12, marginRight: 10 }} />}
-                        />
-                    </View>
-
-                    <Text style={styles.label}>Position</Text>
-                    <View style={styles.pickerWrapper}>
-                        <RNPickerSelect
-                            onValueChange={(value) => setSelectedPosition(value)}
-                            items={positions}
-                            placeholder={{ label: 'Select Position...', value: null }}
-                            value={selectedPosition}
-                            style={pickerSelectStyles}
-                            useNativeAndroidPickerStyle={false}
-                            Icon={() => <Ionicons name="chevron-down" size={20} color="#9CA3AF" style={{ marginTop: Platform.OS === 'ios' ? 15 : 12, marginRight: 10 }} />}
-                        />
-                    </View>
-
-                    <Text style={styles.label}>Designation Title</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={designation}
-                        onChangeText={setDesignation}
-                    />
-
-                    <Text style={styles.label}>Basic Salary</Text>
-                    <View style={styles.inputWithPrefix}>
-                        <Text style={styles.prefixText}>Rp</Text>
-                        <TextInput
-                            style={[styles.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, marginBottom: 0 }]}
-                            value={salary === '0' ? '' : salary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-                            onChangeText={handleSalaryChange}
-                            keyboardType={Platform.OS === 'ios' ? 'number-pad' : 'numeric'}
-                            placeholder="0"
-                        />
-                    </View>
-
-                    <Text style={styles.label}>Tax Status (PTKP)</Text>
-                    <View style={styles.pickerWrapper}>
-                        <RNPickerSelect
-                            onValueChange={(value) => setPtkpStatus(value)}
-                            items={TAX_OPTIONS}
-                            placeholder={{ label: 'Select Tax Status...', value: null }}
-                            value={ptkpStatus}
-                            style={pickerSelectStyles}
-                            useNativeAndroidPickerStyle={false}
-                            Icon={() => <Ionicons name="chevron-down" size={20} color="#9CA3AF" style={{ marginTop: Platform.OS === 'ios' ? 15 : 12, marginRight: 10 }} />}
-                        />
-                    </View>
-
-                    <Text style={styles.label}>Join Date</Text>
-                    <TouchableOpacity onPress={() => setShowJoinPicker(true)} style={styles.dateButton}>
-                        <Text style={styles.dateText}>{joinDate.toLocaleDateString()}</Text>
-                        <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-                    {showJoinPicker && (
-                        <DateTimePicker
-                            value={joinDate}
-                            mode="date"
-                            display="default"
-                            onChange={onJoinDateChange}
-                        />
-                    )}
-
-                    <Text style={styles.label}>Date of Birth</Text>
-                    <TouchableOpacity onPress={() => setShowBirthPicker(true)} style={styles.dateButton}>
-                        <Text style={styles.dateText}>{birthDay.toLocaleDateString()}</Text>
-                        <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-                    {showBirthPicker && (
-                        <DateTimePicker
-                            value={birthDay}
-                            mode="date"
-                            display="default"
-                            onChange={onBirthDateChange}
-                        />
-                    )}
-
-                    <Text style={styles.label}>Phone Number</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={number}
-                        onChangeText={setNumber}
-                        keyboardType="phone-pad"
-                    />
-
-                    <Text style={styles.label}>Address</Text>
-                    <TextInput
-                        style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                        value={address}
-                        onChangeText={setAddress}
-                        multiline
-                    />
-
-                    <Text style={styles.label}>Education & Experience</Text>
-                    <TextInput style={styles.input} value={study} onChangeText={setStudy} placeholder="Study" />
-                    <TextInput style={styles.input} value={experience} onChangeText={setExperience} placeholder="Experience" />
-                    <TextInput style={styles.input} value={achievement} onChangeText={setAchievement} placeholder="Achievement" />
-                    <TextInput style={styles.input} value={marks10} onChangeText={setMarks10} placeholder="10th Marks" />
-                    <TextInput style={styles.input} value={marks12} onChangeText={setMarks12} placeholder="12th Marks" />
-                    <TextInput style={styles.input} value={graduationMarks} onChangeText={setGraduationMarks} placeholder="Graduation Marks" />
-
-                    <View style={styles.statusRow}>
-                        <Text style={styles.label}>Status Active</Text>
-                        <Switch
-                            value={activeEmployee}
-                            onValueChange={setActiveEmployee}
-                            trackColor={{ true: '#3fc2896c', false: '#eee' }}
-                            thumbColor={activeEmployee ? '#3FC28A' : '#f4f3f4'}
-                        />
-                    </View>
-
-                    {employee?.user?.role?.toLowerCase() === 'employee' && (
-                        <View style={[
-                            styles.faceDataCard, 
-                            { 
-                                backgroundColor: faceStatus.registered ? '#FEF2F2' : '#F0FDF4', 
-                                borderColor: faceStatus.registered ? '#FEE2E2' : '#DCFCE7' 
-                            }
-                        ]}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={[styles.faceDataTitle, { color: faceStatus.registered ? '#991B1B' : '#166534' }]}>
-                                    {faceStatus.registered ? 'Face Data Detected' : 'Face Data Not Registered'}
-                                </Text>
-                                <Text style={[styles.faceDataSub, { color: faceStatus.registered ? '#B91C1C' : '#15803D' }]}>
-                                    {faceStatus.registered ? 'Employee has verification access' : 'Enroll face data for attendance'}
-                                </Text>
-                            </View>
-                            {faceStatus.registered ? (
-                                <TouchableOpacity
-                                    style={styles.resetButton}
-                                    onPress={handleResetFace}
-                                >
-                                    <Text style={styles.resetButtonText}>Reset Face</Text>
-                                </TouchableOpacity>
-                            ) : (
-                                <TouchableOpacity
-                                    style={[styles.resetButton, { backgroundColor: '#3B82F6' }]}
-                                    onPress={() => navigation.navigate("FaceRecognition", {
-                                        mode: 'registration',
-                                        employeeId: employee.id,
-                                        employeeName: employeeName || 'Employee'
-                                    })}
-                                >
-                                    <Text style={styles.resetButtonText}>Register</Text>
-                                </TouchableOpacity>
-                            )}
+                    <View style={styles.row}>
+                        <View style={[styles.field, { flex: 1, marginRight: 10 }]}>
+                            <Text style={styles.label}>ID Karyawan</Text>
+                            <TextInput style={styles.input} value={employeeNumber} onChangeText={setEmployeeNumber} placeholder="EMP1001" />
                         </View>
-                    )}
+                        <View style={[styles.field, { flex: 1 }]}>
+                            <Text style={styles.label}>Gender</Text>
+                            <View style={styles.genderSwitch}>
+                                <TouchableOpacity onPress={() => setGender('MALE')} style={[styles.genderHalf, gender === 'MALE' && styles.genderActive]}>
+                                    <Text style={[styles.genderLabel, gender === 'MALE' && styles.genderLabelActive]}>Pria</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setGender('FEMALE')} style={[styles.genderHalf, gender === 'FEMALE' && styles.genderActive]}>
+                                    <Text style={[styles.genderLabel, gender === 'FEMALE' && styles.genderLabelActive]}>Wanita</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
 
-                    <TouchableOpacity
-                        style={styles.updateButton}
-                        onPress={handleUpdate}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <Text style={styles.updateButtonText}>Update Details</Text>
-                        )}
+                    <TouchableOpacity onPress={() => openPicker('birth', 'Pilih Tanggal Lahir')} style={styles.selector}>
+                        <View>
+                            <Text style={styles.selectorLabel}>Tanggal Lahir</Text>
+                            <Text style={styles.selectorVal}>{birthDay}</Text>
+                        </View>
+                        <Ionicons name="calendar-outline" size={20} color="#2563EB" />
+                    </TouchableOpacity>
+                    
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Nomor Telepon</Text>
+                        <TextInput style={styles.input} value={number} onChangeText={setNumber} keyboardType="phone-pad" />
+                    </View>
+
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Alamat Lengkap</Text>
+                        <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} value={address} onChangeText={setAddress} multiline />
+                    </View>
+                </View>
+
+                {/* Workplace Section */}
+                <View style={styles.mainCard}>
+                    <Text style={styles.cardHeader}>Karir & Penempatan</Text>
+
+                    <TouchableOpacity onPress={() => openPicker('dept', 'Pilih Departemen')} style={styles.selector}>
+                        <View>
+                            <Text style={styles.selectorLabel}>Departemen</Text>
+                            <Text style={styles.selectorVal}>{getSelectedLabel('dept')}</Text>
+                        </View>
+                        <Ionicons name="business-outline" size={20} color="#2563EB" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity onPress={() => openPicker('pos', 'Pilih Jabatan')} style={styles.selector}>
+                        <View>
+                            <Text style={styles.selectorLabel}>Jabatan (Role Id)</Text>
+                            <Text style={styles.selectorVal}>{getSelectedLabel('pos')}</Text>
+                        </View>
+                        <Ionicons name="briefcase-outline" size={20} color="#2563EB" />
+                    </TouchableOpacity>
+
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Jabatan Publik (Display)</Text>
+                        <TextInput style={styles.input} value={designation} onChangeText={setDesignation} placeholder="Senior Manager" />
+                    </View>
+
+                    <TouchableOpacity onPress={() => openPicker('join', 'Tanggal Bergabung')} style={styles.selector}>
+                        <View>
+                            <Text style={styles.selectorLabel}>Tanggal Bergabung</Text>
+                            <Text style={styles.selectorVal}>{joinDate}</Text>
+                        </View>
+                        <Ionicons name="calendar-outline" size={20} color="#2563EB" />
+                    </TouchableOpacity>
+
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Gaji Pokok</Text>
+                        <View style={styles.salaryInput}>
+                            <Text style={styles.rp}>Rp</Text>
+                            <TextInput 
+                                style={styles.salaryVal} 
+                                value={salary?.replace(/\B(?=(\d{3})+(?!\d))/g, ".")} 
+                                onChangeText={(v) => setSalary(v.replace(/[^0-9]/g, ''))}
+                                keyboardType="numeric"
+                            />
+                        </View>
+                    </View>
+
+                    <TouchableOpacity onPress={() => openPicker('ptkp', 'Status PTKP')} style={styles.selector}>
+                        <View>
+                            <Text style={styles.selectorLabel}>Status Pajak (PTKP)</Text>
+                            <Text style={styles.selectorVal}>{getSelectedLabel('ptkp')}</Text>
+                        </View>
+                        <Ionicons name="document-text-outline" size={20} color="#2563EB" />
                     </TouchableOpacity>
                 </View>
+
+                {/* Academic & Experience Section */}
+                <View style={styles.mainCard}>
+                    <Text style={styles.cardHeader}>Akademik & Pengalaman</Text>
+                    
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Pendidikan Terakhir</Text>
+                        <TextInput style={styles.input} value={study} onChangeText={setStudy} placeholder="E.g. S1 Teknik Informatika" />
+                    </View>
+
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Pengalaman Kerja</Text>
+                        <TextInput style={styles.input} value={experience} onChangeText={setExperience} placeholder="E.g. 5 Tahun Developer" />
+                    </View>
+
+                    <View style={styles.field}>
+                        <Text style={styles.label}>Pencapaian / Skill</Text>
+                        <TextInput style={styles.input} value={achievement} onChangeText={setAchievement} placeholder="E.g. Sertifikasi AWS" />
+                    </View>
+
+                    <View style={styles.row}>
+                        <View style={[styles.field, { flex: 1, marginRight: 10 }]}>
+                            <Text style={styles.label}>Nilai 10th</Text>
+                            <TextInput style={styles.input} value={marks10} onChangeText={setMarks10} keyboardType="numeric" />
+                        </View>
+                        <View style={[styles.field, { flex: 1 }]}>
+                            <Text style={styles.label}>Nilai 12th</Text>
+                            <TextInput style={styles.input} value={marks12} onChangeText={setMarks12} keyboardType="numeric" />
+                        </View>
+                    </View>
+
+                    <View style={styles.field}>
+                        <Text style={styles.label}>IPK / Nilai Kelulusan</Text>
+                        <TextInput style={styles.input} value={graduationMarks} onChangeText={setGraduationMarks} keyboardType="numeric" />
+                    </View>
+                </View>
+
+                {/* Face Registration Status */}
+                <View style={styles.mainCard}>
+                    <Text style={styles.cardHeader}>Keamanan Wajah</Text>
+                    <View style={styles.faceStatusBox}>
+                        <View style={styles.faceIconBox}>
+                            <MaterialCommunityIcons 
+                                name={faceStatus.registered ? "face-recognition" : "face-recognition"} 
+                                size={32} 
+                                color={faceStatus.registered ? "#10B981" : "#94A3B8"} 
+                            />
+                        </View>
+                        <View style={styles.faceInfo}>
+                            <Text style={[styles.faceTitle, { color: faceStatus.registered ? "#10B981" : "#1E293B" }]}>
+                                {faceStatus.registered ? "Wajah Terverifikasi" : "Belum Ada Data Wajah"}
+                            </Text>
+                            <Text style={styles.faceDesc}>
+                                {faceStatus.registered ? "Akses absensi mandiri aktif." : "Karyawan perlu melakukan scan wajah."}
+                            </Text>
+                        </View>
+                    </View>
+                    {faceStatus.registered ? (
+                        <TouchableOpacity style={styles.resetFaceBtn} onPress={() => {
+                            Alert.alert("Reset Wajah", "Hapus data verifikasi wajah karyawan ini?", [
+                                { text: "Batal", style: "cancel" },
+                                { text: "Reset", style: "destructive", onPress: async () => {
+                                    await apiService.resetFaceData(employee.id);
+                                    setFaceStatus({ registered: false });
+                                }}
+                            ]);
+                        }}>
+                            <Text style={styles.resetFaceText}>Reset Data Wajah</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity style={styles.registerFaceBtn} onPress={() => navigation.navigate("FaceRecognition", {
+                            mode: 'registration',
+                            employeeId: employee.id,
+                            employeeName: employeeName
+                        })}>
+                            <Text style={styles.registerFaceText}>Daftar Wajah Sekarang</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Status Row */}
+                <View style={styles.statusRow}>
+                    <View>
+                        <Text style={styles.statusText}>Status Akun Karyawan</Text>
+                        <Text style={styles.statusDescText}>{activeEmployee ? 'AKTIF - Bisa login & akses aplikasi' : 'NON-AKTIF - Akses dibekukan sementara'}</Text>
+                    </View>
+                    <Switch value={activeEmployee} onValueChange={setActiveEmployee} thumbColor="#2563EB" trackColor={{ true: '#BFDBFE' }} />
+                </View>
+
+                <TouchableOpacity style={styles.finalBtn} onPress={handleUpdate} disabled={loading}>
+                    {loading ? <ActivityIndicator color="white" /> : <Text style={styles.finalBtnText}>SIMPAN PERUBAHAN</Text>}
+                </TouchableOpacity>
+
+                <View style={{ height: 60 }} />
             </ScrollView>
+
+            {/* Custom Modal Picker */}
+            <Modal visible={pickerVisible} transparent animationType="slide">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalBody}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{pickerTitle}</Text>
+                            <TouchableOpacity onPress={() => setPickerVisible(false)}>
+                                <Ionicons name="close" size={24} color="#64748B" />
+                            </TouchableOpacity>
+                        </View>
+                        {(pickerType === 'birth' || pickerType === 'join') ? (
+                            <Calendar
+                                current={pickerType === 'birth' ? birthDay : joinDate}
+                                onDayPress={(day) => {
+                                    if (pickerType === 'birth') setBirthDay(day.dateString);
+                                    else setJoinDate(day.dateString);
+                                    setPickerVisible(false);
+                                }}
+                                theme={{
+                                    todayTextColor: '#2563EB',
+                                    selectedDayBackgroundColor: '#2563EB',
+                                    arrowColor: '#2563EB',
+                                }}
+                            />
+                        ) : (
+                            <FlatList
+                                data={pickerType === 'dept' ? departments : (pickerType === 'pos' ? positions : TAX_OPTIONS)}
+                                keyExtractor={(item) => (item.id || item.value).toString()}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity style={styles.optionItem} onPress={() => handleSelect(item)}>
+                                        <Text style={styles.optionLabel}>{item.name || item.title || item.label}</Text>
+                                        {(selectedDepartmentId === item.id || selectedPositionId === item.id || ptkpStatus === item.id) && (
+                                            <Ionicons name="checkmark-circle" size={20} color="#2563EB" />
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                            />
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingBottom: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
-    },
-    headerBackButton: {
-        padding: 5,
-        backgroundColor: '#3B82F6',
-        borderRadius: 8,
-    },
-    headerText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#111827',
-        textAlign: 'center',
-        flex: 1,
-    },
-    scrollContent: {
-        flexGrow: 1,
-        paddingBottom: 40,
-    },
-    formCard: {
-        padding: 20,
-        backgroundColor: 'white',
-        margin: 16,
-        borderRadius: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 5,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#4B5563',
-        marginBottom: 8,
-        marginTop: 15,
-    },
-    input: {
-        paddingHorizontal: 15,
-        paddingVertical: 12,
-        borderWidth: 1,
-        borderColor: '#D1D5DB',
-        borderRadius: 10,
-        width: '100%',
-        backgroundColor: '#F9FAFB',
-        fontSize: 16,
-        color: '#1F2937',
-        marginBottom: 5
-    },
-    avatarPicker: {
-        marginBottom: 10,
-    },
-    avatarOption: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
-        marginRight: 15,
-        borderWidth: 2,
-        borderColor: 'transparent',
-        overflow: 'hidden',
-        backgroundColor: '#f3f4f6'
-    },
-    avatarSelected: {
-        borderColor: '#3B82F6',
-    },
-    avatarImage: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 35,
-    },
-    checkBadge: {
-        position: 'absolute',
-        bottom: -2,
-        right: -2,
-        backgroundColor: 'white',
-        borderRadius: 10,
-    },
-    pickerWrapper: {
-        borderWidth: 1,
-        borderColor: '#D1D5DB',
-        borderRadius: 10,
-        backgroundColor: '#F9FAFB',
-        marginBottom: 5
-    },
-    dateButton: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 15,
-        paddingVertical: 12,
-        borderWidth: 1,
-        borderColor: '#D1D5DB',
-        borderRadius: 10,
-        backgroundColor: '#F9FAFB',
-        marginBottom: 5
-    },
-    dateText: {
-        fontSize: 16,
-        color: '#1F2937'
-    },
-    statusRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: 10,
-        paddingVertical: 10,
-        borderTopWidth: 1,
-        borderTopColor: '#F3F4F6'
-    },
-    faceDataCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#FEF2F2',
-        padding: 15,
-        borderRadius: 12,
-        marginTop: 15,
-        borderWidth: 1,
-        borderColor: '#FEE2E2'
-    },
-    faceDataTitle: {
-        fontWeight: 'bold',
-        color: '#991B1B',
-        fontSize: 14
-    },
-    faceDataSub: {
-        fontSize: 12,
-        color: '#B91C1C',
-        marginTop: 2
-    },
-    resetButton: {
-        backgroundColor: '#EF4444',
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 8
-    },
-    resetButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 13
-    },
-    updateButton: {
-        backgroundColor: '#3B82F6',
-        paddingVertical: 15,
-        borderRadius: 12,
-        marginTop: 30,
-        shadowColor: '#3B82F6',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 5,
-    },
-    updateButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        textAlign: 'center',
-        fontSize: 16,
-    },
-    inputWithPrefix: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 5,
-    },
-    prefixText: {
-        backgroundColor: '#E5E7EB',
-        height: 50,
-        paddingHorizontal: 12,
-        lineHeight: 50,
-        borderWidth: 1,
-        borderColor: '#D1D5DB',
-        borderTopLeftRadius: 10,
-        borderBottomLeftRadius: 10,
-        fontWeight: '700',
-        color: '#4B5563',
-    }
+    container: { flex: 1, backgroundColor: '#F1F5F9' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    loadingText: { marginTop: 10, color: '#64748B', fontWeight: 'bold' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+    backButton: { padding: 8, backgroundColor: '#F8FAFC', borderRadius: 12 },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B' },
+    saveBtn: { paddingHorizontal: 15, paddingVertical: 8, backgroundColor: '#2563EB', borderRadius: 10 },
+    saveBtnText: { color: 'white', fontWeight: 'bold' },
+    scrollContent: { padding: 16 },
+    avatarSection: { marginBottom: 24 },
+    sectionLabel: { fontSize: 11, fontWeight: '800', color: '#64748B', marginBottom: 15, textTransform: 'uppercase', letterSpacing: 1 },
+    avatarList: { flexDirection: 'row' },
+    avatarBox: { width: 68, height: 68, borderRadius: 34, marginRight: 15, borderWidth: 2, borderColor: 'transparent', padding: 2 },
+    avatarActive: { borderColor: '#2563EB' },
+    avatarImg: { width: '100%', height: '100%', borderRadius: 32 },
+    activeBadge: { position: 'absolute', top: -2, right: -2, backgroundColor: '#2563EB', borderRadius: 10, padding: 2, borderWidth: 2, borderColor: 'white' },
+    mainCard: { backgroundColor: 'white', borderRadius: 24, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: { width:0, height:4 }, shadowOpacity: 0.03, shadowRadius: 15, elevation: 4 },
+    cardHeader: { fontSize: 16, fontWeight: '900', color: '#1E293B', marginBottom: 20 },
+    field: { marginBottom: 20 },
+    label: { fontSize: 13, fontWeight: '700', color: '#64748B', marginBottom: 10 },
+    input: { backgroundColor: '#F8FAFC', borderRadius: 14, height: 50, paddingHorizontal: 15, fontSize: 14, color: '#1E293B', borderWidth: 1, borderColor: '#E2E8F0' },
+    row: { flexDirection: 'row' },
+    genderSwitch: { flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 14, height: 50, padding: 5 },
+    genderHalf: { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 10 },
+    genderActive: { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 },
+    genderLabel: { fontSize: 14, color: '#94A3B8', fontWeight: '700' },
+    genderLabelActive: { color: '#2563EB' },
+    selector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15, backgroundColor: '#F8FAFC', borderRadius: 14, marginBottom: 15, borderWidth: 1, borderColor: '#E2E8F0' },
+    selectorLabel: { fontSize: 11, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' },
+    selectorVal: { fontSize: 14, color: '#1E293B', fontWeight: '700', marginTop: 4 },
+    salaryInput: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 14, height: 50, borderWidth: 1, borderColor: '#E2E8F0' },
+    rp: { paddingHorizontal: 15, fontSize: 14, fontWeight: '900', color: '#64748B' },
+    salaryVal: { flex: 1, fontSize: 15, fontWeight: '800', color: '#1E293B' },
+    faceStatusBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', padding: 16, borderRadius: 18, marginBottom: 16 },
+    faceIconBox: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center', elevation: 2 },
+    faceInfo: { flex: 1, marginLeft: 15 },
+    faceTitle: { fontSize: 15, fontWeight: '800' },
+    faceDesc: { fontSize: 12, color: '#64748B', marginTop: 3 },
+    resetFaceBtn: { backgroundColor: '#FFF1F2', height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+    resetFaceText: { color: '#E11D48', fontWeight: 'bold', fontSize: 14 },
+    registerFaceBtn: { backgroundColor: '#EFF6FF', height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+    registerFaceText: { color: '#2563EB', fontWeight: 'bold', fontSize: 14 },
+    statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, backgroundColor: 'white', borderRadius: 24, marginBottom: 24 },
+    statusText: { fontSize: 15, fontWeight: '800', color: '#1E293B' },
+    statusDescText: { fontSize: 12, color: '#64748B', marginTop: 4 },
+    finalBtn: { backgroundColor: '#2563EB', height: 58, borderRadius: 18, justifyContent: 'center', alignItems: 'center', shadowColor: '#2563EB', shadowOffset: { width:0, height:8 }, shadowOpacity: 0.2, shadowRadius: 15, elevation: 8 },
+    finalBtnText: { color: 'white', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    modalBody: { backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingBottom: 40, maxHeight: height * 0.8 },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+    modalTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B' },
+    optionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
+    optionLabel: { fontSize: 15, color: '#334155', fontWeight: '600' }
 });
-
-const pickerSelectStyles = {
-    inputIOS: {
-        fontSize: 16,
-        paddingVertical: 15,
-        paddingHorizontal: 15,
-        color: '#1A202C',
-        paddingRight: 30, // to ensure the text is never behind the icon
-        height: 50,
-        width: '100%',
-    },
-    inputAndroid: {
-        fontSize: 16,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        color: '#1A202C',
-        paddingRight: 30, // to ensure the text is never behind the icon
-    },
-    placeholder: {
-        color: '#A0AEC0',
-    }
-};
 
 export default EmployeeEdit;

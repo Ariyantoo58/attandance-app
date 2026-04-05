@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { AntDesign } from '@expo/vector-icons';
+import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiService } from '../../../services/api';
 
@@ -34,167 +34,225 @@ const EmployeeDetails = ({ route }) => {
         : '?';
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F4F6', paddingTop: 40 }}>
+        <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
-                <TouchableOpacity style={styles.headerBackButton} onPress={() => navigation.goBack()}>
-                    <AntDesign name="left" size={18} color="white" />
+                <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back" size={24} color="#1E293B" />
                 </TouchableOpacity>
-                <Text style={styles.headerText}>Employee Details</Text>
+                <Text style={styles.headerTitle}>Detail Karyawan</Text>
                 <TouchableOpacity 
                     onPress={() => navigation.navigate("EmployeeEdit", { employee })}
-                    style={styles.editHeaderButton}
+                    style={styles.editBtn}
                 >
-                    <AntDesign name="edit" size={24} color="#3B82F6" />
+                    <Feather name="edit-3" size={20} color="#1E293B" />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.container}>
-                <View style={styles.profileHeaderCard}>
-                    {employee.avatarUrl ? (
-                        <Image source={{ uri: employee.avatarUrl }} style={styles.profileImage} />
-                    ) : (
-                        <View style={[styles.profileImage, styles.initialsCard]}>
-                            <Text style={styles.initialsText}>{initials}</Text>
-                        </View>
-                    )}
+            <ScrollView 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
+                <View style={styles.profileSection}>
+                    <View style={styles.avatarContainer}>
+                        {employee.avatarUrl ? (
+                            <Image source={{ uri: employee.avatarUrl }} style={styles.profileImage} />
+                        ) : (
+                            <View style={styles.initialsPlaceholder}>
+                                <Text style={styles.initialsText}>{initials}</Text>
+                            </View>
+                        )}
+                    </View>
                     <Text style={styles.profileName}>{employee.name}</Text>
                     <Text style={styles.profileDesignation}>
-                        {employee.designation || employee.position?.title || 'No Role'}
+                        {employee.designation || employee.position?.title || 'Staff Member'}
                     </Text>
                 </View>
 
-                <View style={styles.detailsCard}>
-                    <DetailRow label="Employee No" value={employee.employeeNumber || '-'} />
-                    <DetailRow label="Department" value={employee.department?.name || '-'} />
+                <View style={[styles.card, { paddingHorizontal: 0, paddingVertical: 0 }]}>
+                    <DetailRow label="ID Karyawan" value={employee.employeeNumber || '-'} isFirst />
+                    <DetailRow label="Departemen" value={employee.department?.name || '-'} />
                     <DetailRow label="Gender" value={employee.gender || '-'} />
-                    <DetailRow label="Mobile No" value={employee.phoneNumber || '-'} />
-                    <DetailRow label="Address" value={employee.address || '-'} />
-                    <DetailRow label="Salary" value={employee.salary ? `Rp ${employee.salary.toLocaleString('id-ID')}` : '-'} />
-                    <DetailRow label="Birth Date" value={employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString() : '-'} />
-                    <DetailRow label="Join Date" value={employee.joinDate ? new Date(employee.joinDate).toLocaleDateString() : '-'} />
+                    <DetailRow label="No. Telepon" value={employee.phoneNumber || '-'} />
+                    <DetailRow label="Alamat" value={employee.address || '-'} />
+                    <DetailRow label="Gaji Pokok" value={employee.salary ? `Rp ${employee.salary.toLocaleString('id-ID')}` : '-'} />
+                    <DetailRow label="Tgl Lahir" value={employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString('id-ID') : '-'} />
+                    <DetailRow label="Tgl Bergabung" value={employee.joinDate ? new Date(employee.joinDate).toLocaleDateString('id-ID') : '-'} isLast />
                 </View>
 
-                <View style={[styles.detailsCard, { marginTop: 20 }]}>
-                    <Text style={styles.sectionTitle}>Academic & Experience</Text>
-                    <DetailRow label="Study" value={employee.study || '-'} />
-                    <DetailRow label="Experience" value={employee.experience || '-'} />
-                    <DetailRow label="Achievement" value={employee.achievement || '-'} />
-                    <DetailRow label="10th Marks" value={employee.marks10 || '-'} />
-                    <DetailRow label="12th Marks" value={employee.marks12 || '-'} />
-                    <DetailRow label="Graduation" value={employee.graduationMarks || '-'} />
+                <View style={styles.card}>
+                    <Text style={styles.sectionHeader}>Pendidikan & Pengalaman</Text>
+                    <DetailItem label="Studi Terakhir" value={employee.study} />
+                    <DetailItem label="Pengalaman Kerjas" value={employee.experience} />
+                    <DetailItem label="Pencapaian" value={employee.achievement} />
+                    <View style={styles.marksGrid}>
+                        <DetailItem label="Nilai SMA" value={employee.marks12} style={{ flex: 1 }} />
+                        <DetailItem label="IPK" value={employee.graduationMarks} style={{ flex: 1 }} />
+                    </View>
                 </View>
+                
+                <View style={{ height: 40 }} />
             </ScrollView>
         </SafeAreaView>
     );
 };
 
-const DetailRow = ({ label, value }) => (
-    <View style={styles.detailRow}>
+const DetailRow = ({ label, value, isFirst, isLast }) => (
+    <View style={[
+        styles.detailRow, 
+        isFirst && { borderTopWidth: 0 },
+        isLast && { borderBottomWidth: 0 }
+    ]}>
         <Text style={styles.detailLabel}>{label}</Text>
-        <Text style={styles.detailValue}>{value}</Text>
+        <Text style={styles.detailValue} numberOfLines={2}>{value}</Text>
+    </View>
+);
+
+const DetailItem = ({ label, value, style }) => (
+    <View style={[styles.detailItem, style]}>
+        <Text style={styles.itemLabel}>{label}</Text>
+        <Text style={styles.itemValue}>{value || '-'}</Text>
     </View>
 );
 
 const styles = StyleSheet.create({
-    container: {
-        paddingHorizontal: 16,
-        paddingVertical: 24,
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
     },
     header: {
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        paddingHorizontal: 16,
-        paddingBottom: 10
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        height: 56,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
     },
-    headerBackButton: {
-        padding: 5,
-        backgroundColor: '#3B82F6',
-        borderRadius: 8,
+    backBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#F8FAFC',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 16,
     },
-    headerText: {
+    headerTitle: {
+        flex: 1,
+        textAlign: 'center',
         fontSize: 18,
         fontWeight: 'bold',
-        textAlign: 'center',
-        flex: 1,
-        color: '#1F2937'
+        color: '#1E293B',
     },
-    editHeaderButton: {
-        padding: 5,
-    },
-    profileHeaderCard: {
+    editBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#F8FAFC',
+        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 24,
+    },
+    scrollContent: {
+        paddingTop: 20,
+    },
+    profileSection: {
+        alignItems: 'center',
+        marginBottom: 32,
+    },
+    avatarContainer: {
+        padding: 4,
+        borderRadius: 70,
+        borderWidth: 2,
+        borderColor: '#F1F5F9',
+        backgroundColor: 'white',
+        marginBottom: 16,
     },
     profileImage: {
         width: 120,
         height: 120,
         borderRadius: 60,
-        marginBottom: 12,
-        borderWidth: 3,
-        borderColor: 'white',
     },
-    initialsCard: {
-        backgroundColor: '#3B82F6',
-        alignItems: 'center',
+    initialsPlaceholder: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: '#DBEAFE',
         justifyContent: 'center',
+        alignItems: 'center',
     },
     initialsText: {
-        color: 'white',
         fontSize: 40,
         fontWeight: 'bold',
+        color: '#2563EB',
     },
     profileName: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: '#1F2937',
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#1E293B',
+        marginBottom: 4,
     },
     profileDesignation: {
-        fontSize: 16,
-        color: '#6B7280',
-        marginTop: 4,
+        fontSize: 14,
+        color: '#64748B',
+        fontWeight: '500',
     },
-    detailsCard: {
+    card: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: 16,
+        borderRadius: 20,
+        marginHorizontal: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    sectionTitle: {
-        fontSize: 17,
-        fontWeight: 'bold',
-        color: '#1F2937',
-        marginBottom: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
-        paddingBottom: 8,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.03,
+        shadowRadius: 10,
+        elevation: 2,
     },
     detailRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 10,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        backgroundColor: '#F9FAFB',
-        borderRadius: 8,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F8FAFC',
     },
     detailLabel: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#4B5563',
+        fontSize: 14,
+        color: '#64748B',
+        fontWeight: '500',
     },
     detailValue: {
-        fontSize: 15,
-        color: '#1F2937',
+        fontSize: 14,
+        color: '#1E293B',
+        fontWeight: '600',
         flex: 1,
         textAlign: 'right',
-        marginLeft: 20
+        marginLeft: 20,
+    },
+    sectionHeader: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1E293B',
+        marginBottom: 20,
+    },
+    detailItem: {
+        marginBottom: 16,
+    },
+    itemLabel: {
+        fontSize: 12,
+        color: '#94A3B8',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        marginBottom: 4,
+    },
+    itemValue: {
+        fontSize: 14,
+        color: '#1E293B',
+        fontWeight: '500',
+    },
+    marksGrid: {
+        flexDirection: 'row',
+        gap: 16,
     },
 });
 

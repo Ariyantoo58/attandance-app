@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal } from 'react-native';
 import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchHrDashboard } from '@/auth/dataSlice';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { apiService } from '../../../services/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -9,8 +11,11 @@ import moment from 'moment';
 
 const ProjectTasks = () => {
     const navigation = useNavigation();
+    const dispatch = useDispatch();
+    const { allTasks: storeTasks, allEmployees: storeEmployees, loading: storeLoading } = useSelector(state => state.data.hrDashboard);
+
     const [tasks, setTasks] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [employees, setEmployees] = useState([]);
     
     // Filters State
@@ -26,25 +31,33 @@ const ProjectTasks = () => {
     const [showStartPicker, setShowStartPicker] = useState(false);
     const [showEndPicker, setShowEndPicker] = useState(false);
 
-    // Initial load for employees
+    // Sync store data to local state for filtering support
     useEffect(() => {
-        const fetchEmployees = async () => {
-            try {
-                const data = await apiService.getAllEmployees();
-                setEmployees(data.map(emp => ({ label: emp.name, value: emp.id })));
-            } catch (error) {
-                console.error('Failed to load employees:', error);
-            }
-        };
-        fetchEmployees();
-    }, []);
+        if (storeEmployees) {
+            setEmployees(storeEmployees.map(emp => ({ label: emp.name, value: emp.id })));
+        }
+    }, [storeEmployees]);
 
-    // Load tasks whenever filters change OR screen focus
+    useEffect(() => {
+        // Only set tasks from store if no server filters are active
+        if (!filterAssignee && !filterPriority && !filterCategory && !filterStartDate && !filterEndDate && statusFilter === 'All') {
+            setTasks(storeTasks || []);
+        }
+    }, [storeTasks, filterAssignee, filterPriority, filterCategory, filterStartDate, filterEndDate, statusFilter]);
+
+    // Background sync on focus
     useFocusEffect(
         React.useCallback(() => {
-            loadTasks();
-        }, [statusFilter, filterAssignee, filterPriority, filterCategory, filterStartDate, filterEndDate])
+            dispatch(fetchHrDashboard());
+        }, [dispatch])
     );
+
+    // Filter sync (Server-side)
+    useEffect(() => {
+        if (filterAssignee || filterPriority || filterCategory || filterStartDate || filterEndDate || statusFilter !== 'All') {
+            loadTasks();
+        }
+    }, [statusFilter, filterAssignee, filterPriority, filterCategory, filterStartDate, filterEndDate]);
 
     const loadTasks = async () => {
         try {

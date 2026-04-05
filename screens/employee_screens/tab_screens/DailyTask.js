@@ -8,62 +8,11 @@ import { useSocket } from '../../../context/SocketContext';
 
 const DailyTask = () => {
   const [filter, setFilter] = useState('All');
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const tasks = useSelector(state => state.data.employeeData.tasks);
+  const loading = useSelector(state => state.data.employeeData.loading);
   const navigation = useNavigation();
   const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
   const { socket } = useSocket();
-
-  const loadTasks = async (silent = false) => {
-    try {
-      if (!silent) setLoading(true);
-      
-      const data = await apiService.getTasks(employeeId);
-      setTasks(data);
-    } catch (error) {
-      console.error('Failed to load tasks:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useFocusEffect(
-    React.useCallback(() => {
-      if (employeeId) {
-        console.log('DailyTask focused, refreshing... Current count:', tasks.length);
-        loadTasks(tasks.length > 0);
-      }
-    }, [employeeId, tasks.length])
-  );
-
-  useEffect(() => {
-    if (socket && employeeId) {
-      const handleTaskCreated = (data) => {
-        console.log('Received task:created event:', data.title);
-        // If this employee is in the list of assigned employees
-        if (data.employeeIds?.includes(employeeId)) {
-          loadTasks(true); // Silent refresh to get full objects
-        }
-      };
-
-      const handleTaskUpdated = (updatedTask) => {
-        console.log('Received task:updated event:', updatedTask.id);
-        if (updatedTask.employeeId === employeeId) {
-          setTasks(prev => prev.map(t => 
-            t.id === updatedTask.id ? { ...t, ...updatedTask } : t
-          ));
-        }
-      };
-
-      socket.on('task:created', handleTaskCreated);
-      socket.on('task:updated', handleTaskUpdated);
-
-      return () => {
-        socket.off('task:created', handleTaskCreated);
-        socket.off('task:updated', handleTaskUpdated);
-      };
-    }
-  }, [socket, employeeId]);
 
   const filteredTasks = tasks.filter(task =>
     filter === 'All' ? true : task.status.toUpperCase() === filter.toUpperCase()

@@ -3,48 +3,23 @@ import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
 import { apiService } from '../../../services/api';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchNotifications } from '@/auth/dataSlice';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSocket } from '../../../context/SocketContext';
 
 const Notification = () => {
   const navigation = useNavigation();
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const notifications = useSelector(state => state.data.notifications);
+  const loading = useSelector(state => state.data.hrDashboard.loading); // Use a generic loading if needed or add notification loading
   const [selectedNotif, setSelectedNotif] = useState(null);
   const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
+  const dispatch = useDispatch();
 
   const { socket } = useSocket();
 
-  useEffect(() => {
-    if (employeeId) {
-      loadNotifications();
-    }
-  }, [employeeId]);
-
-  useEffect(() => {
-    if (socket) {
-      socket.on('notification', (data) => {
-        console.log('Real-time notification received:', data);
-        loadNotifications();
-      });
-
-      return () => {
-        socket.off('notification');
-      };
-    }
-  }, [socket]);
-
-  const loadNotifications = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.getNotifications(employeeId);
-      setNotifications(data);
-    } catch (error) {
-      console.error('Failed to load notifications:', error);
-    } finally {
-      setLoading(false);
-    }
+  const loadNotifications = () => {
+    dispatch(fetchNotifications(employeeId));
   };
 
   const handleMarkAsRead = async (id) => {
