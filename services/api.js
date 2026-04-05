@@ -204,6 +204,24 @@ export const apiService = {
     });
     return response.data;
   },
+
+  // Attendance Correction
+  requestAttendanceCorrection: async (data) => {
+    const response = await apiClient.post('/attendance-correction', data);
+    return response.data;
+  },
+  getMyAttendanceCorrections: async (employeeId) => {
+    const response = await apiClient.get(`/attendance-correction/my/${employeeId}`);
+    return response.data;
+  },
+  getAllPendingAttendanceCorrections: async () => {
+    const response = await apiClient.get('/attendance-correction/pending');
+    return response.data;
+  },
+  updateAttendanceCorrectionStatus: async (id, status, adminNote) => {
+    const response = await apiClient.patch(`/attendance-correction/${id}/status`, { status, adminNote });
+    return response.data;
+  },
 };
 
 

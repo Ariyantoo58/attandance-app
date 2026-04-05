@@ -41,6 +41,9 @@ import FaceRecognitionScreen from './screens/employee_screens/FaceRecognitionScr
 import ManagerCustomDrawerContent from './screens/hr_screens/drawescreens/ManagerCustomDrawerContent';
 import EmployeeEdit from './screens/hr_screens/add_new_employee/EmployeeEdit';
 import TaskDetail from './screens/common/TaskDetail';
+import AttendanceCorrectionRequest from './screens/employee_screens/attendance_correction/AttendanceCorrectionRequest';
+import MyCorrectionList from './screens/employee_screens/attendance_correction/MyCorrectionList';
+import AttendanceCorrectionManager from './screens/hr_screens/overviewscreens/AttendanceCorrectionManager';
 // import AutorityScreen from './screens/AutorityScreen'
 
 const Stack = createNativeStackNavigator();
@@ -278,6 +281,8 @@ function EmployeeStackNavigator() {
             <Stack.Screen name="FaceRecognition" component={FaceRecognitionScreen} />
             <Stack.Screen name="TaskDetail" component={TaskDetail} />
             <Stack.Screen name="TaskCreation" component={TaskCreation} />
+            <Stack.Screen name="AttendanceCorrectionRequest" component={AttendanceCorrectionRequest} />
+            <Stack.Screen name="MyCorrectionList" component={MyCorrectionList} />
         </Stack.Navigator>
     );
 }
@@ -299,6 +304,7 @@ function ManagerStackNavigator() {
             <Stack.Screen name="EmployeeEdit" component={EmployeeEdit} />
             <Stack.Screen name="FaceRecognition" component={FaceRecognitionScreen} />
             <Stack.Screen name="TaskDetail" component={TaskDetail} />
+            <Stack.Screen name="AttendanceCorrectionManager" component={AttendanceCorrectionManager} />
         </Stack.Navigator>
     );
 }

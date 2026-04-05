@@ -50,6 +50,7 @@ const ManagerHomeScreen = () => {
     if (item.title === 'Project Task') count = summary.activeTasks;
     if (item.title === 'Team') count = summary.teamCount;
     if (item.title === 'PaySlip') count = summary.pendingPayroll;
+    if (item.title === 'Correction') count = summary.pendingCorrections;
     return { ...item, count };
   });
 

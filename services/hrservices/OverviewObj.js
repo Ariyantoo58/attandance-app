@@ -47,4 +47,11 @@ export const OverviewAllSections = [
         count: 11,
         link: "Teams"
     },
+    {
+        id: 7,
+        title: 'Correction',
+        icon: <MaterialCommunityIcons name="clipboard-check-outline" size={31} color="white" />,
+        count: 0,
+        link: "AttendanceCorrectionManager"
+    },
 ]

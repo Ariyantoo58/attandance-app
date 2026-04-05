@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { AntDesign, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { AntDesign, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { apiService } from '../../../services/api';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -95,7 +95,12 @@ const History = () => {
 
   const calculateHours = (clockIn, clockOut) => {
     if (!clockIn || !clockOut) return '0h';
-    const diff = new Date(clockOut) - new Date(clockIn);
+    const start = new Date(clockIn);
+    const end = new Date(clockOut);
+    let diff = end - start;
+    
+    if (diff < 0) return '0h'; // Error safety
+    
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
@@ -127,16 +132,18 @@ const History = () => {
         <SafeAreaView edges={['top']}>
           <View style={styles.header}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <AntDesign name="left" size={20} color="white" />
+              <MaterialIcons name="arrow-back" size={20} color="white" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Attendance History</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('MyCorrectionList')}>
+              <MaterialCommunityIcons name="clipboard-edit-outline" size={24} color="white" />
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => {
               setPage(0);
               fetchHistory(0, true);
             }}>
               <Ionicons name="refresh" size={22} color="white" />
             </TouchableOpacity>
-
           </View>
 
           <View style={styles.summaryContainer}>
@@ -199,6 +206,13 @@ const History = () => {
                         </Text>
                       </View>
                     </View>
+
+                    {item.isCorrected && (
+                      <View style={styles.correctedBadgeRow}>
+                        <MaterialIcons name="auto-fix-high" size={12} color="#7C3AED" />
+                        <Text style={styles.correctedBadgeText}>Data has been corrected by HR</Text>
+                      </View>
+                    )}
                     
                     <View style={styles.cardDivider} />
                     
@@ -232,6 +246,18 @@ const History = () => {
                         <Text style={styles.durationValue}>{calculateHours(item.clockIn, item.clockOut)}</Text>
                       </View>
                     )}
+
+                    <TouchableOpacity 
+                      style={styles.correctionButton}
+                      onPress={() => navigation.navigate('AttendanceCorrectionRequest', { 
+                        date: item.date,
+                        clockIn: item.clockIn,
+                        clockOut: item.clockOut
+                      })}
+                    >
+                      <MaterialIcons name="edit" size={14} color="#00a2e4" />
+                      <Text style={styles.correctionButtonText}> Request Correction</Text>
+                    </TouchableOpacity>
                   </View>
                 ))}
 
@@ -499,6 +525,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#00a2e4',
+  },
+  correctionButton: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#e0f2fe',
+    borderRadius: 10,
+    backgroundColor: '#f0f9ff',
+  },
+  correctionButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#007bb0',
+  },
+  correctedBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F3FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  correctedBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#7C3AED',
+    marginLeft: 5,
   },
   emptyContainer: {
     alignItems: 'center',
