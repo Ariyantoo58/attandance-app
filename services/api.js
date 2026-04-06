@@ -258,6 +258,32 @@ export const apiService = {
     const response = await apiClient.patch(`/attendance-correction/${id}/status`, { status, adminNote });
     return response.data;
   },
+
+  // Teams
+  getTeams: async () => {
+    const response = await apiClient.get('/teams');
+    return response.data;
+  },
+  getMyTeams: async () => {
+    const response = await apiClient.get('/teams/my-teams/list');
+    return response.data;
+  },
+  getTeamById: async (id) => {
+    const response = await apiClient.get(`/teams/${id}`);
+    return response.data;
+  },
+  createTeam: async (data) => {
+    const response = await apiClient.post('/teams', data);
+    return response.data;
+  },
+  updateTeam: async (id, data) => {
+    const response = await apiClient.patch(`/teams/${id}`, data);
+    return response.data;
+  },
+  deleteTeam: async (id) => {
+    const response = await apiClient.delete(`/teams/${id}`);
+    return response.data;
+  },
 };
 
 

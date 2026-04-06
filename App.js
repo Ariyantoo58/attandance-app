@@ -45,6 +45,7 @@ import TaskDetail from './screens/common/TaskDetail';
 import MyCorrectionList from './screens/employee_screens/attendance_correction/MyCorrectionList';
 import AttendanceCorrectionManager from './screens/hr_screens/overviewscreens/AttendanceCorrectionManager';
 import AttendanceCorrectionRequest from './screens/employee_screens/attendance_correction/AttendanceCorrectionRequest';
+import TeamDetail from './screens/hr_screens/overviewscreens/TeamDetail';
 import { SocketProvider } from './context/SocketContext';
 import { registerForPushNotificationsAsync, saveTokenToBackend, setupNotificationListeners } from './services/NotificationManager';
 import { useSocket } from './context/SocketContext';
@@ -319,6 +320,7 @@ function EmployeeStackNavigator() {
             <Stack.Screen name="TaskCreation" component={TaskCreation} />
             <Stack.Screen name="AttendanceCorrectionRequest" component={AttendanceCorrectionRequest} />
             <Stack.Screen name="MyCorrectionList" component={MyCorrectionList} />
+            <Stack.Screen name="TeamDetail" component={TeamDetail} />
         </Stack.Navigator>
     );
 }
@@ -340,6 +342,7 @@ function ManagerStackNavigator() {
             <Stack.Screen name="EmployeeEdit" component={EmployeeEdit} />
             <Stack.Screen name="FaceRecognition" component={FaceRecognitionScreen} />
             <Stack.Screen name="TaskDetail" component={TaskDetail} />
+            <Stack.Screen name="TeamDetail" component={TeamDetail} />
             <Stack.Screen name="AttendanceCorrectionManager" component={AttendanceCorrectionManager} />
         </Stack.Navigator>
     );
