@@ -69,7 +69,7 @@ const ManagerHomeScreen = () => {
       activeOpacity={0.7}
     >
       <View style={[styles.iconContainer, getColorById(item.id)]}>
-        {React.cloneElement(item.icon, { size: 24, color: 'white' })}
+        {React.cloneElement(item.icon, { size: 34, color: 'white' })}
       </View>
       <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
       <Text style={styles.itemCount}>{item.count}</Text>
@@ -330,23 +330,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     padding: 12,
     margin: 5,
-    borderRadius: 20,
-    width: (Dimensions.get('window').width - 50) / 3,
+    borderRadius: 24,
+    width: (Dimensions.get('window').width - 70) / 3,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
     elevation: 3,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.5)',
+    borderColor: 'rgba(226, 232, 240, 0.4)',
   },
   iconContainer: {
-    borderRadius: 16,
-    marginBottom: 10,
-    height: 48,
-    width: 48,
+    borderRadius: 20,
+    marginBottom: 8,
+    height: 60,
+    width: 60,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
   statsCard: {
     backgroundColor: 'white',
     borderRadius: 24,
-    width: (Dimensions.get('window').width - 60) / 3,
+    width: (Dimensions.get('window').width - 70) / 3,
     paddingVertical: 20,
     paddingHorizontal: 10,
     alignItems: 'center',

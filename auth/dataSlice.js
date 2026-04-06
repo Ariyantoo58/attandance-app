@@ -4,14 +4,15 @@ import { apiService } from '../services/api';
 // Async Thunks for fetching initial data
 export const fetchHrDashboard = createAsyncThunk('data/fetchHrDashboard', async (_, { rejectWithValue }) => {
   try {
-    const [summary, recentLeaves, allLeaveRequests, allTasks, allEmployees] = await Promise.all([
+    const [summary, recentLeaves, allLeaveRequests, allTasks, allEmployees, allTeams] = await Promise.all([
       apiService.getHrSummary(),
       apiService.getRecentLeaves(),
       apiService.getAllTimeOffRequests(),
       apiService.getAllTasks(),
-      apiService.getAllEmployees()
+      apiService.getAllEmployees(),
+      apiService.getTeams()
     ]);
-    return { summary, recentLeaves, allLeaveRequests, allTasks, allEmployees };
+    return { summary, recentLeaves, allLeaveRequests, allTasks, allEmployees, allTeams };
   } catch (error) {
     return rejectWithValue(error.message);
   }
@@ -60,6 +61,7 @@ const initialState = {
     leaveRequests: [],
     allTasks: [],
     allEmployees: [],
+    allTeams: [],
     loading: false,
     error: null,
   },
@@ -160,6 +162,7 @@ const dataSlice = createSlice({
         state.hrDashboard.leaveRequests = action.payload.allLeaveRequests;
         state.hrDashboard.allTasks = action.payload.allTasks;
         state.hrDashboard.allEmployees = action.payload.allEmployees;
+        state.hrDashboard.allTeams = action.payload.allTeams;
         state.isInitialized = true;
       })
       .addCase(fetchHrDashboard.rejected, (state, action) => {

@@ -30,7 +30,9 @@ const TaskCreation = () => {
     const initialEmployeeId = route.params?.initialEmployeeId;
 
     const [selectedEmployeeIds, setSelectedEmployeeIds] = useState(initialEmployeeId ? [initialEmployeeId] : []);
-    const { allEmployees: employees, loading: fetchingEmployees } = useSelector(state => state.data.hrDashboard);
+    const [selectedTeamId, setSelectedTeamId] = useState(null);
+    const [assignType, setAssignType] = useState('INDIVIDUAL'); // 'INDIVIDUAL' or 'TEAM'
+    const { allEmployees: employees, allTeams: teams, loading: fetchingEmployees } = useSelector(state => state.data.hrDashboard);
     const dispatch = useDispatch();
 
     const [title, setTitle] = useState('');
@@ -55,15 +57,22 @@ const TaskCreation = () => {
     };
 
     const handleSend = async () => {
-        if (selectedEmployeeIds.length === 0 || !title) {
-            Alert.alert("Eror", "Pilih minimal satu karyawan dan isi judul tugas.");
+        if (assignType === 'INDIVIDUAL' && selectedEmployeeIds.length === 0) {
+            Alert.alert("Eror", "Pilih minimal satu karyawan.");
+            return;
+        }
+        if (assignType === 'TEAM' && !selectedTeamId) {
+            Alert.alert("Eror", "Pilih tim untuk diberikan tugas.");
+            return;
+        }
+        if (!title) {
+            Alert.alert("Eror", "Judul tugas tidak boleh kosong.");
             return;
         }
 
         setLoading(true);
         try {
             const requestData = {
-                employeeIds: selectedEmployeeIds,
                 title,
                 description,
                 date: startDate,
@@ -71,6 +80,12 @@ const TaskCreation = () => {
                 priority,
                 category
             };
+
+            if (assignType === 'INDIVIDUAL') {
+                requestData.employeeIds = selectedEmployeeIds;
+            } else {
+                requestData.teamId = selectedTeamId;
+            }
 
             await apiService.assignTask(requestData);
             Alert.alert("Berhasil", "Tugas berhasil diberikan!");
@@ -90,6 +105,12 @@ const TaskCreation = () => {
     };
 
     const openPicker = (type, title) => {
+        if (type === 'assignType') {
+            setPickerType('assignType');
+            setPickerTitle('Pilih Model Penugasan');
+            setPickerVisible(true);
+            return;
+        }
         setPickerType(type);
         setPickerTitle(title);
         setPickerVisible(true);
@@ -128,15 +149,46 @@ const TaskCreation = () => {
                     <Text style={styles.cardHeader}>Inti Tugas</Text>
 
                     {!initialEmployeeId && (
-                        <TouchableOpacity onPress={() => openPicker('emp', 'Pilih Karyawan')} style={styles.selector}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.selectorLabel}>Diberikan Kepada</Text>
-                                <Text style={styles.selectorVal} numberOfLines={1}>
-                                    {selectedEmployeeIds.length > 0 ? `${selectedEmployeeIds.length} Karyawan terpilih` : 'Pilih satu atau lebih...'}
-                                </Text>
-                            </View>
-                            <Ionicons name="people-outline" size={20} color="#2563EB" />
-                        </TouchableOpacity>
+                        <>
+                        <View style={styles.tabContainer}>
+                            <TouchableOpacity 
+                                style={[styles.tab, assignType === 'INDIVIDUAL' && styles.activeTab]} 
+                                onPress={() => setAssignType('INDIVIDUAL')}
+                            >
+                                <Ionicons name="person-outline" size={18} color={assignType === 'INDIVIDUAL' ? 'white' : '#64748B'} />
+                                <Text style={[styles.tabText, assignType === 'INDIVIDUAL' && styles.activeTabText]}>Individu</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.tab, assignType === 'TEAM' && styles.activeTab]} 
+                                onPress={() => setAssignType('TEAM')}
+                            >
+                                <Ionicons name="people-outline" size={18} color={assignType === 'TEAM' ? 'white' : '#64748B'} />
+                                <Text style={[styles.tabText, assignType === 'TEAM' && styles.activeTabText]}>Tim</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {assignType === 'INDIVIDUAL' ? (
+                            <TouchableOpacity onPress={() => openPicker('emp', 'Pilih Karyawan')} style={styles.selector}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.selectorLabel}>Diberikan Kepada</Text>
+                                    <Text style={styles.selectorVal} numberOfLines={1}>
+                                        {selectedEmployeeIds.length > 0 ? `${selectedEmployeeIds.length} Karyawan terpilih` : 'Pilih satu atau lebih...'}
+                                    </Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="#2563EB" />
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity onPress={() => openPicker('team', 'Pilih Tim')} style={styles.selector}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.selectorLabel}>Tim Penerima</Text>
+                                    <Text style={styles.selectorVal} numberOfLines={1}>
+                                        {selectedTeamId ? teams.find(t => t.id === selectedTeamId)?.name : 'Pilih tim...'}
+                                    </Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="#2563EB" />
+                            </TouchableOpacity>
+                        )}
+                        </>
                     )}
 
                     <View style={styles.field}>
@@ -241,13 +293,23 @@ const TaskCreation = () => {
                             />
                         ) : (
                             <FlatList
-                                data={pickerType === 'cat' ? CATEGORIES : (pickerType === 'pri' ? PRIORITIES : employees)}
+                                data={pickerType === 'cat' ? CATEGORIES : (pickerType === 'pri' ? PRIORITIES : (pickerType === 'emp' ? employees : teams))}
                                 keyExtractor={(item) => item.id.toString()}
                                 renderItem={({ item }) => (
                                     <TouchableOpacity 
-                                        style={[styles.optionItem, (selectedEmployeeIds.includes(item.id) || category === item.id || priority === item.id) && styles.optionActive]} 
+                                        style={[
+                                            styles.optionItem, 
+                                            ((pickerType === 'emp' && selectedEmployeeIds.includes(item.id)) || 
+                                             (pickerType === 'team' && selectedTeamId === item.id) ||
+                                             category === item.id || 
+                                             priority === item.id) && styles.optionActive
+                                        ]} 
                                         onPress={() => {
                                             if (pickerType === 'emp') toggleEmployee(item.id);
+                                            else if (pickerType === 'team') {
+                                                setSelectedTeamId(item.id);
+                                                setPickerVisible(false);
+                                            }
                                             else {
                                                 if (pickerType === 'cat') setCategory(item.id);
                                                 if (pickerType === 'pri') setPriority(item.id);
@@ -255,10 +317,19 @@ const TaskCreation = () => {
                                             }
                                         }}
                                     >
-                                        <Text style={[styles.optionLabel, (selectedEmployeeIds.includes(item.id) || category === item.id || priority === item.id) && styles.optionLabelActive]}>
+                                        <Text style={[
+                                            styles.optionLabel, 
+                                            ((pickerType === 'emp' && selectedEmployeeIds.includes(item.id)) || 
+                                             (pickerType === 'team' && selectedTeamId === item.id) ||
+                                             category === item.id || 
+                                             priority === item.id) && styles.optionLabelActive
+                                        ]}>
                                             {item.name || item.title}
                                         </Text>
-                                        {(selectedEmployeeIds.includes(item.id) || category === item.id || priority === item.id) && (
+                                        {((pickerType === 'emp' && selectedEmployeeIds.includes(item.id)) || 
+                                          (pickerType === 'team' && selectedTeamId === item.id) || 
+                                          category === item.id || 
+                                          priority === item.id) && (
                                             <Ionicons name="checkmark-circle" size={20} color="#2563EB" />
                                         )}
                                     </TouchableOpacity>
@@ -285,6 +356,11 @@ const styles = StyleSheet.create({
     saveBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#2563EB', borderRadius: 12, shadowColor: '#2563EB', shadowOpacity: 0.2, shadowRadius: 5 },
     saveBtnText: { color: 'white', fontWeight: 'bold' },
     scrollContent: { padding: 16 },
+    tabContainer: { flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 14, padding: 4, marginBottom: 20 },
+    tab: { flex: 1, flexDirection: 'row', height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
+    activeTab: { backgroundColor: '#2563EB', shadowColor: '#2563EB', shadowOpacity: 0.2, shadowRadius: 5, elevation: 3 },
+    tabText: { marginLeft: 8, fontSize: 13, fontWeight: '700', color: '#64748B' },
+    activeTabText: { color: 'white' },
     mainCard: { backgroundColor: 'white', borderRadius: 24, padding: 20, marginBottom: 16, elevation: 2, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 15 },
     cardHeader: { fontSize: 16, fontWeight: '900', color: '#1E293B', marginBottom: 20 },
     field: { marginBottom: 20 },

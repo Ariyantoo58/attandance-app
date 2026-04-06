@@ -137,6 +137,15 @@ const DailyTask = () => {
                     <Text className={`text-[11px] font-bold uppercase ${item.priority === 'HIGH' ? 'text-red-500' : 'text-blue-500'}`}>
                       {item.priority}
                     </Text>
+                    {item.teamId && (
+                      <>
+                        <View className="w-1 h-1 bg-gray-300 rounded-full mx-2" />
+                        <View className="bg-blue-50 px-1.5 py-0.5 rounded flex-row items-center">
+                          <AntDesign name="team" size={10} color="#3B82F6" />
+                          <Text className="text-[9px] font-extrabold text-blue-500 ml-1 uppercase letter-spacing-1">TEAM</Text>
+                        </View>
+                      </>
+                    )}
                   </View>
                   
                   <Text className="text-gray-400 text-[12px] leading-4" numberOfLines={2}>

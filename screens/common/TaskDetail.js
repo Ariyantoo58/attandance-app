@@ -27,22 +27,31 @@ const TaskDetail = () => {
     const [status, setStatus] = useState(task.status || 'PENDING');
     
     // Multi-Select People
-    const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([task.employeeId]);
+    const [selectedEmployeeIds, setSelectedEmployeeIds] = useState(task.employeeId ? [task.employeeId] : []);
+    const [selectedTeamId, setSelectedTeamId] = useState(task.teamId);
+    const [assignType, setAssignType] = useState(task.teamId ? 'TEAM' : 'INDIVIDUAL');
+    
     const [employees, setEmployees] = useState([]);
+    const [teams, setTeams] = useState([]);
     const [isPickerModalVisible, setPickerModalVisible] = useState(false);
+    const [pickerType, setPickerType] = useState('emp'); // 'emp' or 'team'
 
     useEffect(() => {
         if (isAdmin) {
-            fetchEmployees();
+            fetchAssignmentData();
         }
     }, [isAdmin]);
 
-    const fetchEmployees = async () => {
+    const fetchAssignmentData = async () => {
         try {
-            const data = await apiService.getAllEmployees();
-            setEmployees(data);
+            const [empData, teamData] = await Promise.all([
+                apiService.getAllEmployees(),
+                apiService.getTeams()
+            ]);
+            setEmployees(empData);
+            setTeams(teamData);
         } catch (error) {
-            console.error('Failed to fetch employees:', error);
+            console.error('Failed to fetch assignment data:', error);
         }
     };
 
@@ -91,33 +100,36 @@ const TaskDetail = () => {
 
         setLoading(true);
         try {
-            // Logic: 
-            // 1. Update the CURRENT task with the FIRST selected employee
-            // 2. If there are MORE people selected, CREATE NEW tasks for them (cloning)
-            
-            const firstId = selectedEmployeeIds[0];
-            const otherIds = selectedEmployeeIds.slice(1);
-
-            // Update main task
-            await apiService.updateTask(task.id, { 
+            const updatePayload = { 
                 title, 
                 description,
                 progress,
                 priority,
                 category,
-                employeeId: firstId,
-                status: status // Use the manually selected status in edit mode
-            });
+                status: status 
+            };
 
-            // If multi-assignment during edit
-            if (otherIds.length > 0) {
+            if (assignType === 'TEAM') {
+                updatePayload.teamId = selectedTeamId;
+                updatePayload.employeeId = null; // Important: clear employeeId in backend-ready format
+            } else {
+                updatePayload.employeeId = selectedEmployeeIds[0];
+                updatePayload.teamId = null;
+            }
+
+            // Update main task
+            await apiService.updateTask(task.id, updatePayload);
+
+            // If multi-assignment during edit (only for INDIVIDUAL)
+            if (assignType === 'INDIVIDUAL' && selectedEmployeeIds.length > 1) {
+                const otherIds = selectedEmployeeIds.slice(1);
                 await apiService.assignTask({
                     employeeIds: otherIds,
                     title,
                     description,
                     priority,
                     category,
-                    date: task.date, // Preserve original date
+                    date: task.date, 
                     dueDate: task.dueDate
                 });
             }
@@ -143,6 +155,9 @@ const TaskDetail = () => {
     };
 
     const getSelectedNames = () => {
+        if (assignType === 'TEAM') {
+            return teams.find(t => t.id === selectedTeamId)?.name || 'Select team...';
+        }
         return employees
             .filter(emp => selectedEmployeeIds.includes(emp.id))
             .map(emp => emp.name)
@@ -182,20 +197,59 @@ const TaskDetail = () => {
                                         placeholder="Task Title"
                                     />
                                     
-                                    <Text style={styles.label}>Assign To (Multiple allowed)</Text>
-                                    <TouchableOpacity 
-                                        style={styles.pickerWrapper} 
-                                        onPress={() => setPickerModalVisible(true)}
-                                    >
-                                        <View style={{ padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <Text style={{ flex: 1, color: '#374151' }} numberOfLines={1}>
-                                                {getSelectedNames() || 'Select people...'}
-                                            </Text>
-                                            <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
-                                        </View>
-                                    </TouchableOpacity>
-                                    {selectedEmployeeIds.length > 1 && (
-                                        <Text style={styles.batchInfo}>Note: This will create {selectedEmployeeIds.length - 1} extra copy/copies of this task.</Text>
+                                    <Text style={styles.label}>Assignment</Text>
+                                    <View style={styles.tabContainer}>
+                                        <TouchableOpacity 
+                                            style={[styles.tab, assignType === 'INDIVIDUAL' && styles.activeTab]} 
+                                            onPress={() => setAssignType('INDIVIDUAL')}
+                                        >
+                                            <Ionicons name="person-outline" size={16} color={assignType === 'INDIVIDUAL' ? 'white' : '#64748B'} />
+                                            <Text style={[styles.tabText, assignType === 'INDIVIDUAL' && styles.activeTabText]}>Individu</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity 
+                                            style={[styles.tab, assignType === 'TEAM' && styles.activeTab]} 
+                                            onPress={() => setAssignType('TEAM')}
+                                        >
+                                            <Ionicons name="people-outline" size={16} color={assignType === 'TEAM' ? 'white' : '#64748B'} />
+                                            <Text style={[styles.tabText, assignType === 'TEAM' && styles.activeTabText]}>Tim</Text>
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    {assignType === 'INDIVIDUAL' ? (
+                                        <>
+                                            <TouchableOpacity 
+                                                style={styles.pickerWrapper} 
+                                                onPress={() => {
+                                                    setPickerType('emp');
+                                                    setPickerModalVisible(true);
+                                                }}
+                                            >
+                                                <View style={{ padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <Text style={{ flex: 1, color: '#374151' }} numberOfLines={1}>
+                                                        {getSelectedNames() || 'Select people...'}
+                                                    </Text>
+                                                    <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                                                </View>
+                                            </TouchableOpacity>
+                                            {selectedEmployeeIds.length > 1 && (
+                                                <Text style={styles.batchInfo}>Note: This will create {selectedEmployeeIds.length - 1} extra copy/copies of this task.</Text>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <TouchableOpacity 
+                                            style={styles.pickerWrapper} 
+                                            onPress={() => {
+                                                setPickerType('team');
+                                                setPickerModalVisible(true);
+                                            }}
+                                        >
+                                            <View style={{ padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Text style={{ flex: 1, color: '#374151' }} numberOfLines={1}>
+                                                    {getSelectedNames() || 'Select team...'}
+                                                </Text>
+                                                <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                                            </View>
+                                        </TouchableOpacity>
                                     )}
 
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -282,11 +336,11 @@ const TaskDetail = () => {
                     {!isEditing && (
                         <View style={styles.infoGrid}>
                             <View style={styles.infoItem}>
-                                <Ionicons name="person-outline" size={20} color="#666" />
+                                <Ionicons name={task.teamId ? "people-outline" : "person-outline"} size={20} color="#666" />
                                 <View style={{ marginLeft: 10 }}>
-                                    <Text style={styles.infoLabel}>Current Assignee</Text>
+                                    <Text style={styles.infoLabel}>{task.teamId ? 'Team Name' : 'Current Assignee'}</Text>
                                     <Text style={[styles.infoValue, { color: '#4A90E2' }]}>
-                                        {task.employee?.name || 'Unassigned'}
+                                        {task.teamId ? (task.team?.name || 'Loading Team...') : (task.employee?.name || 'Unassigned')}
                                     </Text>
                                 </View>
                             </View>
@@ -352,7 +406,12 @@ const TaskDetail = () => {
                         disabled={loading}
                     >
                         {loading ? <ActivityIndicator color="white" /> : (
-                            <Text style={styles.saveButtonText}>{isEditing ? (selectedEmployeeIds.length > 1 ? `Update & Clone to ${selectedEmployeeIds.length-1} more` : "Confirm Changes") : "Update Status"}</Text>
+                            <Text style={styles.saveButtonText}>
+                                {isEditing ? 
+                                    (assignType === 'INDIVIDUAL' && selectedEmployeeIds.length > 1 ? `Update & Clone to ${selectedEmployeeIds.length-1} more` : "Confirm Changes") 
+                                    : "Update Status"
+                                }
+                            </Text>
                         )}
                     </TouchableOpacity>
                 </View>
@@ -368,27 +427,33 @@ const TaskDetail = () => {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Multi Assign</Text>
+                            <Text style={styles.modalTitle}>{pickerType === 'emp' ? 'Multi Assign' : 'Select Team'}</Text>
                             <TouchableOpacity onPress={() => setPickerModalVisible(false)}>
                                 <Ionicons name="close" size={24} color="black" />
                             </TouchableOpacity>
                         </View>
                         <FlatList
-                            data={employees}
+                            data={pickerType === 'emp' ? employees : teams}
                             keyExtractor={(item) => item.id}
                             renderItem={({ item }) => (
                                 <TouchableOpacity 
                                     style={[
                                         styles.employeeItem,
-                                        selectedEmployeeIds.includes(item.id) && styles.employeeItemSelected
+                                        ((pickerType === 'emp' && selectedEmployeeIds.includes(item.id)) || (pickerType === 'team' && selectedTeamId === item.id)) && styles.employeeItemSelected
                                     ]}
-                                    onPress={() => toggleEmployee(item.id)}
+                                    onPress={() => {
+                                        if (pickerType === 'emp') toggleEmployee(item.id);
+                                        else {
+                                            setSelectedTeamId(item.id);
+                                            setPickerModalVisible(false);
+                                        }
+                                    }}
                                 >
                                     <Text style={[
                                         styles.employeeName,
-                                        selectedEmployeeIds.includes(item.id) && styles.employeeNameSelected
+                                        ((pickerType === 'emp' && selectedEmployeeIds.includes(item.id)) || (pickerType === 'team' && selectedTeamId === item.id)) && styles.employeeNameSelected
                                     ]}>{item.name}</Text>
-                                    {selectedEmployeeIds.includes(item.id) && (
+                                    {((pickerType === 'emp' && selectedEmployeeIds.includes(item.id)) || (pickerType === 'team' && selectedTeamId === item.id)) && (
                                         <Ionicons name="checkmark-circle" size={20} color="#00a2e4" />
                                     )}
                                 </TouchableOpacity>
@@ -432,6 +497,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    tabContainer: { flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 12, padding: 4, marginBottom: 15 },
+    tab: { flex: 1, flexDirection: 'row', height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 9 },
+    activeTab: { backgroundColor: '#2563EB', shadowColor: '#2563EB', shadowOpacity: 0.2, shadowRadius: 5 },
+    tabText: { marginLeft: 6, fontSize: 12, fontWeight: '700', color: '#64748B' },
+    activeTabText: { color: 'white' },
     headerTitle: {
         fontSize: 18,
         fontWeight: 'bold',

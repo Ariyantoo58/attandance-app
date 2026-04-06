@@ -171,9 +171,12 @@ const ProjectTasks = () => {
                                         <View className="flex-1 pr-2">
                                             <Text className="text-[16px] font-bold text-gray-800" numberOfLines={1}>{task.title}</Text>
                                             <View className="flex-row items-center mt-1">
-                                                <Ionicons name="person-outline" size={12} color="#94A3B8" />
+                                                <Ionicons name={task.teamId ? "people-outline" : "person-outline"} size={12} color="#94A3B8" />
                                                 <Text className="text-[11px] text-gray-500 ml-1">
-                                                    Assignee: <Text className="font-bold text-blue-500">{task.employee?.name || 'Unassigned'}</Text>
+                                                    {task.teamId ? "Team: " : "Assignee: "}
+                                                    <Text className="font-bold text-blue-500">
+                                                        {task.teamId ? (task.team?.name || 'Loading Team...') : (task.employee?.name || 'Unassigned')}
+                                                    </Text>
                                                 </Text>
                                             </View>
                                         </View>
