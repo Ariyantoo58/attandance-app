@@ -137,8 +137,8 @@ const TaskCreation = () => {
                     <Ionicons name="arrow-back" size={24} color="#1E293B" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>{initialEmployeeId ? "Tugas Mandiri" : "Beri Tugas Baru"}</Text>
-                <TouchableOpacity onPress={handleSend} disabled={loading} style={styles.saveBtn}>
-                    {loading ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.saveBtnText}>Beri</Text>}
+                <TouchableOpacity onPress={handleSend} disabled={loading} style={styles.headerSaveBtn}>
+                    {loading ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.headerSaveText}>Beri</Text>}
                 </TouchableOpacity>
             </View>
 
@@ -353,8 +353,21 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
     backButton: { padding: 8, backgroundColor: '#F8FAFC', borderRadius: 12 },
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B' },
-    saveBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#2563EB', borderRadius: 12, shadowColor: '#2563EB', shadowOpacity: 0.2, shadowRadius: 5 },
-    saveBtnText: { color: 'white', fontWeight: 'bold' },
+    headerSaveBtn: { 
+        paddingHorizontal: 20, 
+        paddingVertical: 10, 
+        backgroundColor: '#1E293B', 
+        borderRadius: 12,
+        shadowColor: '#1E293B',
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+        elevation: 3
+    },
+    headerSaveText: { 
+        color: 'white', 
+        fontWeight: 'bold', 
+        fontSize: 13 
+    },
     scrollContent: { padding: 16 },
     tabContainer: { flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 14, padding: 4, marginBottom: 20 },
     tab: { flex: 1, flexDirection: 'row', height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
@@ -371,8 +384,24 @@ const styles = StyleSheet.create({
     selector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15, backgroundColor: '#F8FAFC', borderRadius: 14, borderWidth: 1, borderColor: '#E2E8F0', height: 56, marginBottom: 15 },
     selectorLabel: { fontSize: 11, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' },
     selectorVal: { fontSize: 14, color: '#1E293B', fontWeight: '700', marginTop: 4 },
-    finalSubmit: { backgroundColor: '#1E293B', height: 58, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginTop: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 6 },
-    submitText: { color: 'white', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+    finalSubmit: { 
+        backgroundColor: '#1E293B', 
+        height: 60, 
+        borderRadius: 20, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        marginTop: 10, 
+        shadowColor: '#1E293B', 
+        shadowOpacity: 0.2, 
+        shadowRadius: 15, 
+        elevation: 8 
+    },
+    submitText: { 
+        color: 'white', 
+        fontSize: 16, 
+        fontWeight: '900', 
+        letterSpacing: 1 
+    },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
     modalBody: { backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingBottom: 40, maxHeight: height * 0.8 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },

@@ -157,7 +157,7 @@ const EmployeeList = () => {
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Daftar Karyawan</Text>
                     <TouchableOpacity 
-                        style={[styles.navBtn, styles.addBtn]}
+                        style={styles.addBtn}
                         onPress={() => navigation.navigate("AddNewEmployee")}
                     >
                         <Ionicons name="add" size={24} color="white" />
@@ -243,7 +243,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     addBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
         backgroundColor: '#1E293B',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#1E293B',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
     },
     searchWrapper: {
         paddingHorizontal: 20,

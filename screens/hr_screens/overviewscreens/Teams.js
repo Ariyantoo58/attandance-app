@@ -148,10 +148,10 @@ const Teams = ({ navigation }) => {
                 <Text style={styles.headerTitle}>Teams</Text>
                 {isManager && (
                     <TouchableOpacity 
-                        style={styles.createButton} 
+                        style={styles.addBtn} 
                         onPress={() => setCreateModalVisible(true)}
                     >
-                        <AntDesign name="plus" size={24} color="white" />
+                        <Ionicons name="add" size={24} color="white" />
                     </TouchableOpacity>
                 )}
             </View>
@@ -292,18 +292,18 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#2D3748',
     },
-    createButton: {
-        backgroundColor: '#4A90E2',
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+    addBtn: {
+        backgroundColor: '#1E293B',
+        width: 40,
+        height: 40,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#4A90E2',
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.1,
         shadowRadius: 8,
-        elevation: 5,
+        elevation: 4,
     },
     listContainer: {
         paddingHorizontal: 15,
@@ -478,22 +478,23 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: '700',
     },
-    submitButton: {
-        backgroundColor: '#4A90E2',
-        borderRadius: 15,
-        paddingVertical: 18,
-        alignItems: 'center',
-        marginTop: 20,
-        shadowColor: '#4A90E2',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
+    submitButton: { 
+        backgroundColor: '#1E293B', 
+        height: 60, 
+        borderRadius: 20, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        marginTop: 20, 
+        shadowColor: '#000', 
+        shadowOpacity: 0.2, 
+        shadowRadius: 15, 
+        elevation: 8 
     },
-    submitButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: '800',
+    submitButtonText: { 
+        color: 'white', 
+        fontSize: 16, 
+        fontWeight: '900', 
+        letterSpacing: 1 
     },
 });
 

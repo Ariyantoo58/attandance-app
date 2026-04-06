@@ -599,17 +599,24 @@ const styles = StyleSheet.create({
         color: '#9CA3AF',
         fontWeight: 'bold',
     },
-    saveButton: {
-        backgroundColor: '#1E293B',
-        height: 56,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
+    saveButton: { 
+        backgroundColor: '#1E293B', 
+        height: 60, 
+        borderRadius: 20, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        shadowColor: '#1E293B', 
+        shadowOffset: { width:0, height:8 }, 
+        shadowOpacity: 0.2, 
+        shadowRadius: 15, 
+        elevation: 8, 
+        marginTop: 10 
     },
-    saveButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
+    saveButtonText: { 
+        color: 'white', 
+        fontSize: 16, 
+        fontWeight: '900', 
+        letterSpacing: 1 
     },
     form: {
         marginBottom: 10,
@@ -692,17 +699,18 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#00a2e4',
     },
-    doneButton: {
-        backgroundColor: '#1E293B',
-        padding: 15,
-        borderRadius: 12,
-        alignItems: 'center',
-        marginTop: 20,
+    doneButton: { 
+        backgroundColor: '#1E293B', 
+        height: 56, 
+        borderRadius: 18, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        marginTop: 20 
     },
-    doneButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 16,
+    doneButtonText: { 
+        color: 'white', 
+        fontSize: 16, 
+        fontWeight: '900' 
     },
 });
 

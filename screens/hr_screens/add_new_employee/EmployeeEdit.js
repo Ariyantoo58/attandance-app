@@ -190,8 +190,8 @@ const EmployeeEdit = () => {
                     <Ionicons name="arrow-back" size={24} color="#1E293B" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Manajemen Karyawan</Text>
-                <TouchableOpacity onPress={handleUpdate} disabled={loading} style={styles.saveBtn}>
-                    {loading ? <ActivityIndicator size="small" color="#2563EB" /> : <Text style={styles.saveBtnText}>Simpan</Text>}
+                <TouchableOpacity onPress={handleUpdate} disabled={loading} style={styles.headerSaveBtn}>
+                    {loading ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.headerSaveText}>Simpan</Text>}
                 </TouchableOpacity>
             </View>
 
@@ -467,8 +467,21 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
     backButton: { padding: 8, backgroundColor: '#F8FAFC', borderRadius: 12 },
     headerTitle: { fontSize: 17, fontWeight: '800', color: '#1E293B' },
-    saveBtn: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#3B82F6', borderRadius: 12 },
-    saveBtnText: { color: 'white', fontWeight: 'bold', fontSize: 13 },
+    headerSaveBtn: { 
+        paddingHorizontal: 16, 
+        paddingVertical: 8, 
+        backgroundColor: '#1E293B', 
+        borderRadius: 12,
+        shadowColor: '#1E293B',
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+        elevation: 3
+    },
+    headerSaveText: { 
+        color: 'white', 
+        fontWeight: 'bold', 
+        fontSize: 13 
+    },
     scrollContent: { padding: 16 },
     avatarSection: { marginBottom: 24 },
     sectionLabel: { fontSize: 11, fontWeight: '800', color: '#64748B', marginBottom: 15, textTransform: 'uppercase', letterSpacing: 1 },
@@ -506,8 +519,25 @@ const styles = StyleSheet.create({
     statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, backgroundColor: 'white', borderRadius: 24, marginBottom: 24 },
     statusText: { fontSize: 15, fontWeight: '800', color: '#1E293B' },
     statusDescText: { fontSize: 12, color: '#64748B', marginTop: 4 },
-    finalBtn: { backgroundColor: '#3B82F6', height: 60, borderRadius: 20, justifyContent: 'center', alignItems: 'center', shadowColor: '#3B82F6', shadowOffset: { width:0, height:8 }, shadowOpacity: 0.2, shadowRadius: 15, elevation: 8, marginTop: 10 },
-    finalBtnText: { color: 'white', fontSize: 15, fontWeight: '900', letterSpacing: 1 },
+    finalBtn: { 
+        backgroundColor: '#1E293B', 
+        height: 60, 
+        borderRadius: 20, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        shadowColor: '#1E293B', 
+        shadowOffset: { width:0, height:8 }, 
+        shadowOpacity: 0.2, 
+        shadowRadius: 15, 
+        elevation: 8, 
+        marginTop: 10 
+    },
+    finalBtnText: { 
+        color: 'white', 
+        fontSize: 16, 
+        fontWeight: '900', 
+        letterSpacing: 1 
+    },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     modalBody: { backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingBottom: 40, maxHeight: height * 0.8 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },

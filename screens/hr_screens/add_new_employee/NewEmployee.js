@@ -221,10 +221,7 @@ const AddNewEmployee = () => {
                     {loading ? (
                         <ActivityIndicator color="white" />
                     ) : (
-                        <>
-                            <Text style={styles.finalBtnText}>DAFTARKAN AKUN SEKARANG</Text>
-                            <AntDesign name="arrowright" size={20} color="white" />
-                        </>
+                        <Text style={styles.finalBtnText}>DAFTARKAN AKUN SEKARANG</Text>
                     )}
                 </TouchableOpacity>
 
@@ -280,8 +277,26 @@ const styles = StyleSheet.create({
     selector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18, backgroundColor: '#F8FAFC', borderRadius: 16, marginBottom: 15, borderWidth: 1, borderColor: '#E2E8F0' },
     selectorLabel: { fontSize: 11, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' },
     selectorVal: { fontSize: 15, color: '#1E293B', fontWeight: '700', marginTop: 4 },
-    finalBtn: { backgroundColor: '#3B82F6', height: 64, borderRadius: 20, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', shadowColor: '#3B82F6', shadowOffset: { width:0, height:8 }, shadowOpacity: 0.2, shadowRadius: 15, elevation: 8 },
-    finalBtnText: { color: 'white', fontSize: 15, fontWeight: '900', letterSpacing: 0.5, marginRight: 10 },
+    finalBtn: { 
+        backgroundColor: '#1E293B', 
+        height: 60, 
+        borderRadius: 20, 
+        flexDirection: 'row', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        shadowColor: '#1E293B', 
+        shadowOffset: { width:0, height:8 }, 
+        shadowOpacity: 0.2, 
+        shadowRadius: 15, 
+        elevation: 8, 
+        marginTop: 10 
+    },
+    finalBtnText: { 
+        color: 'white', 
+        fontSize: 16, 
+        fontWeight: '900', 
+        letterSpacing: 1 
+    },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'flex-end' },
     modalBody: { backgroundColor: 'white', borderTopLeftRadius: 35, borderTopRightRadius: 35, paddingBottom: 40, maxHeight: height * 0.7 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },

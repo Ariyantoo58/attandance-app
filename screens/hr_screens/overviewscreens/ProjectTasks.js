@@ -112,29 +112,38 @@ const ProjectTasks = () => {
                     <AntDesign name="left" size={24} color="#1E293B" />
                 </TouchableOpacity>
                 <Text className="text-[18px] font-bold text-gray-800">Team Progress</Text>
-                <View className="flex-row">
+                <View style={styles.headerActions}>
                     <TouchableOpacity 
                         onPress={() => setFilterModalVisible(true)}
-                        className="mr-3"
+                        style={styles.headerIconBtn}
                     >
-                        <Ionicons name="filter" size={24} color={filterAssignee || filterPriority || filterCategory || filterStartDate ? "#00a2e4" : "#1E293B"} />
+                        <Ionicons name="filter" size={22} color={filterAssignee || filterPriority || filterCategory || filterStartDate ? "#3B82F6" : "#1E293B"} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate("TaskCreation")}>
-                        <Ionicons name="add-circle-outline" size={26} color="#00a2e4" />
+                    <TouchableOpacity 
+                        onPress={() => navigation.navigate("TaskCreation")}
+                        style={styles.addBtn}
+                    >
+                        <Ionicons name="add" size={26} color="white" />
                     </TouchableOpacity>
                 </View>
             </View>
 
-            <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
                 {/* Horizontal Status Chips */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-5 py-4">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusScroll}>
                     {['All', 'PENDING', 'IN_PROGRESS', 'COMPLETE'].map(status => (
                         <TouchableOpacity
                             key={status}
                             onPress={() => setStatusFilter(status)}
-                            className={`mr-2 rounded-full px-3.5 py-2 ${statusFilter.toUpperCase() === status ? 'bg-blue-500' : 'bg-white border border-gray-100 shadow-sm'}`}
+                            style={[
+                                styles.statusChip,
+                                statusFilter.toUpperCase() === status ? styles.statusChipActive : styles.statusChipInactive
+                            ]}
                         >
-                            <Text className={`text-[11px] font-bold ${statusFilter.toUpperCase() === status ? 'text-white' : 'text-blue-500'}`}>
+                            <Text style={[
+                                styles.statusChipText,
+                                statusFilter.toUpperCase() === status ? styles.statusTextActive : styles.statusTextInactive
+                            ]}>
                                 {status.replace('_', ' ')}
                             </Text>
                         </TouchableOpacity>
@@ -355,6 +364,61 @@ const ProjectTasks = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    headerIconBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#F8FAFC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    addBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#1E293B',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#1E293B',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    statusScroll: {
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+    },
+    statusChip: {
+        marginRight: 10,
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderWidth: 1,
+    },
+    statusChipActive: {
+        backgroundColor: '#1E293B',
+        borderColor: '#1E293B',
+    },
+    statusChipInactive: {
+        backgroundColor: 'white',
+        borderColor: '#F1F5F9',
+    },
+    statusChipText: {
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    statusTextActive: {
+        color: 'white',
+    },
+    statusTextInactive: {
+        color: '#64748B',
     },
     modalOverlay: {
         flex: 1,
