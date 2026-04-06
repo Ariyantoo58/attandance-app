@@ -414,6 +414,12 @@ function AppNavigator() {
                 }
             };
 
+            const handleCorrectionUpdate = (data) => {
+                if (role === roles.manager) {
+                    dispatch(fetchHrDashboard());
+                }
+            };
+
             const handleNotification = (notif) => {
                 dispatch(addNotification(notif));
             };
@@ -424,6 +430,8 @@ function AppNavigator() {
             socket.on('time_off:changed', handleTimeOffUpdate);
             socket.on('task:created', handleTaskUpdate);
             socket.on('task:updated', handleTaskUpdate);
+            socket.on('correction:requested', handleCorrectionUpdate);
+            socket.on('correction:changed', handleCorrectionUpdate);
             socket.on('notification', handleNotification);
             
             return () => {
@@ -433,6 +441,8 @@ function AppNavigator() {
                 socket.off('time_off:updated', handleTimeOffUpdate);
                 socket.off('task:created', handleTaskUpdate);
                 socket.off('task:updated', handleTaskUpdate);
+                socket.off('correction:requested', handleCorrectionUpdate);
+                socket.off('correction:changed', handleCorrectionUpdate);
                 socket.off('notification', handleNotification);
             };
         }

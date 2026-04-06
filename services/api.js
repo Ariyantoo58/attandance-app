@@ -33,8 +33,9 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
@@ -42,32 +43,35 @@ apiClient.interceptors.response.use(
         const userData = userStr ? JSON.parse(userStr) : null;
         const user = userData?.user || userData;
 
-        if (!refreshToken || !user) throw new Error('No refresh token');
+        if (!refreshToken || !user) throw new Error('No session data found');
 
         const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           userId: user.id || user.sub,
           refreshToken,
         });
 
+        if (data.access_token) {
+          await AsyncStorage.setItem('accessToken', data.access_token);
+          if (data.refresh_token) await AsyncStorage.setItem('refreshToken', data.refresh_token);
 
-        await AsyncStorage.setItem('accessToken', data.access_token);
-        await AsyncStorage.setItem('refreshToken', data.refresh_token);
+          apiClient.defaults.headers.Authorization = `Bearer ${data.access_token}`;
+          originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
 
-        apiClient.defaults.headers.Authorization = `Bearer ${data.access_token}`;
-        originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
-
-        return apiClient(originalRequest);
+          return apiClient(originalRequest);
+        } else {
+          throw new Error('Refresh failed');
+        }
       } catch (refreshError) {
-        // Clear tokens and logout if refresh fails
-        await AsyncStorage.removeItem('accessToken');
-        await AsyncStorage.removeItem('refreshToken');
-        await AsyncStorage.removeItem('isAuthenticated');
-        await AsyncStorage.removeItem('user');
+        console.log('Session expired, logging out...', refreshError);
+        // Clear all session data
+        await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'isAuthenticated', 'user', 'role']);
         
         Alert.alert(
           'Sesi Berakhir',
-          'Sesi Anda telah habis. Silakan login kembali.',
-          [{ text: 'OK', onPress: () => logoutAction() }]
+          'Sesi Anda telah habis. Silakan login kembali untuk melanjutkan.',
+          [{ text: 'OK', onPress: () => {
+             if (typeof logoutAction === 'function') logoutAction();
+          }}]
         );
         return Promise.reject(refreshError);
       }

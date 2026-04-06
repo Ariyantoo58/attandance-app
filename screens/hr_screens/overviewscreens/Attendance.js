@@ -6,12 +6,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import moment from 'moment';
 import { apiService } from '../../../services/api';
+import { useSocket } from '../../../context/SocketContext';
 
 const { width } = Dimensions.get('window');
 
 const Attendance = () => {
   const [dailyLogs, setDailyLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (socket) {
+      const handleUpdate = () => {
+        loadDaily(selectedDate);
+      };
+      
+      socket.on('attendance_updated', handleUpdate);
+      socket.on('correction:changed', handleUpdate);
+      
+      return () => {
+        socket.off('attendance_updated', handleUpdate);
+        socket.off('correction:changed', handleUpdate);
+      };
+    }
+  }, [socket, selectedDate]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(moment().format('MMMM'));
   const [selectedEmployee, setSelectedEmployee] = useState(null);

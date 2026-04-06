@@ -17,6 +17,7 @@ const StartingScreen = () => {
   const { tasks, attendanceHistory: attendance } = useSelector(state => state.data.employeeData);
   const { notifications } = useSelector(state => state.data);
   const notifCount = notifications.filter(n => !n.isRead).length;
+  const [hasLoadedInitially, setHasLoadedInitially] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useFocusEffect(
@@ -28,10 +29,11 @@ const StartingScreen = () => {
   );
 
   const loadDashboardData = async () => {
-    const isFirstLoad = tasks.length === 0 && attendance.length === 0;
+    // Only show loading if we really have no data AND this is the first attempt
+    const isFirstLoad = !hasLoadedInitially && tasks.length === 0 && attendance.length === 0;
     
     if (isFirstLoad) {
-      setLoading(true);
+        setLoading(true);
     }
     
     try {
@@ -40,6 +42,7 @@ const StartingScreen = () => {
         dispatch(fetchEmployeeAttendance(employeeId)),
         dispatch(fetchNotifications(employeeId))
       ]);
+      setHasLoadedInitially(true);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {

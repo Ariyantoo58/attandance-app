@@ -20,6 +20,7 @@ const History = () => {
 
   const { socket } = useSocket();
   const [attendance, setAttendance] = useState(reduxAttendance || []);
+  const [hasLoadedInitially, setHasLoadedInitially] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState('All');
@@ -31,12 +32,15 @@ const History = () => {
   React.useEffect(() => {
     if (reduxAttendance?.length > 0 && attendance.length === 0) {
       setAttendance(reduxAttendance);
+      setHasLoadedInitially(true);
     }
   }, [reduxAttendance]);
 
   useFocusEffect(
     useCallback(() => {
       if (employeeId) {
+        // Only reset page if it's not the initial focus with existing data
+        // or if filter changed (handled by dependency)
         setPage(0);
         fetchHistory(0, true);
       }
@@ -67,7 +71,8 @@ const History = () => {
     
     try {
       if (isInitial) {
-        if (attendance.length === 0) {
+        // Only show full loading if we have no data and haven't loaded before
+        if (attendance.length === 0 && !hasLoadedInitially) {
           setLoading(true);
         }
         setHasMore(true);
@@ -79,6 +84,7 @@ const History = () => {
       
       if (isInitial) {
         setAttendance(data);
+        setHasLoadedInitially(true);
         // Sync first page with Redux for persistence across tab switches
         if (filter === 'All' && skipVal === 0) {
             dispatch(setEmployeeAttendance(data));
