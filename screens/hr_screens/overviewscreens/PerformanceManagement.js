@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -12,7 +12,7 @@ import {
     TextInput
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, DrawerActions } from '@react-navigation/native';
 import { apiService } from '../../../services/api';
 
 const PerformanceManagement = () => {
@@ -25,9 +25,11 @@ const PerformanceManagement = () => {
 
     const [showInfo, setShowInfo] = useState(true);
 
-    useEffect(() => {
-        fetchKpiSummary();
-    }, [month, year]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchKpiSummary();
+        }, [month, year])
+    );
 
     const fetchKpiSummary = async () => {
         setLoading(true);
@@ -101,8 +103,11 @@ const PerformanceManagement = () => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#1E293B" />
+                <TouchableOpacity 
+                    onPress={() => navigation.dispatch(DrawerActions.openDrawer())} 
+                    style={styles.backButton}
+                >
+                    <Ionicons name="menu" size={24} color="#1E293B" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Performance Management</Text>
                 <TouchableOpacity onPress={() => navigation.navigate('GlobalKpiSettings')} style={styles.backButton}>

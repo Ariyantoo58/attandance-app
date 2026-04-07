@@ -14,6 +14,7 @@ import {
     KeyboardAvoidingView,
     Platform
 } from 'react-native';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { MaterialIcons, MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -59,6 +60,7 @@ const FormInput = ({ label, value, field, icon, color = "#4A90E2", onNumericChan
 );
 
 const PaySlipofEmployee = () => {
+    const navigation = useNavigation();
     const { allEmployees: employees, loading: storeLoading } = useSelector(state => state.data.hrDashboard);
     const dispatch = useDispatch();
 
@@ -455,7 +457,17 @@ const PaySlipofEmployee = () => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Payroll Management</Text>
+                <View style={styles.headerTopRow}>
+                    <TouchableOpacity 
+                        onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+                        style={styles.menuBtn}
+                    >
+                        <Ionicons name="menu" size={26} color="#2D3748" />
+                    </TouchableOpacity>
+                    <View style={styles.headerTextWrapper}>
+                        <Text style={styles.title}>Payroll Management</Text>
+                    </View>
+                </View>
                 <Text style={styles.subtitle}>Select an employee to record monthly salary</Text>
             </View>
 
@@ -659,6 +671,18 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         borderBottomWidth: 1,
         borderBottomColor: '#EDF2F7',
+    },
+    headerTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    menuBtn: {
+        marginRight: 12,
+        padding: 4,
+    },
+    headerTextWrapper: {
+        flex: 1,
     },
     title: {
         fontSize: 24,

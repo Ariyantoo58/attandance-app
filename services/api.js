@@ -180,6 +180,10 @@ export const apiService = {
     const response = await apiClient.get('/hr-dashboard/recent-leaves');
     return response.data;
   },
+  getHrAnalytics: async () => {
+    const response = await apiClient.get('/hr-dashboard/analytics');
+    return response.data;
+  },
   getAllEmployees: async () => {
     const response = await apiClient.get('/employees');
     return response.data;

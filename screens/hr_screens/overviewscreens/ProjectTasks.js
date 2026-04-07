@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator
 import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchHrDashboard } from '@/auth/dataSlice';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, DrawerActions } from '@react-navigation/native';
 import { apiService } from '../../../services/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import RNPickerSelect from 'react-native-picker-select';
@@ -108,8 +108,8 @@ const ProjectTasks = () => {
         <View style={styles.container} className="bg-blue-50">
             {/* Custom Header */}
             <View className="pt-12 pb-4 px-5 bg-white shadow-sm flex-row items-center justify-between border-b border-gray-100">
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <AntDesign name="left" size={24} color="#1E293B" />
+                <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
+                    <Ionicons name="menu" size={28} color="#1E293B" />
                 </TouchableOpacity>
                 <Text className="text-[18px] font-bold text-gray-800">Team Progress</Text>
                 <View style={styles.headerActions}>

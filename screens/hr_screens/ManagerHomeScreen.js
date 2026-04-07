@@ -62,6 +62,10 @@ const ManagerHomeScreen = () => {
         return styles.bgIndigo;
       case 8:
         return styles.bgPurple;
+      case 9:
+        return styles.bgPink;
+      case 10:
+        return styles.bgCyan;
       default:
         return styles.bgGray;
     }
@@ -507,6 +511,8 @@ const styles = StyleSheet.create({
   bgIndigo: { backgroundColor: '#6366F1' },
   bgYellow: { backgroundColor: '#EAB308' },
   bgPurple: { backgroundColor: '#A855F7' },
+  bgPink: { backgroundColor: '#EC4899' },
+  bgCyan: { backgroundColor: '#06B6D4' },
   bgGray: { backgroundColor: '#94A3B8' },
 });
 

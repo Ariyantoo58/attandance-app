@@ -22,7 +22,7 @@ import {
     MaterialCommunityIcons, 
     Ionicons 
 } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const EmployeeList = () => {
@@ -152,8 +152,8 @@ const EmployeeList = () => {
             <StatusBar barStyle="dark-content" />
             <SafeAreaView edges={['top']} style={styles.header}>
                 <View style={styles.headerTop}>
-                    <TouchableOpacity style={styles.navBtn} onPress={() => navigation.goBack()}>
-                        <Ionicons name="arrow-back" size={24} color="#1E293B" />
+                    <TouchableOpacity style={styles.navBtn} onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
+                        <Ionicons name="menu" size={24} color="#1E293B" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Daftar Karyawan</Text>
                     <TouchableOpacity 

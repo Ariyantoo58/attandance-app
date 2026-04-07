@@ -1,3 +1,4 @@
+import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AntDesign } from '@expo/vector-icons';
@@ -68,4 +69,11 @@ export const OverviewAllSections = [
         count: 0,
         link: "PerformanceManagement"
     },
-]
+    {
+        id: 10,
+        title: 'Analytics',
+        icon: <MaterialCommunityIcons name="chart-areaspline" size={31} color="white" />,
+        count: 0,
+        link: "HrAnalytics"
+    },
+];

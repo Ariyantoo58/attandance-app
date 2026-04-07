@@ -5,12 +5,14 @@ import MapView, { Marker, Polyline } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import moment from 'moment';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { apiService } from '../../../services/api';
 import { useSocket } from '../../../context/SocketContext';
 
 const { width } = Dimensions.get('window');
 
 const Attendance = () => {
+  const navigation = useNavigation();
   const [dailyLogs, setDailyLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const { socket } = useSocket();
@@ -187,7 +189,13 @@ const Attendance = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <TouchableOpacity 
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())} 
+          style={styles.calendarBtn}
+        >
+          <Ionicons name="menu" size={24} color="#0F172A" />
+        </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Daily Attendance</Text>
           <Text style={styles.headerSubtitle}>{moment(selectedDate).format('dddd, DD MMM')}</Text>
         </View>
@@ -642,8 +650,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  headerLeft: {
+  headerTitleContainer: {
     flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 22,

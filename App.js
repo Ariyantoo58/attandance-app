@@ -23,6 +23,7 @@ import PaySlip from './screens/employee_screens/profile/PaySlip';
 import ProfileDetails from './screens/employee_screens/profile/ProfileDetails';
 import ProfileSetting from './screens/employee_screens/profile/ProfileSetting';
 import EmployeDataAnalyze from './screens/employee_screens/analytics/EmployeDataAnalyze';
+import HrAnalytics from './screens/hr_screens/HrAnalytics';
 import ManagerHomeScreen from './screens/hr_screens/ManagerHomeScreen';
 import store from './auth/store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -265,38 +266,11 @@ function ManagerDrawer() {
                 }}
             />
             <Drawer.Screen
-                name="Employee List"
-                component={EmployeeList}
+                name="Analytics"
+                component={HrAnalytics}
                 options={{
                     drawerIcon: ({ color, size }) => (
-                        <Ionicons name="people-circle" size={size} color={color} />
-                    ),
-                }}
-            />
-            <Drawer.Screen
-                name="Leave Applications"
-                component={Leave_Applications}
-                options={{
-                    drawerIcon: ({ color, size }) => (
-                        <Ionicons name="document-text" size={size} color={color} />
-                    ),
-                }}
-            />
-            <Drawer.Screen
-                name="Attendance History"
-                component={Attendance}
-                options={{
-                    drawerIcon: ({ color, size }) => (
-                        <Ionicons name="calendar-clear" size={size} color={color} />
-                    ),
-                }}
-            />
-            <Drawer.Screen
-                name="Payroll"
-                component={PaySlipofEmployee}
-                options={{
-                    drawerIcon: ({ color, size }) => (
-                        <Ionicons name="receipt-sharp" size={size} color={color} />
+                        <Ionicons name="bar-chart" size={size} color={color} />
                     ),
                 }}
             />
@@ -308,6 +282,43 @@ function ManagerDrawer() {
                         <Ionicons name="settings-outline" size={size} color={color} />
                     ),
                 }}
+            />
+
+            {/* Hidden screens that still need drawer access */}
+            <Drawer.Screen
+                name="Employee List"
+                component={EmployeeList}
+                options={{ drawerItemStyle: { display: 'none' } }}
+            />
+            <Drawer.Screen
+                name="LeaveApplications"
+                component={Leave_Applications}
+                options={{ drawerItemStyle: { display: 'none' } }}
+            />
+            <Drawer.Screen
+                name="Attendance"
+                component={Attendance}
+                options={{ drawerItemStyle: { display: 'none' } }}
+            />
+            <Drawer.Screen
+                name="PaySlipofEmployee"
+                component={PaySlipofEmployee}
+                options={{ drawerItemStyle: { display: 'none' } }}
+            />
+            <Drawer.Screen
+                name="ProjectTasks"
+                component={ProjectTasks}
+                options={{ drawerItemStyle: { display: 'none' } }}
+            />
+            <Drawer.Screen
+                name="PerformanceManagement"
+                component={PerformanceManagement}
+                options={{ drawerItemStyle: { display: 'none' } }}
+            />
+            <Drawer.Screen
+                name="Teams"
+                component={Teams}
+                options={{ drawerItemStyle: { display: 'none' } }}
             />
         </Drawer.Navigator>
     );
@@ -338,15 +349,11 @@ function ManagerStackNavigator() {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="ManagerDrawer" component={ManagerDrawer} />
-            <Stack.Screen name="LeaveApplications" component={Leave_Applications} />
+            <Stack.Screen name="HrAnalytics" component={HrAnalytics} />
             <Stack.Screen name="AddNewEmployee" component={AddNewEmployee} />
             <Stack.Screen name="NotificationHR" component={NotificationHR} />
-            <Stack.Screen name="ProjectTasks" component={ProjectTasks} />
             <Stack.Screen name="TaskCreation" component={TaskCreation} />
-            <Stack.Screen name="Teams" component={Teams} />
-            <Stack.Screen name="PaySlipofEmployee" component={PaySlipofEmployee} />
             <Stack.Screen name="PaySlipSummary" component={PaySlipSummary} />
-            <Stack.Screen name="Attendance" component={Attendance} />
             <Stack.Screen name="EmployeeDetails" component={EmployeeDetails} />
             <Stack.Screen name="EmployeeEdit" component={EmployeeEdit} />
             <Stack.Screen name="FaceRecognition" component={FaceRecognitionScreen} />
@@ -354,7 +361,6 @@ function ManagerStackNavigator() {
             <Stack.Screen name="TeamDetail" component={TeamDetail} />
             <Stack.Screen name="AttendanceCorrectionManager" component={AttendanceCorrectionManager} />
             <Stack.Screen name="OvertimeManagement" component={OvertimeManagement} />
-            <Stack.Screen name="PerformanceManagement" component={PerformanceManagement} />
             <Stack.Screen name="KpiDetailReview" component={KpiDetailReview} />
             <Stack.Screen name="GlobalKpiSettings" component={GlobalKpiSettings} />
         </Stack.Navigator>

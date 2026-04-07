@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Dimensions } from 'react-native'
 import React, { useState, useEffect } from 'react';
-import { AntDesign } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { apiService } from '../../../services/api';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchHrDashboard } from '@/auth/dataSlice';
@@ -57,10 +57,10 @@ const Leave_Applications = () => {
             <View style={styles.header}>
                 <TouchableOpacity 
                     style={styles.backButton} 
-                    onPress={() => navigation.goBack()}
+                    onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
                     activeOpacity={0.7}
                 >
-                    <AntDesign name="left" size={20} color="#0F172A" />
+                    <MaterialCommunityIcons name="menu" size={24} color="#0F172A" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Leave Applications</Text>
             </View>
@@ -190,7 +190,6 @@ const styles = StyleSheet.create({
     headerTitle: {
         flex: 1,
         textAlign: 'center',
-        marginRight: 44, // offset back button
         fontSize: 18,
         fontWeight: '700',
         color: '#0F172A',
