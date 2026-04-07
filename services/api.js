@@ -302,6 +302,36 @@ export const apiService = {
     const response = await apiClient.put(`/overtime/approve/${id}`, { status, adminNote });
     return response.data;
   },
+
+  // KPI
+  getKpiSummary: async (month, year) => {
+    const response = await apiClient.get('/kpi/summary', { params: { month, year } });
+    return response.data;
+  },
+  getEmployeeKpi: async (employeeId, month, year) => {
+    const response = await apiClient.get(`/kpi/employee/${employeeId}`, { params: { month, year } });
+    return response.data;
+  },
+  getKpiHistory: async (employeeId) => {
+    const response = await apiClient.get(`/kpi/history/${employeeId}`);
+    return response.data;
+  },
+  submitKpiReview: async (data) => {
+    const response = await apiClient.post('/kpi/review', data);
+    return response.data;
+  },
+  getKpiCriteria: async () => {
+    const response = await apiClient.get('/kpi/criteria');
+    return response.data;
+  },
+  addKpiCriteria: async (name) => {
+    const response = await apiClient.post('/kpi/criteria', { name });
+    return response.data;
+  },
+  deleteKpiCriteria: async (id) => {
+    const response = await apiClient.post(`/kpi/delete-criteria/${id}`);
+    return response.data;
+  },
 };
 
 

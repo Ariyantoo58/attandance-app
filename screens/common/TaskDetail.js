@@ -25,6 +25,7 @@ const TaskDetail = () => {
     const [priority, setPriority] = useState(task.priority || 'MEDIUM');
     const [category, setCategory] = useState(task.category || 'GENERAL');
     const [status, setStatus] = useState(task.status || 'PENDING');
+    const [qualityRating, setQualityRating] = useState(task.qualityRating || 0);
     
     // Multi-Select People
     const [selectedEmployeeIds, setSelectedEmployeeIds] = useState(task.employeeId ? [task.employeeId] : []);
@@ -106,7 +107,8 @@ const TaskDetail = () => {
                 progress,
                 priority,
                 category,
-                status: status 
+                status: status,
+                qualityRating: qualityRating
             };
 
             if (assignType === 'TEAM') {
@@ -372,6 +374,20 @@ const TaskDetail = () => {
                                     <Text style={[styles.infoValue, { color: getStatusColor(status) }]}>{status}</Text>
                                 </View>
                             </View>
+                            <View style={styles.infoItem}>
+                                <Ionicons name="star-outline" size={20} color="#666" />
+                                <View style={{ marginLeft: 10 }}>
+                                    <Text style={styles.infoLabel}>KPI Weight</Text>
+                                    <Text style={[styles.infoValue, { color: '#F59E0B' }]}>{task.weight || 1} Pts</Text>
+                                </View>
+                            </View>
+                            <View style={styles.infoItem}>
+                                <Ionicons name="speedometer-outline" size={20} color="#666" />
+                                <View style={{ marginLeft: 10 }}>
+                                    <Text style={styles.infoLabel}>Difficulty</Text>
+                                    <Text style={styles.infoValue}>{task.difficulty || 'EASY'}</Text>
+                                </View>
+                            </View>
                         </View>
                     )}
 
@@ -398,6 +414,29 @@ const TaskDetail = () => {
                             <Text style={styles.progressLabel}>Finished</Text>
                         </View>
                     </View>
+
+                    {/* Quality Rating Section (For Managers on Complete Tasks) */}
+                    {isAdmin && task.status === 'COMPLETE' && (
+                        <View style={styles.ratingSection}>
+                            <Text style={styles.ratingTitle}>Quality Rating (KPI Impact)</Text>
+                            <View style={styles.starsContainer}>
+                                {[1, 2, 3, 4, 5].map(star => (
+                                    <TouchableOpacity key={star} onPress={() => setQualityRating(star)}>
+                                        <Ionicons 
+                                            name={qualityRating >= star ? "star" : "star-outline"} 
+                                            size={32} 
+                                            color={qualityRating >= star ? "#F59E0B" : "#CBD5E1"} 
+                                        />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                            <Text style={styles.ratingHint}>
+                                {qualityRating === 0 ? "Not rated yet" : 
+                                 qualityRating < 3 ? "Below Expectations" : 
+                                 qualityRating === 3 ? "Meets Expectations" : "Exceeds Expectations"}
+                            </Text>
+                        </View>
+                    )}
 
                     {/* Action Buttons */}
                     <TouchableOpacity 
@@ -711,6 +750,30 @@ const styles = StyleSheet.create({
         color: 'white', 
         fontSize: 16, 
         fontWeight: '900' 
+    },
+    ratingSection: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 20,
+        alignItems: 'center',
+    },
+    ratingTitle: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#64748B',
+        textTransform: 'uppercase',
+        marginBottom: 15,
+    },
+    starsContainer: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 10,
+    },
+    ratingHint: {
+        fontSize: 12,
+        color: '#94A3B8',
+        fontWeight: '600',
     },
 });
 

@@ -49,6 +49,9 @@ import TeamDetail from './screens/hr_screens/overviewscreens/TeamDetail';
 import OvertimeRequest from './screens/employee_screens/overtime/OvertimeRequest';
 import OvertimeHistory from './screens/employee_screens/overtime/OvertimeHistory';
 import OvertimeManagement from './screens/hr_screens/overviewscreens/OvertimeManagement';
+import PerformanceManagement from './screens/hr_screens/overviewscreens/PerformanceManagement';
+import KpiDetailReview from './screens/hr_screens/overviewscreens/KpiDetailReview';
+import GlobalKpiSettings from './screens/hr_screens/overviewscreens/GlobalKpiSettings';
 import { SocketProvider } from './context/SocketContext';
 import { registerForPushNotificationsAsync, saveTokenToBackend, setupNotificationListeners } from './services/NotificationManager';
 import { useSocket } from './context/SocketContext';
@@ -351,6 +354,9 @@ function ManagerStackNavigator() {
             <Stack.Screen name="TeamDetail" component={TeamDetail} />
             <Stack.Screen name="AttendanceCorrectionManager" component={AttendanceCorrectionManager} />
             <Stack.Screen name="OvertimeManagement" component={OvertimeManagement} />
+            <Stack.Screen name="PerformanceManagement" component={PerformanceManagement} />
+            <Stack.Screen name="KpiDetailReview" component={KpiDetailReview} />
+            <Stack.Screen name="GlobalKpiSettings" component={GlobalKpiSettings} />
         </Stack.Navigator>
     );
 }

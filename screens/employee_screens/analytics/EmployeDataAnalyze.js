@@ -29,6 +29,7 @@ const EmployeeDataAnalyze = () => {
         pie: [],
         line: { labels: [], datasets: [{ data: [0] }] }
     });
+    const [kpiData, setKpiData] = useState(null);
 
     useFocusEffect(
         useCallback(() => {
@@ -43,6 +44,12 @@ const EmployeeDataAnalyze = () => {
             setLoading(true);
             const attendanceData = await apiService.getAttendanceHistory(employeeId);
             processAnalytics(attendanceData);
+            
+            // Fetch KPI Data
+            const month = new Date().getMonth() + 1;
+            const year = new Date().getFullYear();
+            const kpi = await apiService.getEmployeeKpi(employeeId, month, year);
+            setKpiData(kpi);
         } catch (error) {
             console.error('Failed to fetch analytics data:', error);
         } finally {
@@ -164,6 +171,53 @@ const EmployeeDataAnalyze = () => {
                     </View>
                 ) : (
                     <>
+                        {/* KPI Score Card */}
+                        {kpiData && (
+                            <View style={[styles.card, { backgroundColor: '#1E293B', borderColor: '#334155' }]}>
+                                <View style={styles.cardHeader}>
+                                    <View>
+                                        <Text style={[styles.chartTitle, { color: 'white' }]}>Performance Index</Text>
+                                        <Text style={{ color: '#94A3B8', fontSize: 12 }}>Period: {moment().format('MMMM YYYY')}</Text>
+                                    </View>
+                                    <View style={styles.kpiBadge}>
+                                        <Text style={styles.kpiScore}>{kpiData.stats.overallScore.toFixed(0)}</Text>
+                                    </View>
+                                </View>
+                                
+                                <View style={styles.kpiMetrics}>
+                                    <View style={styles.kpiMetric}>
+                                        <Text style={styles.kpiMetricLabel}>Tasks</Text>
+                                        <View style={styles.kpiBarBg}>
+                                            <View style={[styles.kpiBarFill, { width: `${kpiData.stats.taskScore}%`, backgroundColor: '#3B82F6' }]} />
+                                        </View>
+                                    </View>
+                                    <View style={styles.kpiMetric}>
+                                        <Text style={styles.kpiMetricLabel}>Attendance</Text>
+                                        <View style={styles.kpiBarBg}>
+                                            <View style={[styles.kpiBarFill, { width: `${kpiData.stats.attendanceScore}%`, backgroundColor: '#10B981' }]} />
+                                        </View>
+                                    </View>
+                                    <View style={styles.kpiMetric}>
+                                        <Text style={styles.kpiMetricLabel}>Behavior</Text>
+                                        <View style={styles.kpiBarBg}>
+                                            <View style={[styles.kpiBarFill, { width: `${kpiData.stats.behavioralScore}%`, backgroundColor: '#F59E0B' }]} />
+                                        </View>
+                                        {/* Behavior Metrics Breakdown */}
+                                        {kpiData.stats.metrics && kpiData.stats.metrics.length > 0 && (
+                                            <View style={styles.metricBreakdown}>
+                                                {kpiData.stats.metrics.map((m, idx) => (
+                                                    <View key={idx} style={styles.breakdownItem}>
+                                                        <Text style={styles.breakdownName}>{m.name}</Text>
+                                                        <Text style={styles.breakdownVal}>{m.score}%</Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
+                            </View>
+                        )}
+
                         <View style={styles.statsGrid}>
                             <View style={{ flex: 1, marginRight: 10 }}>
                                 <StatusCard title="Kehadiran" value={stats.present} sub="Hari" icon="calendar" color="#2563EB" />
@@ -253,7 +307,18 @@ const styles = StyleSheet.create({
     centerBox: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 100 },
     loadingText: { marginTop: 15, color: '#64748B', fontWeight: '600' },
     infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EFF6FF', padding: 20, borderRadius: 24, marginBottom: 20, borderWidth: 1, borderColor: '#DBEAFE' },
-    infoText: { flex: 1, marginLeft: 15, fontSize: 13, color: '#1E40AF', lineHeight: 20, fontWeight: '600' }
+    infoText: { flex: 1, marginLeft: 15, fontSize: 13, color: '#1E40AF', lineHeight: 20, fontWeight: '600' },
+    kpiBadge: { width: 50, height: 50, borderRadius: 15, backgroundColor: '#2563EB', justifyContent: 'center', alignItems: 'center' },
+    kpiScore: { color: 'white', fontSize: 22, fontWeight: '900' },
+    kpiMetrics: { marginTop: 20 },
+    kpiMetric: { marginBottom: 12 },
+    kpiMetricLabel: { color: '#94A3B8', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', marginBottom: 6 },
+    kpiBarBg: { height: 6, backgroundColor: '#334155', borderRadius: 3, overflow: 'hidden' },
+    kpiBarFill: { height: '100%', borderRadius: 3 },
+    metricBreakdown: { marginTop: 10, paddingLeft: 10, borderLeftWidth: 1, borderLeftColor: '#334155' },
+    breakdownItem: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+    breakdownName: { fontSize: 10, color: '#94A3B8', fontWeight: '500' },
+    breakdownVal: { fontSize: 10, color: '#F59E0B', fontWeight: '700' },
 });
 
 export default EmployeeDataAnalyze;

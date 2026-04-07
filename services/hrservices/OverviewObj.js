@@ -61,4 +61,11 @@ export const OverviewAllSections = [
         count: 0,
         link: "OvertimeManagement"
     },
+    {
+        id: 9,
+        title: 'Performance',
+        icon: <MaterialCommunityIcons name="chart-bell-curve-cumulative" size={31} color="white" />,
+        count: 0,
+        link: "PerformanceManagement"
+    },
 ]

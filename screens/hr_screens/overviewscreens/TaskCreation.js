@@ -41,6 +41,8 @@ const TaskCreation = () => {
     const [category, setCategory] = useState('GENERAL');
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [dueDate, setDueDate] = useState('');
+    const [weight, setWeight] = useState(1);
+    const [difficulty, setDifficulty] = useState('EASY');
     
     // UI States
     const [loading, setLoading] = useState(false);
@@ -78,7 +80,9 @@ const TaskCreation = () => {
                 date: startDate,
                 dueDate: dueDate || null,
                 priority,
-                category
+                category,
+                weight,
+                difficulty
             };
 
             if (assignType === 'INDIVIDUAL') {
@@ -128,6 +132,14 @@ const TaskCreation = () => {
         { id: 'MEDIUM', name: 'Medium Priority' },
         { id: 'HIGH', name: 'High Priority' },
     ];
+
+    const DIFFICULTIES = [
+        { id: 'EASY', name: 'Easy' },
+        { id: 'MEDIUM', name: 'Medium' },
+        { id: 'HARD', name: 'Hard' },
+    ];
+
+    const WEIGHTS = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `Weight ${i + 1}` }));
 
     return (
         <SafeAreaView style={styles.container}>
@@ -234,6 +246,24 @@ const TaskCreation = () => {
                             <Ionicons name="flag-outline" size={18} color="#2563EB" />
                         </TouchableOpacity>
                     </View>
+
+                    <View style={styles.row}>
+                        <TouchableOpacity onPress={() => openPicker('diff', 'Pilih Kesulitan')} style={[styles.selector, { flex: 1, marginRight: 10 }]}>
+                            <View>
+                                <Text style={styles.selectorLabel}>Kesulitan</Text>
+                                <Text style={styles.selectorVal}>{DIFFICULTIES.find(d => d.id === difficulty)?.name}</Text>
+                            </View>
+                            <Ionicons name="speedometer-outline" size={18} color="#2563EB" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => openPicker('weight', 'Bobot Nilai (1-10)')} style={[styles.selector, { flex: 1 }]}>
+                            <View>
+                                <Text style={styles.selectorLabel}>Bobot Kpi</Text>
+                                <Text style={styles.selectorVal}>{weight} Poin</Text>
+                            </View>
+                            <Ionicons name="star-outline" size={18} color="#F59E0B" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Timeline Card */}
@@ -293,7 +323,13 @@ const TaskCreation = () => {
                             />
                         ) : (
                             <FlatList
-                                data={pickerType === 'cat' ? CATEGORIES : (pickerType === 'pri' ? PRIORITIES : (pickerType === 'emp' ? employees : teams))}
+                                data={
+                                    pickerType === 'cat' ? CATEGORIES : 
+                                    (pickerType === 'pri' ? PRIORITIES : 
+                                    (pickerType === 'diff' ? DIFFICULTIES :
+                                    (pickerType === 'weight' ? WEIGHTS :
+                                    (pickerType === 'emp' ? employees : teams))))
+                                }
                                 keyExtractor={(item) => item.id.toString()}
                                 renderItem={({ item }) => (
                                     <TouchableOpacity 
@@ -302,7 +338,9 @@ const TaskCreation = () => {
                                             ((pickerType === 'emp' && selectedEmployeeIds.includes(item.id)) || 
                                              (pickerType === 'team' && selectedTeamId === item.id) ||
                                              category === item.id || 
-                                             priority === item.id) && styles.optionActive
+                                             priority === item.id ||
+                                             difficulty === item.id ||
+                                             weight === item.id) && styles.optionActive
                                         ]} 
                                         onPress={() => {
                                             if (pickerType === 'emp') toggleEmployee(item.id);
@@ -313,6 +351,8 @@ const TaskCreation = () => {
                                             else {
                                                 if (pickerType === 'cat') setCategory(item.id);
                                                 if (pickerType === 'pri') setPriority(item.id);
+                                                if (pickerType === 'diff') setDifficulty(item.id);
+                                                if (pickerType === 'weight') setWeight(item.id);
                                                 setPickerVisible(false);
                                             }
                                         }}
@@ -322,14 +362,18 @@ const TaskCreation = () => {
                                             ((pickerType === 'emp' && selectedEmployeeIds.includes(item.id)) || 
                                              (pickerType === 'team' && selectedTeamId === item.id) ||
                                              category === item.id || 
-                                             priority === item.id) && styles.optionLabelActive
+                                             priority === item.id ||
+                                             difficulty === item.id ||
+                                             weight === item.id) && styles.optionLabelActive
                                         ]}>
                                             {item.name || item.title}
                                         </Text>
                                         {((pickerType === 'emp' && selectedEmployeeIds.includes(item.id)) || 
                                           (pickerType === 'team' && selectedTeamId === item.id) || 
                                           category === item.id || 
-                                          priority === item.id) && (
+                                          priority === item.id ||
+                                          difficulty === item.id ||
+                                          weight === item.id) && (
                                             <Ionicons name="checkmark-circle" size={20} color="#2563EB" />
                                         )}
                                     </TouchableOpacity>
