@@ -34,6 +34,7 @@ const ManagerHomeScreen = () => {
     if (item.title === 'Team') count = summary.teamCount;
     if (item.title === 'PaySlip') count = summary.pendingPayroll;
     if (item.title === 'Correction') count = summary.pendingCorrections;
+    if (item.title === 'Overtime') count = summary.pendingOvertime;
     return { ...item, count };
   });
 
@@ -57,6 +58,10 @@ const ManagerHomeScreen = () => {
         return styles.bgIndigo;
       case 6:
         return styles.bgYellow;
+      case 7:
+        return styles.bgIndigo;
+      case 8:
+        return styles.bgPurple;
       default:
         return styles.bgGray;
     }
@@ -501,6 +506,7 @@ const styles = StyleSheet.create({
   bgBlue: { backgroundColor: '#3B82F6' },
   bgIndigo: { backgroundColor: '#6366F1' },
   bgYellow: { backgroundColor: '#EAB308' },
+  bgPurple: { backgroundColor: '#A855F7' },
   bgGray: { backgroundColor: '#94A3B8' },
 });
 

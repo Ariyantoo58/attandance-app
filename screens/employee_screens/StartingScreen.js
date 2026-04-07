@@ -80,7 +80,7 @@ const StartingScreen = () => {
                 className="h-full w-full object-cover rounded-full"
               />
             ) : (
-              <View className="h-full w-full bg-[#00a2e4] rounded-full items-center justify-center">
+              <View className="h-full w-full bg-[#2563EB] rounded-full items-center justify-center">
                 <Text className="text-white text-xl font-bold">
                   {user?.user?.employee?.name ? user.user.employee.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '??'}
                 </Text>
@@ -97,12 +97,28 @@ const StartingScreen = () => {
           </View>
         </View>
         <View className="flex-row items-center space-x-3">
-          <TouchableOpacity onPress={() => navigation.navigate("Notification")}>
-            <Ionicons name="notifications-circle-outline" size={38} color="#00a2e4" className="relative" />
+          <TouchableOpacity onPress={() => navigation.navigate("Notification")} style={{ position: 'relative' }}>
+            <View style={{ backgroundColor: 'white', padding: 8, borderRadius: 14, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 2 }}>
+              <Ionicons name="notifications" size={24} color="#2563EB" />
+            </View>
             {notifCount > 0 && (
-              <Text className="absolute bg-red-500 text-white rounded-full h-4 w-4 text-center text-[10px] left-[25px]">
-                {notifCount}
-              </Text>
+              <View style={{ 
+                position: 'absolute', 
+                top: -5, 
+                right: -5, 
+                backgroundColor: '#EF4444', 
+                minWidth: 20, 
+                height: 20, 
+                borderRadius: 10, 
+                justifyContent: 'center', 
+                alignItems: 'center',
+                borderWidth: 2,
+                borderColor: 'white'
+              }}>
+                <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
+                  {notifCount > 99 ? '99+' : notifCount}
+                </Text>
+              </View>
             )}
           </TouchableOpacity>
         </View>
@@ -126,7 +142,7 @@ const StartingScreen = () => {
       {/* --------------------- Face Attendance ------------------------------------*/}
       <View className="px-5 mb-6">
         <TouchableOpacity 
-          className="bg-[#00a2e4] rounded-xl p-4 flex-row items-center justify-between shadow-sm"
+          className="bg-[#2563EB] rounded-xl p-4 flex-row items-center justify-between shadow-sm"
           onPress={() => navigation.navigate("FaceRecognition", { mode: 'attendance' })}
         >
           <View className="flex-row items-center space-x-3">
@@ -141,6 +157,7 @@ const StartingScreen = () => {
           <AntDesign name="right" size={20} color="white" />
         </TouchableOpacity>
       </View>
+
       {/* --------------------- Tasks -------------------------------------------*/}
       <View className="px-5">
         <View className="flex-row items-center justify-between">
@@ -152,15 +169,15 @@ const StartingScreen = () => {
         </View>
 
         {loading && tasks.length === 0 ? (
-          <ActivityIndicator size="small" color="#00a2e4" className="mt-5" />
+          <ActivityIndicator size="small" color="#2563EB" className="mt-5" />
         ) : tasks.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }} className="mt-4 flex-row">
             {tasks.map((item) => (
-              <View className="bg-white rounded-lg p-2.5 space-y-0.5 w-[280px] mr-4 border-l-4 border-[#00a2e4]" key={item.id}>
+              <View className="bg-white rounded-lg p-2.5 space-y-0.5 w-[280px] mr-4 border-l-4 border-[#2563EB]" key={item.id}>
                 <Text className=" text-[15px] font-medium">{item.title}</Text>
                 <View className="flex-row items-center space-x-0.5">
-                  <EvilIcons name="calendar" size={22} color="#00a2e4" />
-                  <Text className="pt-0.5 text-[15px] font-medium text-[#00a2e4]">{new Date(item.date).toLocaleDateString()}</Text>
+                  <EvilIcons name="calendar" size={22} color="#2563EB" />
+                  <Text className="pt-0.5 text-[15px] font-medium text-[#2563EB]">{new Date(item.date).toLocaleDateString()}</Text>
                 </View>
                 <Text className="text-[11px] text-gray-400 font-medium pt-0.5" numberOfLines={1}>{item.description}</Text>
               </View>

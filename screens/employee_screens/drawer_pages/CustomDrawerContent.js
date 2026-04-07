@@ -88,6 +88,19 @@ const styles = StyleSheet.create({
         color: '#FF6B6B',
         fontWeight: 'bold',
     },
+    drawerItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+    drawerText: {
+        marginLeft: 10,
+        fontSize: 16,
+        color: 'black',
+        fontWeight: '500',
+    },
 });
 
 export default CustomDrawerContent;

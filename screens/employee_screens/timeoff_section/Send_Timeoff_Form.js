@@ -11,18 +11,19 @@ import {
     ScrollView, 
     Dimensions,
     StatusBar,
-    FlatList
+    FlatList,
+    Alert
 } from 'react-native';
-import { AntDesign, Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { apiService } from '../../../services/api';
 import { useSelector } from 'react-redux';
-import { Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import moment from 'moment';
 
-const { height, width } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 const Send_Timeoff_Form = () => {
     const navigation = useNavigation();
@@ -69,7 +70,7 @@ const Send_Timeoff_Form = () => {
             const requestData = {
                 employeeId,
                 title: `Pengajuan: ${LEAVE_TYPES.find(t => t.id === type)?.name}`,
-                description: `${reason}${isFullDay === 'HALF_DAY' ? ` (Setengah Hari - ${new Date(halfDayTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})` : ''}`,
+                description: `${reason}${isFullDay === 'HALF_DAY' ? ` (Setengah Hari - ${moment(halfDayTime).format('HH:mm')})` : ''}`,
                 fromdate: startDate,
                 todate: endDate,
                 type: type
@@ -93,14 +94,11 @@ const Send_Timeoff_Form = () => {
     };
 
     const formatDate = (dateStr) => {
-        if (!dateStr) return 'Pilih Tanggal';
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        return moment(dateStr).format('DD MMM YYYY');
     };
 
     const formatTime = (isoString) => {
-        if (!isoString) return 'Pilih Jam';
-        return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return moment(isoString).format('HH:mm');
     };
 
     return (
@@ -146,7 +144,7 @@ const Send_Timeoff_Form = () => {
                 </View>
 
                 {/* Configuration Card */}
-                <View style={[styles.mainCard, { marginTop: 10 }]}>
+                <View style={styles.mainCard}>
                     <Text style={styles.cardHeader}>Waktu & Durasi</Text>
                     
                     <TouchableOpacity onPress={() => openPicker('shift', 'Pilih Durasi')} style={styles.selector}>
@@ -154,7 +152,7 @@ const Send_Timeoff_Form = () => {
                             <Text style={styles.selectorLabel}>Durasi / Shift</Text>
                             <Text style={styles.selectorVal}>{SHIFT_TYPES.find(s => s.id === isFullDay)?.name}</Text>
                         </View>
-                        <Ionicons name={SHIFT_TYPES.find(s => s.id === isFullDay)?.icon} size={20} color="#00a2e4" />
+                        <Ionicons name={SHIFT_TYPES.find(s => s.id === isFullDay)?.icon} size={20} color="#2563EB" />
                     </TouchableOpacity>
 
                     {isFullDay === 'HALF_DAY' && (
@@ -163,7 +161,7 @@ const Send_Timeoff_Form = () => {
                                 <Text style={styles.selectorLabel}>Jam Efektif</Text>
                                 <Text style={styles.selectorVal}>{formatTime(halfDayTime)}</Text>
                             </View>
-                            <Ionicons name="time-outline" size={20} color="#00a2e4" />
+                            <Ionicons name="time-outline" size={20} color="#2563EB" />
                         </TouchableOpacity>
                     )}
 
@@ -173,7 +171,7 @@ const Send_Timeoff_Form = () => {
                                 <Text style={styles.selectorLabel}>Mulai</Text>
                                 <Text style={styles.selectorVal}>{formatDate(startDate)}</Text>
                             </View>
-                            <Ionicons name="calendar-outline" size={18} color="#00a2e4" />
+                            <Ionicons name="calendar-outline" size={18} color="#2563EB" />
                         </TouchableOpacity>
 
                         <TouchableOpacity onPress={() => openPicker('end', 'Tanggal Selesai')} style={[styles.selector, { flex: 1 }]}>
@@ -181,12 +179,12 @@ const Send_Timeoff_Form = () => {
                                 <Text style={styles.selectorLabel}>Selesai</Text>
                                 <Text style={styles.selectorVal}>{formatDate(endDate)}</Text>
                             </View>
-                            <Ionicons name="calendar-outline" size={18} color="#00a2e4" />
+                            <Ionicons name="calendar-outline" size={18} color="#2563EB" />
                         </TouchableOpacity>
                     </View>
                 </View>
 
-                {/* Information Card */}
+                {/* Reason Card */}
                 <View style={styles.mainCard}>
                     <Text style={styles.cardHeader}>Alasan Pengajuan</Text>
                     <View style={styles.field}>
@@ -197,13 +195,14 @@ const Send_Timeoff_Form = () => {
                             multiline 
                             placeholder="Berikan alasan yang jelas untuk pengajuan cuti Anda..."
                             placeholderTextColor="#94A3B8"
+                            textAlignVertical="top"
                         />
                     </View>
                 </View>
 
                 {/* Info Note */}
                 <View style={styles.infoBox}>
-                    <Ionicons name="information-circle" size={20} color="#00a2e4" />
+                    <Ionicons name="information-circle" size={20} color="#2563EB" />
                     <Text style={styles.infoText}>
                         Pengajuan cuti Anda akan langsung diteruskan ke HR dan Manager untuk mendapatkan persetujuan.
                     </Text>
@@ -236,20 +235,20 @@ const Send_Timeoff_Form = () => {
                                     setPickerVisible(false);
                                 }}
                                 theme={{
-                                    todayTextColor: '#00a2e4',
-                                    selectedDayBackgroundColor: '#00a2e4',
-                                    arrowColor: '#00a2e4',
-                                    textDayHeaderFontWeight: '700',
-                                    textDayFontSize: 14,
-                                    textMonthFontSize: 16,
-                                    textMonthFontWeight: '800'
+                                    todayTextColor: '#2563EB',
+                                    selectedDayBackgroundColor: '#2563EB',
+                                    arrowColor: '#2563EB',
+                                }}
+                                markedDates={{
+                                    [(pickerType === 'start' ? startDate : endDate)]: { selected: true, selectedColor: '#2563EB' }
                                 }}
                             />
                         ) : pickerType === 'time' ? (
-                            <View style={{ padding: 20 }}>
+                            <View style={styles.timePickerContainer}>
                                 <DateTimePicker
                                     value={new Date(halfDayTime)}
                                     mode="time"
+                                    is24Hour={true}
                                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                                     onChange={(event, selectedDate) => {
                                         if (selectedDate) setHalfDayTime(selectedDate.toISOString());
@@ -276,15 +275,15 @@ const Send_Timeoff_Form = () => {
                                         }}
                                     >
                                         <View style={styles.optionContent}>
-                                            <View style={[styles.optionIconBox, isFullDay === item.id && { backgroundColor: '#E0F2FE' }]}>
-                                                <Ionicons name={item.icon} size={20} color={isFullDay === item.id ? "#00a2e4" : "#64748B"} />
+                                            <View style={[styles.optionIconBox, isFullDay === item.id && { backgroundColor: '#F0F9FF' }]}>
+                                                <Ionicons name={item.icon} size={20} color={isFullDay === item.id ? "#2563EB" : "#64748B"} />
                                             </View>
                                             <Text style={[styles.optionLabel, isFullDay === item.id && styles.optionLabelActive]}>
                                                 {item.name}
                                             </Text>
                                         </View>
                                         {isFullDay === item.id && (
-                                            <Ionicons name="checkmark-circle" size={24} color="#00a2e4" />
+                                            <Ionicons name="checkmark-circle" size={24} color="#2563EB" />
                                         )}
                                     </TouchableOpacity>
                                 )}
@@ -298,49 +297,48 @@ const Send_Timeoff_Form = () => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F8FAFC' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+    container: { flex: 1, backgroundColor: '#F1F5F9' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
     backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 14 },
     headerTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B' },
-    saveBtn: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#00a2e4', borderRadius: 12 },
-    saveBtnText: { color: 'white', fontWeight: 'bold', fontSize: 14 },
-    scrollContent: { padding: 20 },
+    saveBtn: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#2563EB', borderRadius: 12 },
+    saveBtnText: { color: 'white', fontWeight: 'bold', fontSize: 13 },
+    scrollContent: { padding: 16 },
     
-    // Type Picker
-    typeSection: { marginBottom: 25 },
-    sectionTitle: { fontSize: 13, fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', marginBottom: 15, letterSpacing: 1 },
-    typeList: { flexDirection: 'row', paddingBottom: 5 },
+    typeSection: { marginBottom: 20 },
+    sectionTitle: { fontSize: 13, fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', marginBottom: 12, marginLeft: 4 },
+    typeList: { paddingBottom: 5 },
     typeCard: { width: 110, height: 130, backgroundColor: 'white', borderRadius: 24, padding: 15, marginRight: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#F1F5F9', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 },
     typeIconBox: { width: 50, height: 50, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
     typeText: { fontSize: 12, fontWeight: '700', color: '#64748B', textAlign: 'center' },
     activeDot: { width: 6, height: 6, borderRadius: 3, position: 'absolute', bottom: 10 },
 
-    mainCard: { backgroundColor: 'white', borderRadius: 28, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 15, elevation: 3, borderWidth: 1, borderColor: 'rgba(241, 245, 249, 0.5)' },
-    cardHeader: { fontSize: 15, fontWeight: '900', color: '#1E293B', marginBottom: 20 },
-    field: { marginBottom: 5 },
-    input: { backgroundColor: '#F8FAFC', borderRadius: 16, height: 54, paddingHorizontal: 16, fontSize: 14, color: '#1E293B', borderWidth: 1, borderColor: '#F1F5F9' },
-    textArea: { height: 120, textAlignVertical: 'top', paddingTop: 16 },
+    mainCard: { backgroundColor: 'white', borderRadius: 24, padding: 20, marginBottom: 16, elevation: 2, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 15 },
+    cardHeader: { fontSize: 16, fontWeight: '900', color: '#1E293B', marginBottom: 20 },
+    field: { marginBottom: 10 },
+    input: { backgroundColor: '#F8FAFC', borderRadius: 14, height: 50, paddingHorizontal: 15, fontSize: 14, color: '#1E293B', borderWidth: 1, borderColor: '#E2E8F0' },
+    textArea: { height: 120, textAlignVertical: 'top', paddingTop: 15 },
     row: { flexDirection: 'row' },
-    selector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1, borderColor: '#F1F5F9', height: 64, marginBottom: 12 },
-    selectorLabel: { fontSize: 10, fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 },
+    selector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15, backgroundColor: '#F8FAFC', borderRadius: 14, borderWidth: 1, borderColor: '#E2E8F0', height: 56, marginBottom: 15 },
+    selectorLabel: { fontSize: 11, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' },
     selectorVal: { fontSize: 14, color: '#1E293B', fontWeight: '700', marginTop: 4 },
-    infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E0F2FE', padding: 16, borderRadius: 20, marginBottom: 25 },
-    infoText: { flex: 1, marginLeft: 12, fontSize: 12, color: '#0369A1', lineHeight: 20, fontWeight: '600' },
-    finalSubmit: { backgroundColor: '#0F172A', height: 64, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginTop: 10, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10, elevation: 8 },
+    infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E0F2FE', padding: 15, borderRadius: 20, marginBottom: 20 },
+    infoText: { flex: 1, marginLeft: 12, fontSize: 12, color: '#0369A1', lineHeight: 18, fontWeight: '600' },
+    finalSubmit: { backgroundColor: '#1E293B', height: 60, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginTop: 10, shadowColor: '#1E293B', shadowOpacity: 0.2, shadowRadius: 15, elevation: 8 },
     submitText: { color: 'white', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
     
-    // Modal Styles
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'flex-end' },
-    modalBody: { backgroundColor: 'white', borderTopLeftRadius: 36, borderTopRightRadius: 36, paddingBottom: 40, maxHeight: height * 0.8 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    modalBody: { backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingBottom: 40, maxHeight: height * 0.8 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-    modalTitle: { fontSize: 19, fontWeight: '800', color: '#1E293B' },
-    optionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, marginHorizontal: 20, marginTop: 10, borderRadius: 18, borderBottomWidth: 0 },
+    modalTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B' },
+    optionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 },
     optionContent: { flexDirection: 'row', alignItems: 'center' },
     optionIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
     optionActive: { backgroundColor: '#F0F9FF' },
     optionLabel: { fontSize: 16, color: '#475569', fontWeight: '600' },
-    optionLabelActive: { color: '#00a2e4', fontWeight: '800' },
-    doneBtn: { margin: 20, backgroundColor: '#00a2e4', height: 56, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+    optionLabelActive: { color: '#2563EB', fontWeight: '800' },
+    timePickerContainer: { padding: 20, alignItems: 'center' },
+    doneBtn: { margin: 20, backgroundColor: '#2563EB', height: 52, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
     doneBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
 });
 

@@ -54,4 +54,11 @@ export const OverviewAllSections = [
         count: 0,
         link: "AttendanceCorrectionManager"
     },
+    {
+        id: 8,
+        title: 'Overtime',
+        icon: <MaterialCommunityIcons name="clock-plus-outline" size={31} color="white" />,
+        count: 0,
+        link: "OvertimeManagement"
+    },
 ]

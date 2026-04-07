@@ -46,6 +46,9 @@ import MyCorrectionList from './screens/employee_screens/attendance_correction/M
 import AttendanceCorrectionManager from './screens/hr_screens/overviewscreens/AttendanceCorrectionManager';
 import AttendanceCorrectionRequest from './screens/employee_screens/attendance_correction/AttendanceCorrectionRequest';
 import TeamDetail from './screens/hr_screens/overviewscreens/TeamDetail';
+import OvertimeRequest from './screens/employee_screens/overtime/OvertimeRequest';
+import OvertimeHistory from './screens/employee_screens/overtime/OvertimeHistory';
+import OvertimeManagement from './screens/hr_screens/overviewscreens/OvertimeManagement';
 import { SocketProvider } from './context/SocketContext';
 import { registerForPushNotificationsAsync, saveTokenToBackend, setupNotificationListeners } from './services/NotificationManager';
 import { useSocket } from './context/SocketContext';
@@ -61,7 +64,9 @@ import {
     updateTask,
     updateTimeOff,
     addNotification,
-    setHrSummary
+    setHrSummary,
+    updateOvertime,
+    updatePendingOvertime
 } from './auth/dataSlice';
 // import AutorityScreen from './screens/AutorityScreen'
 
@@ -94,32 +99,30 @@ function TabNavigator({ navigation }) {
                     } else if (route.name === 'Profile') {
                         iconName = focused ? 'person' : 'person-outline';
                     } else if (route.name === 'Time Off') {
-                        iconName = focused ? 'time' : 'time-outline';
+                        iconName = focused ? 'calendar' : 'calendar-outline';
                     } else if (route.name === 'Task') {
-                        iconName = focused ? 'list' : 'list-outline';
+                        iconName = focused ? 'clipboard' : 'clipboard-outline';
+                    } else if (route.name === 'Overtime') {
+                        iconName = focused ? 'time' : 'time-outline';
                     }
 
                     return (
                         <View style={[styles.iconContainer, focused && styles.focusedIcon]}>
-                            <Ionicons name={iconName} size={22} color={focused ? '#00a2e4' : color} />
+                            <Ionicons name={iconName} size={22} color={focused ? '#2563EB' : color} />
                         </View>
                     );
                 },
-                tabBarActiveTintColor: '#00a2e4',
-                tabBarInactiveTintColor: 'gray',
+                tabBarActiveTintColor: '#2563EB',
+                tabBarInactiveTintColor: '#94A3B8',
                 tabBarStyle: styles.tabBar,
                 tabBarShowLabel: false,
                 headerShown: false,
-                headerLeft: () => (
-                    <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
-                        <Ionicons name="menu" size={30} color="black" style={{ marginLeft: 10 }} />
-                    </TouchableOpacity>
-                ),
             })}
         >
-            <Tab.Screen name="Home" component={HomeScreen} />
             <Tab.Screen name="Task" component={DailyTask} />
             <Tab.Screen name="Time Off" component={TimeOff} />
+            <Tab.Screen name="Home" component={HomeScreen} />
+            <Tab.Screen name="Overtime" component={OvertimeHistory} />
             <Tab.Screen name="Profile" component={UserProfile} />
         </Tab.Navigator>
     );
@@ -321,6 +324,8 @@ function EmployeeStackNavigator() {
             <Stack.Screen name="AttendanceCorrectionRequest" component={AttendanceCorrectionRequest} />
             <Stack.Screen name="MyCorrectionList" component={MyCorrectionList} />
             <Stack.Screen name="TeamDetail" component={TeamDetail} />
+            <Stack.Screen name="OvertimeRequest" component={OvertimeRequest} />
+            <Stack.Screen name="OvertimeHistory" component={OvertimeHistory} />
         </Stack.Navigator>
     );
 }
@@ -344,6 +349,7 @@ function ManagerStackNavigator() {
             <Stack.Screen name="TaskDetail" component={TaskDetail} />
             <Stack.Screen name="TeamDetail" component={TeamDetail} />
             <Stack.Screen name="AttendanceCorrectionManager" component={AttendanceCorrectionManager} />
+            <Stack.Screen name="OvertimeManagement" component={OvertimeManagement} />
         </Stack.Navigator>
     );
 }
@@ -423,18 +429,23 @@ function AppNavigator() {
                 }
             };
 
+            const handleOvertimeUpdate = (data) => {
+                if (role === roles.manager) {
+                    dispatch(updatePendingOvertime(data));
+                    dispatch(fetchHrDashboard()); // For summary counts
+                } else if (data.employeeId === employeeId || data.employee?.id === employeeId) {
+                    dispatch(updateOvertime(data));
+                }
+            };
+
             const handleNotification = (notif) => {
                 dispatch(addNotification(notif));
             };
 
-            socket.on('employee_changed', handleEmployeeUpdate);
-            socket.on('attendance_updated', handleAttendanceUpdate);
-            socket.on('time_off:requested', handleTimeOffUpdate);
-            socket.on('time_off:changed', handleTimeOffUpdate);
-            socket.on('task:created', handleTaskUpdate);
-            socket.on('task:updated', handleTaskUpdate);
             socket.on('correction:requested', handleCorrectionUpdate);
             socket.on('correction:changed', handleCorrectionUpdate);
+            socket.on('overtime:requested', handleOvertimeUpdate);
+            socket.on('overtime:updated', handleOvertimeUpdate);
             socket.on('notification', handleNotification);
             
             return () => {
@@ -446,6 +457,8 @@ function AppNavigator() {
                 socket.off('task:updated', handleTaskUpdate);
                 socket.off('correction:requested', handleCorrectionUpdate);
                 socket.off('correction:changed', handleCorrectionUpdate);
+                socket.off('overtime:requested', handleOvertimeUpdate);
+                socket.off('overtime:updated', handleOvertimeUpdate);
                 socket.off('notification', handleNotification);
             };
         }
@@ -603,7 +616,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     focusedIcon: {
-        backgroundColor: '#EBF8FF', // Very light blue
+        backgroundColor: '#EFF6FF', // Premium light blue
     },
     managerFocusedIcon: {
         backgroundColor: '#EDF2F7', // Very light gray/slate

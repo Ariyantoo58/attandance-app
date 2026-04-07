@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, StatusBar, Modal, Pressable } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, StatusBar, Modal, Pressable, RefreshControl } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -69,6 +69,13 @@ const Notification = () => {
         <ScrollView 
           contentContainerStyle={styles.scrollViewContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl 
+              refreshing={loading} 
+              onRefresh={loadNotifications} 
+              tintColor="#2563EB" 
+            />
+          }
         >
           {notifications && notifications.length > 0 ? (
             notifications.map((notification, index) => (
@@ -81,19 +88,23 @@ const Notification = () => {
                 activeOpacity={0.6}
                 onPress={() => handleMarkAsRead(notification.id)}
               >
+                <View style={styles.iconCircle}>
+                   <MaterialCommunityIcons 
+                    name={notification.isRead ? "bell-outline" : "bell-ring"} 
+                    size={22} 
+                    color={notification.isRead ? "#94A3B8" : "#2563EB"} 
+                   />
+                </View>
                 <View style={styles.mainContent}>
                   <View style={styles.topRow}>
-                    <View style={styles.titleArea}>
-                      {!notification.isRead && <View style={styles.statusDot} />}
-                      <Text style={[
-                        styles.titleText,
-                        notification.isRead && styles.readText
-                      ]} numberOfLines={1}>
-                        {notification.title}
-                      </Text>
-                    </View>
+                    <Text style={[
+                      styles.titleText,
+                      notification.isRead && styles.readText
+                    ]} numberOfLines={1}>
+                      {notification.title}
+                    </Text>
                     <Text style={styles.timeText}>
-                      {new Date(notification.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      {moment(notification.createdAt).format('DD MMM')}
                     </Text>
                   </View>
                   
@@ -106,13 +117,9 @@ const Notification = () => {
                   
                   <View style={styles.bottomRow}>
                     <Text style={styles.subTimeText}>
-                      {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {moment(notification.createdAt).format('HH:mm')} • {moment(notification.createdAt).fromNow()}
                     </Text>
-                    {!notification.isRead && (
-                      <View style={styles.newBadge}>
-                        <Text style={styles.newBadgeText}>NEW</Text>
-                      </View>
-                    )}
+                    {!notification.isRead && <View style={styles.newBadgeDot} />}
                   </View>
                 </View>
               </TouchableOpacity>
@@ -230,9 +237,19 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderBottomWidth: 1,
     borderBottomColor: '#F8FAFC',
+    alignItems: 'center',
   },
   unreadItem: {
-    backgroundColor: '#F8FAFF',
+    backgroundColor: '#F0F7FF',
+  },
+  iconCircle: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: '#F8FAFC',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 15,
   },
   mainContent: {
     flex: 1,
@@ -253,24 +270,27 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#2563EB',
     marginRight: 8,
   },
   titleText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#1E293B',
+    flex: 1,
   },
   timeText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#94A3B8',
-    fontWeight: '500',
+    fontWeight: '600',
+    marginLeft: 8,
   },
   messageText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#475569',
-    lineHeight: 20,
+    lineHeight: 18,
     marginBottom: 8,
+    fontWeight: '500',
   },
   readText: {
     color: '#94A3B8',
@@ -283,19 +303,13 @@ const styles = StyleSheet.create({
   subTimeText: {
     fontSize: 11,
     color: '#CBD5E1',
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  newBadge: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+  newBadgeDot: {
+    width: 8,
+    height: 8,
     borderRadius: 4,
-  },
-  newBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#3B82F6',
-    letterSpacing: 0.5,
+    backgroundColor: '#2563EB',
   },
   emptyContainer: {
     flex: 1,

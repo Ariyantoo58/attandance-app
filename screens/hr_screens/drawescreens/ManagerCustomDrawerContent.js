@@ -149,6 +149,27 @@ const styles = StyleSheet.create({
         color: '#EF4444',
         fontWeight: '700',
     },
+    drawerItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        marginVertical: 4,
+        borderRadius: 12,
+    },
+    iconBox: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    drawerText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#475569',
+    },
 });
 
 export default ManagerCustomDrawerContent;

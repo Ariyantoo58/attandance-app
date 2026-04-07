@@ -284,6 +284,24 @@ export const apiService = {
     const response = await apiClient.delete(`/teams/${id}`);
     return response.data;
   },
+
+  // Overtime
+  requestOvertime: async (data) => {
+    const response = await apiClient.post('/overtime/request', data);
+    return response.data;
+  },
+  getMyOvertime: async () => {
+    const response = await apiClient.get('/overtime/my');
+    return response.data;
+  },
+  getAllPendingOvertime: async () => {
+    const response = await apiClient.get('/overtime/pending');
+    return response.data;
+  },
+  approveOvertime: async (id, status, adminNote) => {
+    const response = await apiClient.put(`/overtime/approve/${id}`, { status, adminNote });
+    return response.data;
+  },
 };
 
 

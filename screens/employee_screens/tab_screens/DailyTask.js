@@ -1,18 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { EvilIcons, AntDesign } from '@expo/vector-icons';
+import React, { useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, StatusBar, RefreshControl, FlatList } from 'react-native';
+import { Feather, Ionicons, MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
 import { apiService } from '../../../services/api';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchEmployeeTasks } from '../../../auth/dataSlice';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSocket } from '../../../context/SocketContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import moment from 'moment';
 
 const DailyTask = () => {
   const [filter, setFilter] = useState('All');
+  const [refreshing, setRefreshing] = useState(false);
+  const dispatch = useDispatch();
+  
   const tasks = useSelector(state => state.data.employeeData.tasks);
   const loading = useSelector(state => state.data.employeeData.loading);
   const navigation = useNavigation();
   const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
   const { socket } = useSocket();
+
+  const onRefresh = useCallback(async () => {
+    if (employeeId) {
+      setRefreshing(true);
+      await dispatch(fetchEmployeeTasks(employeeId));
+      setRefreshing(false);
+    }
+  }, [employeeId, dispatch]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (employeeId) {
+        dispatch(fetchEmployeeTasks(employeeId));
+      }
+    }, [employeeId, dispatch])
+  );
 
   const filteredTasks = tasks.filter(task =>
     filter === 'All' ? true : task.status.toUpperCase() === filter.toUpperCase()
@@ -29,16 +51,14 @@ const DailyTask = () => {
 
     Alert.alert(
       "Update Task Status",
-      `Would you like to mark this task as ${nextStatus.replace('_', ' ')}?`,
+      `Mark as ${nextStatus.replace('_', ' ')}?`,
       [
         { text: "Cancel", style: "cancel" },
         { 
           text: "Update", 
           onPress: async () => {
             try {
-              // Optimistically update local state if possible, or just silent refresh
-              const updated = await apiService.updateTaskStatus(taskId, nextStatus);
-              // The socket listener will catch 'task:updated' and refresh the specific item
+              await apiService.updateTaskStatus(taskId, nextStatus);
             } catch (error) {
               console.error('Failed to update status:', error);
               Alert.alert("Error", "Failed to update task status.");
@@ -49,130 +69,204 @@ const DailyTask = () => {
     );
   };
 
-  const getStatusInfo = (status) => {
-    const s = status ? status.toUpperCase() : '';
-    switch (s) {
-      case 'PENDING':
-        return { bg: 'bg-orange-100', text: 'text-orange-600', dot: 'bg-orange-500', name: 'Pending' };
-      case 'COMPLETE':
-        return { bg: 'bg-green-100', text: 'text-green-600', dot: 'bg-green-500', name: 'Complete' };
-      case 'IN_PROGRESS':
-      case 'INPROGRESS':
-        return { bg: 'bg-blue-100', text: 'text-blue-600', dot: 'bg-blue-500', name: 'In Progress' };
-      default:
-        return { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-500', name: status };
-    }
+  const statusConfig = {
+    PENDING: { bg: '#FFFBEB', color: '#F59E0B', label: 'PENDING', dot: '#F59E0B' },
+    IN_PROGRESS: { bg: '#EBF8FF', color: '#3B82F6', label: 'IN PROGRESS', dot: '#3B82F6' },
+    COMPLETE: { bg: '#F0FDF4', color: '#10B981', label: 'COMPLETE', dot: '#10B981' },
+    DEFAULT: { bg: '#F8FAFC', color: '#64748B', label: 'UNKNOWN', dot: '#64748B' }
   };
 
-  const getStatusTextStyle = (status) => {
-    const s = status ? status.toUpperCase() : '';
-    switch (s) {
-      case 'PENDING':
-        return '#FFA500';
-      case 'COMPLETE':
-        return '#008000';
-      case 'IN_PROGRESS':
-      case 'INPROGRESS':
-        return '#0000FF';
-      default:
-        return '#808080';
-    }
+  const getStatusConfig = (status) => {
+    const s = status ? status.toUpperCase() : 'DEFAULT';
+    return statusConfig[s] || statusConfig.DEFAULT;
+  };
+
+  const renderTask = ({ item }) => {
+    const config = getStatusConfig(item.status);
+    return (
+      <TouchableOpacity
+        key={item.id} 
+        onPress={() => navigation.navigate('TaskDetail', { task: item })}
+        style={styles.requestCard}
+        activeOpacity={0.8}
+      >
+        <View style={[styles.statusIndicator, { backgroundColor: config.color }]} />
+        <View style={styles.cardMain}>
+          <View style={styles.cardHeader}>
+            <View style={styles.titleArea}>
+              <Text style={styles.requestTitle} numberOfLines={1}>{item.title}</Text>
+              <View style={styles.metaRow}>
+                <View style={styles.dateBadge}>
+                  <Feather name="calendar" size={12} color="#64748B" />
+                  <Text style={styles.dateText}>
+                    {moment(item.date).format('DD MMM YYYY')}
+                  </Text>
+                </View>
+                <View style={styles.priorityBadge}>
+                   <View style={[styles.priorityDot, { backgroundColor: item.priority === 'HIGH' ? '#EF4444' : '#3B82F6' }]} />
+                   <Text style={[styles.priorityText, { color: item.priority === 'HIGH' ? '#EF4444' : '#3B82F6' }]}>{item.priority}</Text>
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity 
+               onPress={() => handleUpdateStatus(item.id, item.status)}
+               style={[styles.statusBadge, { backgroundColor: config.bg }]}
+            >
+              <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.description} numberOfLines={2}>
+            {item.description || "No description provided."}
+          </Text>
+
+          <View style={styles.cardFooter}>
+            <View style={styles.footerInfo}>
+               {item.teamId && (
+                  <View style={styles.teamBadge}>
+                    <AntDesign name="team" size={12} color="#2563EB" />
+                    <Text style={styles.teamText}>TEAM</Text>
+                  </View>
+               )}
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className="pt-12 px-5 bg-blue-50">
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center">
-            <Text className="text-[20px] font-semibold">Task</Text>
+    <SafeAreaView edges={['top']} style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerTitle}>Harian Task</Text>
+          <Text style={styles.headerSubtitle}>Tugas harian Anda</Text>
         </View>
         <TouchableOpacity 
+          style={styles.addButton} 
           onPress={() => navigation.navigate('TaskCreation', { initialEmployeeId: employeeId })}
-          className="bg-[#00a2e4] w-8 h-8 rounded-full items-center justify-center shadow-lg"
+          activeOpacity={0.8}
         >
-          <AntDesign name="plus" size={20} color="white" />
+          <AntDesign name="plus" size={24} color="white" />
         </TouchableOpacity>
       </View>
-      <View className="flex-row items-center justify-between py-4">
-        {['All', 'PENDING', 'IN_PROGRESS', 'COMPLETE'].map(status => (
-          <TouchableOpacity
-            key={status}
-            onPress={() => setFilter(status)}
-            className={`rounded-md px-4 py-2 ${filter.toUpperCase() === status ? 'bg-blue-200' : 'bg-blue-50'}`}
-          >
-            <Text className="text-[#00a2e4] font-medium">{status.replace('_', ' ')}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <View className="mt-4 pb-10">
-        {filteredTasks.length > 0 ? (
-          filteredTasks.map((item) => {
-            const statusInfo = getStatusInfo(item.status);
-            return (
-              <TouchableOpacity
-                key={item.id} 
-                onPress={() => navigation.navigate('TaskDetail', { task: item })}
-                className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100 flex-row items-center justify-between"
-                style={{
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 10,
-                  elevation: 2,
-                }}
-              >
-                <View className="flex-1 pr-3">
-                  <View className="flex-row items-center mb-1">
-                    <View className={`w-2 h-2 rounded-full mr-2 ${statusInfo.dot}`} />
-                    <Text className="text-[16px] font-bold text-gray-800" numberOfLines={1}>
-                      {item.title}
-                    </Text>
-                  </View>
-                  
-                  <View className="flex-row items-center mb-2">
-                    <EvilIcons name="calendar" size={20} color="#6B7280" />
-                    <Text className="text-gray-500 text-[13px] ml-1">
-                      {new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                    </Text>
-                    <View className="w-1 h-1 bg-gray-300 rounded-full mx-2" />
-                    <Text className={`text-[11px] font-bold uppercase ${item.priority === 'HIGH' ? 'text-red-500' : 'text-blue-500'}`}>
-                      {item.priority}
-                    </Text>
-                    {item.teamId && (
-                      <>
-                        <View className="w-1 h-1 bg-gray-300 rounded-full mx-2" />
-                        <View className="bg-blue-50 px-1.5 py-0.5 rounded flex-row items-center">
-                          <AntDesign name="team" size={10} color="#3B82F6" />
-                          <Text className="text-[9px] font-extrabold text-blue-500 ml-1 uppercase letter-spacing-1">TEAM</Text>
-                        </View>
-                      </>
-                    )}
-                  </View>
-                  
-                  <Text className="text-gray-400 text-[12px] leading-4" numberOfLines={2}>
-                    {item.description || "No description provided."}
-                  </Text>
-                </View>
 
-                <TouchableOpacity 
-                  onPress={() => handleUpdateStatus(item.id, item.status)}
-                  className={`px-3 py-1.5 rounded-full ${statusInfo.bg} flex-row items-center`}
-                  style={{ alignSelf: 'center', minWidth: 90, justifyContent: 'center' }}
-                >
-                  <Text className={`${statusInfo.text} font-bold text-[11px] text-center uppercase`}>
-                    {statusInfo.name}
-                  </Text>
-                </TouchableOpacity>
-              </TouchableOpacity>
-            );
-          })
-        ) : (
-          <View className="items-center justify-center py-20">
-            <Text className="text-gray-400 font-medium">No tasks found</Text>
-          </View>
-        )}
+      <View style={styles.filterSection}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+          {['All', 'PENDING', 'IN_PROGRESS', 'COMPLETE'].map(status => (
+            <TouchableOpacity
+              key={status}
+              onPress={() => setFilter(status)}
+              style={[
+                styles.filterCard,
+                filter === status && styles.filterCardActive
+              ]}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.filterText,
+                filter === status && styles.filterTextActive
+              ]}>
+                {status === 'All' ? 'Semua' : status.replace('_', ' ')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
-    </ScrollView>
+
+      <FlatList
+        data={filteredTasks}
+        renderItem={renderTask}
+        keyExtractor={item => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" />}
+        ListEmptyComponent={
+          <View style={styles.emptyArea}>
+            <View style={styles.emptyCircle}>
+              <Feather name="check-square" size={40} color="#CBD5E1" />
+            </View>
+            <Text style={styles.emptyTitle}>Tidak Ada Tugas</Text>
+            <Text style={styles.emptyDesc}>Belum ada tugas yang ditugaskan hari ini.</Text>
+          </View>
+        }
+        ListFooterComponent={<View style={{ height: 100 }} />}
+      />
+    </SafeAreaView>
   );
-}
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20, 
+    paddingVertical: 15,
+    backgroundColor: 'white',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    elevation: 3,
+  },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: '#1E293B' },
+  headerSubtitle: { fontSize: 13, color: '#64748B', marginTop: 2, fontWeight: '500' },
+  addButton: { 
+    width: 48, 
+    height: 48, 
+    borderRadius: 16, 
+    backgroundColor: '#2563EB', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    shadowColor: '#2563EB',
+    shadowOpacity: 0.3,
+    elevation: 4,
+  },
+  filterSection: { marginVertical: 15 },
+  filterScroll: { paddingHorizontal: 20 },
+  filterCard: { paddingHorizontal: 18, paddingVertical: 10, backgroundColor: 'white', borderRadius: 14, marginRight: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  filterCardActive: { backgroundColor: '#1E293B', borderColor: '#1E293B' },
+  filterText: { fontSize: 13, fontWeight: '700', color: '#64748B' },
+  filterTextActive: { color: 'white' },
+  listContent: { paddingHorizontal: 20 },
+  requestCard: { 
+    backgroundColor: 'white', 
+    borderRadius: 24, 
+    marginBottom: 16, 
+    flexDirection: 'row', 
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.4)',
+  },
+  statusIndicator: { width: 6 },
+  cardMain: { flex: 1, padding: 16 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  titleArea: { flex: 1, marginRight: 10 },
+  requestTitle: { fontSize: 16, fontWeight: '800', color: '#1E293B' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  dateBadge: { flexDirection: 'row', alignItems: 'center' },
+  dateText: { fontSize: 11, color: '#64748B', marginLeft: 6, fontWeight: '600' },
+  priorityBadge: { flexDirection: 'row', alignItems: 'center', marginLeft: 12, backgroundColor: '#F8FAFC', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  priorityDot: { width: 6, height: 6, borderRadius: 3, marginRight: 5 },
+  priorityText: { fontSize: 10, fontWeight: '800' },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+  statusText: { fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+  description: { fontSize: 12, color: '#64748B', marginTop: 12, lineHeight: 18 },
+  cardFooter: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  footerInfo: { flexDirection: 'row' },
+  teamBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E0F2FE', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  teamText: { fontSize: 9, fontWeight: '900', color: '#2563EB', marginLeft: 4 },
+  emptyArea: { alignItems: 'center', marginTop: 60, paddingHorizontal: 40 },
+  emptyCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  emptyTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B', marginBottom: 8 },
+  emptyDesc: { fontSize: 13, color: '#94A3B8', textAlign: 'center', lineHeight: 20 },
+});
 
 export default DailyTask;

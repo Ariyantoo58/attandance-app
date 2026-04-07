@@ -1,37 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Dimensions, StatusBar } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Dimensions, StatusBar, RefreshControl } from 'react-native';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiService } from '../../../services/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchEmployeeTimeOff } from '../../../auth/dataSlice';
 import { useSocket } from '../../../context/SocketContext';
+import moment from 'moment';
 
 const { width } = Dimensions.get('window');
 
 const TimeOff = () => {
   const navigate = useNavigation();
+  const dispatch = useDispatch();
   const [filter, setFilter] = useState('All');
+  const [refreshing, setRefreshing] = useState(false);
+  
   const timeOff = useSelector(state => state.data.employeeData.timeOff);
   const loading = useSelector(state => state.data.employeeData.loading);
+  const employeeId = useSelector(state => state.auth.user?.user?.employeeId);
   const { socket } = useSocket();
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
+  const onRefresh = useCallback(async () => {
+    if (employeeId) {
+      setRefreshing(true);
+      await dispatch(fetchEmployeeTimeOff(employeeId));
+      setRefreshing(false);
+    }
+  }, [employeeId, dispatch]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (employeeId) {
+        dispatch(fetchEmployeeTimeOff(employeeId));
+      }
+    }, [employeeId, dispatch])
+  );
 
   const statusConfig = {
-    SUBMITTED: { bg: '#EBF8FF', color: '#3182CE', label: 'TERKIRIM', icon: 'send-outline' },
-    ACCEPTED: { bg: '#F0FFF4', color: '#38A169', label: 'DISETUJUI', icon: 'checkmark-circle-outline' },
-    REJECTED: { bg: '#FFF5F5', color: '#E53E3E', label: 'DITOLAK', icon: 'close-circle-outline' },
-    PENDING: { bg: '#FFFBEB', color: '#D69E2E', label: 'PENDING', icon: 'time-outline' },
-    DEFAULT: { bg: '#F7FAFC', color: '#718096', label: 'UNKNOWN', icon: 'help-circle-outline' }
+    SUBMITTED: { bg: '#EBF8FF', color: '#3182CE', label: 'TERKIRIM' },
+    ACCEPTED: { bg: '#F0FDF4', color: '#10B981', label: 'DISETUJUI' },
+    REJECTED: { bg: '#FFF5F5', color: '#EF4444', label: 'DITOLAK' },
+    PENDING: { bg: '#FFFBEB', color: '#F59E0B', label: 'PENDING' },
+    DEFAULT: { bg: '#F1F5F9', color: '#64748B', label: 'UNKNOWN' }
   };
 
   const getStatusConfig = (status) => {
@@ -88,9 +100,12 @@ const TimeOff = () => {
       <ScrollView 
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" />
+        }
       >
-        {loading ? (
-          <ActivityIndicator size="large" color="#00a2e4" style={{ marginTop: 40 }} />
+        {loading && !refreshing ? (
+          <ActivityIndicator size="large" color="#2563EB" style={{ marginTop: 40 }} />
         ) : filteredTasks.length > 0 ? (
           filteredTasks.map((item) => {
             const config = getStatusConfig(item.status);
@@ -104,7 +119,7 @@ const TimeOff = () => {
                       <View style={styles.dateBadge}>
                         <Feather name="calendar" size={12} color="#64748B" />
                         <Text style={styles.dateText}>
-                          {formatDate(item.fromdate)} - {formatDate(item.todate)}
+                          {moment(item.fromdate).format('DD MMM')} - {moment(item.todate).format('DD MMM YYYY')}
                         </Text>
                       </View>
                     </View>
@@ -122,7 +137,7 @@ const TimeOff = () => {
                   <View style={styles.cardFooter}>
                     <View style={styles.footerInfo}>
                       <MaterialCommunityIcons name="clock-outline" size={14} color="#94A3B8" />
-                      <Text style={styles.footerText}>Diajukan pada {formatDate(item.createdAt)}</Text>
+                      <Text style={styles.footerText}>Diajukan {moment(item.createdAt).fromNow()}</Text>
                     </View>
                   </View>
                 </View>
@@ -157,7 +172,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 30,
     shadowColor: '#000',
     shadowOpacity: 0.05,
-    shadowRadius: 10,
     elevation: 3,
   },
   headerTitle: { fontSize: 22, fontWeight: '900', color: '#1E293B' },
@@ -166,26 +180,16 @@ const styles = StyleSheet.create({
     width: 48, 
     height: 48, 
     borderRadius: 16, 
-    backgroundColor: '#00a2e4', 
+    backgroundColor: '#2563EB', 
     alignItems: 'center', 
     justifyContent: 'center',
-    shadowColor: '#00a2e4',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#2563EB',
     shadowOpacity: 0.3,
-    shadowRadius: 8,
     elevation: 4,
   },
   filterSection: { marginVertical: 15 },
-  filterScroll: { paddingHorizontal: 20, paddingVertical: 5 },
-  filterCard: { 
-    paddingHorizontal: 18, 
-    paddingVertical: 10, 
-    backgroundColor: 'white', 
-    borderRadius: 14, 
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
+  filterScroll: { paddingHorizontal: 20 },
+  filterCard: { paddingHorizontal: 18, paddingVertical: 10, backgroundColor: 'white', borderRadius: 14, marginRight: 12, borderWidth: 1, borderColor: '#E2E8F0' },
   filterCardActive: { backgroundColor: '#1E293B', borderColor: '#1E293B' },
   filterText: { fontSize: 13, fontWeight: '700', color: '#64748B' },
   filterTextActive: { color: 'white' },
@@ -198,7 +202,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.04,
-    shadowRadius: 12,
     elevation: 3,
     borderWidth: 1,
     borderColor: 'rgba(226, 232, 240, 0.4)',
@@ -212,7 +215,7 @@ const styles = StyleSheet.create({
   dateText: { fontSize: 11, color: '#64748B', marginLeft: 6, fontWeight: '600' },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   statusText: { fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
-  description: { fontSize: 12, color: '#64748B', marginTop: 12, lineHeight: 18, fontWeight: '400' },
+  description: { fontSize: 12, color: '#64748B', marginTop: 12, lineHeight: 18 },
   cardFooter: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
   footerInfo: { flexDirection: 'row', alignItems: 'center' },
   footerText: { fontSize: 10, color: '#94A3B8', marginLeft: 6, fontWeight: '500' },

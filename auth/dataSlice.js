@@ -60,14 +60,15 @@ const initialState = {
     recentLeaves: [],
     leaveRequests: [],
     allTasks: [],
-    allEmployees: [],
     allTeams: [],
+    pendingOvertime: [],
     loading: false,
     error: null,
   },
   employeeData: {
     tasks: [],
     timeOff: [],
+    overtime: [],
     attendanceHistory: [],
     loading: false,
     error: null,
@@ -145,6 +146,29 @@ const dataSlice = createSlice({
     setEmployeeAttendance(state, action) {
       state.employeeData.attendanceHistory = action.payload;
     },
+    updateOvertime(state, action) {
+        const index = state.employeeData.overtime.findIndex(o => o.id === action.payload.id);
+        if (index !== -1) {
+            state.employeeData.overtime[index] = action.payload;
+        } else {
+            state.employeeData.overtime.unshift(action.payload);
+        }
+    },
+    updatePendingOvertime(state, action) {
+        const index = state.hrDashboard.pendingOvertime.findIndex(o => o.id === action.payload.id);
+        if (action.payload.status === 'PENDING') {
+            if (index !== -1) {
+                state.hrDashboard.pendingOvertime[index] = action.payload;
+            } else {
+                state.hrDashboard.pendingOvertime.unshift(action.payload);
+            }
+        } else {
+            // Remove if no longer pending
+            if (index !== -1) {
+                state.hrDashboard.pendingOvertime.splice(index, 1);
+            }
+        }
+    },
     clearData(state) {
       return initialState;
     }
@@ -200,6 +224,8 @@ export const {
     addNotification,
     updateEmployee,
     setEmployeeAttendance, 
+    updateOvertime,
+    updatePendingOvertime,
     clearData 
 } = dataSlice.actions;
 
