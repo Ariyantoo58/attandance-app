@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Dimensions, StatusBar, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Dimensions, RefreshControl } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { AntDesign, Ionicons, MaterialCommunityIcons, MaterialIcons, Feather } from '@expo/vector-icons';
@@ -8,6 +9,7 @@ import { setEmployeeAttendance } from '../../../auth/dataSlice';
 import { apiService } from '../../../services/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSocket } from '../../../context/SocketContext';
+import { DrawerActions } from '@react-navigation/native';
 import moment from 'moment';
 
 const { width } = Dimensions.get('window');
@@ -193,11 +195,19 @@ const History = () => {
 
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar style="dark" />
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Riwayat Absensi</Text>
-          <Text style={styles.headerSubtitle}>{currentMonthAttendance.length} hari hadir bulan ini</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity 
+            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+            style={styles.menuBtn}
+          >
+            <Ionicons name="menu" size={24} color="#1E293B" />
+          </TouchableOpacity>
+          <View style={{ marginLeft: 12 }}>
+            <Text style={styles.headerTitle}>Riwayat Absensi</Text>
+            <Text style={styles.headerSubtitle}>{currentMonthAttendance.length} hari hadir bulan ini</Text>
+          </View>
         </View>
         <TouchableOpacity 
           style={styles.headerIconBtn} 
@@ -265,6 +275,14 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 22, fontWeight: '900', color: '#1E293B' },
   headerSubtitle: { fontSize: 13, color: '#64748B', marginTop: 2, fontWeight: '500' },
   headerIconBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
+  menuBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   filterSection: { marginVertical: 15 },
   filterScroll: { paddingHorizontal: 20 },
   filterCard: { paddingHorizontal: 18, paddingVertical: 10, backgroundColor: 'white', borderRadius: 14, marginRight: 12, borderWidth: 1, borderColor: '#E2E8F0' },

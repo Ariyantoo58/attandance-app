@@ -203,7 +203,7 @@ export default function FaceRecognitionScreen() {
 
                 const data = await apiService.recognizeFace(formData);
                 if (data.recognized) {
-                    Alert.alert("Berhasil!", `Halo, ${data.name}! Absensi telah dicatat.`, [
+                    Alert.alert("Berhasil!", data.message || `Halo, ${data.name}! Absensi telah dicatat.`, [
                         { text: "OK", onPress: () => navigation.goBack() }
                     ]);
                 } else {

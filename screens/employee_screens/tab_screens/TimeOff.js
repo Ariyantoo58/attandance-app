@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Dimensions, StatusBar, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Dimensions, RefreshControl } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiService } from '../../../services/api';
@@ -7,6 +8,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchEmployeeTimeOff } from '../../../auth/dataSlice';
 import { useSocket } from '../../../context/SocketContext';
+import { DrawerActions } from '@react-navigation/native';
 import moment from 'moment';
 
 const { width } = Dimensions.get('window');
@@ -57,11 +59,19 @@ const TimeOff = () => {
 
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar style="dark" />
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Cuti & Izin</Text>
-          <Text style={styles.headerSubtitle}>Kelola pengajuan Anda</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity 
+            onPress={() => navigate.dispatch(DrawerActions.openDrawer())}
+            style={styles.menuBtn}
+          >
+            <Ionicons name="menu" size={24} color="#1E293B" />
+          </TouchableOpacity>
+          <View style={{ marginLeft: 12 }}>
+            <Text style={styles.headerTitle}>Cuti & Izin</Text>
+            <Text style={styles.headerSubtitle}>Kelola pengajuan Anda</Text>
+          </View>
         </View>
         <TouchableOpacity 
           style={styles.addButton} 
@@ -176,6 +186,14 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 22, fontWeight: '900', color: '#1E293B' },
   headerSubtitle: { fontSize: 13, color: '#64748B', marginTop: 2, fontWeight: '500' },
+  menuBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   addButton: { 
     width: 48, 
     height: 48, 

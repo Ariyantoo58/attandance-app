@@ -54,12 +54,13 @@ import { registerForPushNotificationsAsync, saveTokenToBackend, setupNotificatio
 import { useSocket } from './context/SocketContext';
 import { useDispatch } from 'react-redux';
 import { updateUserProfile } from './auth/authSlice';
-import { 
+import {
     fetchHrDashboard,
-    fetchEmployeeTasks, 
+    fetchEmployeeTasks,
     fetchEmployeeTimeOff,
     fetchNotifications,
     fetchEmployeeAttendance,
+    fetchMyOvertime,
     updateRecentLeave,
     updateTask,
     updateTimeOff,
@@ -98,7 +99,7 @@ function TabNavigator({ navigation }) {
                         iconName = focused ? 'home' : 'home-outline';
                     } else if (route.name === 'Profile') {
                         iconName = focused ? 'person' : 'person-outline';
-                    } else if (route.name === 'Time Off') {
+                    } else if (route.name === 'Attendance') {
                         iconName = focused ? 'calendar' : 'calendar-outline';
                     } else if (route.name === 'Task') {
                         iconName = focused ? 'clipboard' : 'clipboard-outline';
@@ -120,7 +121,7 @@ function TabNavigator({ navigation }) {
             })}
         >
             <Tab.Screen name="Task" component={DailyTask} />
-            <Tab.Screen name="Time Off" component={TimeOff} />
+            <Tab.Screen name="Attendance" component={History} />
             <Tab.Screen name="Home" component={HomeScreen} />
             <Tab.Screen name="Overtime" component={OvertimeHistory} />
             <Tab.Screen name="Profile" component={UserProfile} />
@@ -156,11 +157,11 @@ function DrawerNavigator() {
                 }}
             />
             <Drawer.Screen
-                name="Attendance"
-                component={History}
+                name="Time Off"
+                component={TimeOff}
                 options={{
                     drawerIcon: ({ focused, color, size }) => (
-                        <Ionicons name="calendar" size={size} color={color} />
+                        <Ionicons name="calendar-outline" size={size} color={color} />
                     ),
                 }}
             />
@@ -364,7 +365,7 @@ function AppNavigator() {
     React.useEffect(() => {
         if (socket && isAuthenticated) {
             const employeeId = user?.user?.employeeId || user?.user?.employee?.id;
-            
+
             // Initial data fetch
             if (role === roles.manager) {
                 dispatch(fetchHrDashboard());
@@ -373,6 +374,7 @@ function AppNavigator() {
                 dispatch(fetchEmployeeTimeOff(employeeId));
                 dispatch(fetchNotifications(employeeId));
                 dispatch(fetchEmployeeAttendance(employeeId));
+                dispatch(fetchMyOvertime());
             }
 
             const handleEmployeeUpdate = (data) => {
@@ -387,7 +389,7 @@ function AppNavigator() {
             const handleAttendanceUpdate = (data) => {
                 if (role === roles.manager) {
                     // Update summary counts
-                    dispatch(fetchHrDashboard()); 
+                    dispatch(fetchHrDashboard());
                 }
             };
 
@@ -408,13 +410,13 @@ function AppNavigator() {
                 if (role === roles.manager) {
                     dispatch(fetchHrDashboard());
                 }
-                
+
                 // If it's a new task creation, we only get partial data in broadcast, so refresh
                 if (!data.id) {
-                   if (data.employeeIds?.includes(employeeId)) {
-                       dispatch(fetchEmployeeTasks(employeeId));
-                   }
-                   return;
+                    if (data.employeeIds?.includes(employeeId)) {
+                        dispatch(fetchEmployeeTasks(employeeId));
+                    }
+                    return;
                 }
 
                 // Check if task involves current user
@@ -447,7 +449,7 @@ function AppNavigator() {
             socket.on('overtime:requested', handleOvertimeUpdate);
             socket.on('overtime:updated', handleOvertimeUpdate);
             socket.on('notification', handleNotification);
-            
+
             return () => {
                 socket.off('employee_changed', handleEmployeeUpdate);
                 socket.off('attendance_updated', handleAttendanceUpdate);
@@ -506,7 +508,7 @@ function AppNavigator() {
                 if (token) {
                     await saveTokenToBackend(token);
                 }
-                
+
                 const listeners = setupNotificationListeners();
                 notificationListener = listeners.notificationListener;
                 responseListener = listeners.responseListener;
@@ -517,12 +519,12 @@ function AppNavigator() {
 
         return () => {
             if (notificationListener) {
-                import('expo-notifications').then(Notifications => 
+                import('expo-notifications').then(Notifications =>
                     Notifications.removeNotificationSubscription(notificationListener)
                 );
             }
             if (responseListener) {
-                import('expo-notifications').then(Notifications => 
+                import('expo-notifications').then(Notifications =>
                     Notifications.removeNotificationSubscription(responseListener)
                 );
             }

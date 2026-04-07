@@ -36,6 +36,15 @@ export const fetchEmployeeTimeOff = createAsyncThunk('data/fetchEmployeeTimeOff'
   }
 });
 
+export const fetchMyOvertime = createAsyncThunk('data/fetchMyOvertime', async (_, { rejectWithValue }) => {
+    try {
+      const overtimes = await apiService.getMyOvertime();
+      return overtimes;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  });
+
 export const fetchNotifications = createAsyncThunk('data/fetchNotifications', async (employeeId, { rejectWithValue }) => {
   try {
     const notifications = await apiService.getNotifications(employeeId);
@@ -208,6 +217,10 @@ const dataSlice = createSlice({
       // Employee Attendance
       .addCase(fetchEmployeeAttendance.fulfilled, (state, action) => {
         state.employeeData.attendanceHistory = action.payload;
+      })
+      // Employee Overtime
+      .addCase(fetchMyOvertime.fulfilled, (state, action) => {
+        state.employeeData.overtime = action.payload;
       });
   },
 });

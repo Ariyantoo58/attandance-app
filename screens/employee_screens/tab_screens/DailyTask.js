@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, StatusBar, RefreshControl, FlatList } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, RefreshControl, FlatList } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Feather, Ionicons, MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
 import { apiService } from '../../../services/api';
 import { useSelector, useDispatch } from 'react-redux';
@@ -7,6 +8,7 @@ import { fetchEmployeeTasks } from '../../../auth/dataSlice';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSocket } from '../../../context/SocketContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { DrawerActions } from '@react-navigation/native';
 import moment from 'moment';
 
 const DailyTask = () => {
@@ -138,11 +140,19 @@ const DailyTask = () => {
 
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar style="dark" />
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Harian Task</Text>
-          <Text style={styles.headerSubtitle}>Tugas harian Anda</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity 
+            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+            style={styles.menuSmallBtn}
+          >
+            <Ionicons name="menu" size={24} color="#1E293B" />
+          </TouchableOpacity>
+          <View style={{ marginLeft: 12 }}>
+            <Text style={styles.headerTitle}>Harian Task</Text>
+            <Text style={styles.headerSubtitle}>Tugas harian Anda</Text>
+          </View>
         </View>
         <TouchableOpacity 
           style={styles.addButton} 
@@ -215,6 +225,14 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 22, fontWeight: '900', color: '#1E293B' },
   headerSubtitle: { fontSize: 13, color: '#64748B', marginTop: 2, fontWeight: '500' },
+  menuSmallBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   addButton: { 
     width: 48, 
     height: 48, 

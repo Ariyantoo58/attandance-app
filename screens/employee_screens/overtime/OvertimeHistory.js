@@ -13,36 +13,36 @@ import {
 } from 'react-native';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import moment from 'moment';
+import { useNavigation, useFocusEffect, DrawerActions } from '@react-navigation/native';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchMyOvertime } from '../../../auth/dataSlice';
 import { apiService } from '../../../services/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
-const OvertimeHistory = ({ navigation }) => {
-    const [overtimes, setOvertimes] = useState([]);
-    const [loading, setLoading] = useState(true);
+const OvertimeHistory = () => {
+    const navigation = useNavigation();
+    const dispatch = useDispatch();
+    const overtimes = useSelector(state => state.data.employeeData.overtime);
+    const loading = useSelector(state => state.data.employeeData.loading);
     const [refreshing, setRefreshing] = useState(false);
     const [filter, setFilter] = useState('All');
 
-    const fetchOvertimes = useCallback(async () => {
-        try {
-            const data = await apiService.getMyOvertime();
-            setOvertimes(data);
-        } catch (error) {
-            console.error('Fetch overtime error:', error);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    }, []);
+    const loadOvertimes = useCallback(async () => {
+        setRefreshing(true);
+        await dispatch(fetchMyOvertime());
+        setRefreshing(false);
+    }, [dispatch]);
 
-    useEffect(() => {
-        fetchOvertimes();
-    }, [fetchOvertimes]);
+    useFocusEffect(
+        useCallback(() => {
+            dispatch(fetchMyOvertime());
+        }, [dispatch])
+    );
 
     const onRefresh = () => {
-        setRefreshing(true);
-        fetchOvertimes();
+        loadOvertimes();
     };
 
     const statusConfig = {
@@ -58,7 +58,12 @@ const OvertimeHistory = ({ navigation }) => {
         return statusConfig[normalized] || statusConfig.DEFAULT;
     };
 
-    const filteredData = overtimes.filter(item =>
+    const ongoingOvertime = overtimes.filter(o => o.status === 'APPROVED' && o.actualStart && !o.actualEnd);
+    
+    // Sort overtimes by date (newest first)
+    const sortedOvertimes = [...overtimes].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const filteredData = sortedOvertimes.filter(item =>
         filter === 'All' ? true : item.status === filter
     );
 
@@ -80,12 +85,32 @@ const OvertimeHistory = ({ navigation }) => {
                             <View style={[styles.dateBadge, { marginTop: 4 }]}>
                                 <Feather name="clock" size={12} color="#64748B" />
                                 <Text style={styles.dateText}>
-                                    {moment(item.startTime).format('HH:mm')} - {moment(item.endTime).format('HH:mm')}
+                                    Jadwal: {moment(item.startTime).format('HH:mm')} - {moment(item.endTime).format('HH:mm')}
                                 </Text>
                             </View>
+                            {item.actualStart && (
+                                <View style={[styles.dateBadge, { marginTop: 4 }]}>
+                                    <Feather name="play-circle" size={12} color="#2563EB" />
+                                    <Text style={[styles.dateText, { color: '#2563EB' }]}>
+                                        Mulai: {moment(item.actualStart).format('HH:mm')} {item.actualEnd ? ` - Selesai: ${moment(item.actualEnd).format('HH:mm')}` : ''}
+                                    </Text>
+                                </View>
+                            )}
                         </View>
-                        <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
-                            <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
+                        <View style={{ alignItems: 'flex-end' }}>
+                            <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
+                                <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
+                            </View>
+                            {item.actualStart && !item.actualEnd && (
+                                <View style={styles.attendanceMarker}>
+                                    <Text style={styles.markerText}>SUDAH MASUK</Text>
+                                </View>
+                            )}
+                            {item.actualEnd && (
+                                <View style={[styles.attendanceMarker, { backgroundColor: '#ECFDF5' }]}>
+                                    <Text style={[styles.markerText, { color: '#10B981' }]}>SELESAI</Text>
+                                </View>
+                            )}
                         </View>
                     </View>
                     
@@ -104,6 +129,33 @@ const OvertimeHistory = ({ navigation }) => {
                             <Text style={styles.compensationText}>Rp {item.compensation.toLocaleString('id-ID')}</Text>
                         )}
                     </View>
+
+                    {item.status === 'APPROVED' && !item.actualStart && (
+                        <TouchableOpacity 
+                            style={[styles.overtimeClockBtn, { backgroundColor: '#2563EB' }]}
+                            onPress={() => navigation.navigate('FaceRecognition', { mode: 'attendance' })}
+                        >
+                            <MaterialCommunityIcons name="face-recognition" size={20} color="white" />
+                            <Text style={styles.overtimeClockBtnText}>Absen Masuk Lembur</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {item.status === 'APPROVED' && item.actualStart && (
+                        <TouchableOpacity 
+                            style={[styles.overtimeClockBtn, { backgroundColor: '#F59E0B' }]}
+                            onPress={() => navigation.navigate('FaceRecognition', { mode: 'attendance' })}
+                        >
+                            <MaterialCommunityIcons name="face-recognition" size={20} color="white" />
+                            <Text style={styles.overtimeClockBtnText}>Absen Pulang Lembur</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {item.status === 'COMPLETED' && (
+                        <View style={[styles.overtimeClockBtn, { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0' }]}>
+                            <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                            <Text style={[styles.overtimeClockBtnText, { color: '#64748B' }]}>Lembur Selesai</Text>
+                        </View>
+                    )}
                 </View>
             </View>
         );
@@ -115,8 +167,11 @@ const OvertimeHistory = ({ navigation }) => {
             
             <View style={styles.header}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backSmallBtn}>
-                        <Ionicons name="arrow-back" size={24} color="#1E293B" />
+                    <TouchableOpacity 
+                        onPress={() => navigation.dispatch(DrawerActions.openDrawer())} 
+                        style={styles.backSmallBtn}
+                    >
+                        <Ionicons name="menu" size={24} color="#1E293B" />
                     </TouchableOpacity>
                     <View style={{ marginLeft: 12 }}>
                         <Text style={styles.headerTitle}>Riwayat Lembur</Text>
@@ -131,6 +186,27 @@ const OvertimeHistory = ({ navigation }) => {
                     <Ionicons name="add" size={26} color="white" />
                 </TouchableOpacity>
             </View>
+
+            {ongoingOvertime.length > 0 && (
+                <View style={styles.ongoingCard}>
+                    <View style={styles.ongoingInfo}>
+                        <View style={styles.ongoingLeft}>
+                            <View style={styles.ongoingBadge}>
+                                <View style={styles.pulseDot} />
+                                <Text style={styles.ongoingBadgeText}>LEMBUR SEDANG BERJALAN</Text>
+                            </View>
+                            <Text style={styles.ongoingTime}>Mulai: {moment(ongoingOvertime[0].actualStart).format('HH:mm')}</Text>
+                        </View>
+                        <TouchableOpacity 
+                            style={[styles.completeBtn, { backgroundColor: '#F59E0B' }]}
+                            onPress={() => navigation.navigate('FaceRecognition', { mode: 'attendance' })}
+                        >
+                            <Text style={styles.completeBtnText}>Absen Pulang</Text>
+                            <Ionicons name="arrow-forward" size={16} color="white" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
 
             <View style={styles.filterSection}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
@@ -263,10 +339,93 @@ const styles = StyleSheet.create({
     footerInfo: { flexDirection: 'row', alignItems: 'center' },
     footerText: { fontSize: 10, color: '#94A3B8', marginLeft: 6, fontWeight: '500' },
     compensationText: { fontSize: 13, fontWeight: '900', color: '#10B981' },
+    overtimeClockBtn: {
+        marginTop: 15,
+        backgroundColor: '#2563EB',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        borderRadius: 16,
+        gap: 8,
+    },
+    overtimeClockBtnText: {
+        color: 'white',
+        fontWeight: '800',
+        fontSize: 14,
+    },
     emptyArea: { alignItems: 'center', marginTop: 60, paddingHorizontal: 40 },
     emptyCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
     emptyTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B', marginBottom: 8 },
     emptyDesc: { fontSize: 13, color: '#94A3B8', textAlign: 'center', lineHeight: 20 },
+    ongoingCard: {
+        margin: 20,
+        backgroundColor: '#1E293B',
+        borderRadius: 20,
+        padding: 16,
+        marginBottom: 0,
+    },
+    ongoingInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    ongoingLeft: {
+        flex: 1,
+    },
+    ongoingBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
+        alignSelf: 'flex-start',
+        marginBottom: 8,
+    },
+    pulseDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#10B981',
+        marginRight: 8,
+    },
+    ongoingBadgeText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: '900',
+    },
+    ongoingTime: {
+        color: '#94A3B8',
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    completeBtn: {
+        backgroundColor: '#2563EB',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        gap: 6,
+    },
+    completeBtnText: {
+        color: 'white',
+        fontWeight: '800',
+        fontSize: 13,
+    },
+    attendanceMarker: {
+        marginTop: 6,
+        backgroundColor: '#EFF6FF',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    markerText: {
+        fontSize: 9,
+        fontWeight: '900',
+        color: '#2563EB',
+    },
 });
 
 export default OvertimeHistory;
