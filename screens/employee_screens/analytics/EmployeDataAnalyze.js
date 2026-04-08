@@ -172,7 +172,7 @@ const EmployeeDataAnalyze = () => {
                 ) : (
                     <>
                         {/* KPI Score Card */}
-                        {kpiData && (
+                        {kpiData && kpiData.stats && (
                             <View style={[styles.card, { backgroundColor: '#1E293B', borderColor: '#334155' }]}>
                                 <View style={styles.cardHeader}>
                                     <View>
@@ -180,7 +180,7 @@ const EmployeeDataAnalyze = () => {
                                         <Text style={{ color: '#94A3B8', fontSize: 12 }}>Period: {moment().format('MMMM YYYY')}</Text>
                                     </View>
                                     <View style={styles.kpiBadge}>
-                                        <Text style={styles.kpiScore}>{kpiData.stats.overallScore.toFixed(0)}</Text>
+                                        <Text style={styles.kpiScore}>{kpiData.stats.overallScore?.toFixed(0) || 0}</Text>
                                     </View>
                                 </View>
                                 
@@ -188,19 +188,19 @@ const EmployeeDataAnalyze = () => {
                                     <View style={styles.kpiMetric}>
                                         <Text style={styles.kpiMetricLabel}>Tasks</Text>
                                         <View style={styles.kpiBarBg}>
-                                            <View style={[styles.kpiBarFill, { width: `${kpiData.stats.taskScore}%`, backgroundColor: '#3B82F6' }]} />
+                                            <View style={[styles.kpiBarFill, { width: `${kpiData.stats.taskScore || 0}%`, backgroundColor: '#3B82F6' }]} />
                                         </View>
                                     </View>
                                     <View style={styles.kpiMetric}>
                                         <Text style={styles.kpiMetricLabel}>Attendance</Text>
                                         <View style={styles.kpiBarBg}>
-                                            <View style={[styles.kpiBarFill, { width: `${kpiData.stats.attendanceScore}%`, backgroundColor: '#10B981' }]} />
+                                            <View style={[styles.kpiBarFill, { width: `${kpiData.stats.attendanceScore || 0}%`, backgroundColor: '#10B981' }]} />
                                         </View>
                                     </View>
                                     <View style={styles.kpiMetric}>
                                         <Text style={styles.kpiMetricLabel}>Behavior</Text>
                                         <View style={styles.kpiBarBg}>
-                                            <View style={[styles.kpiBarFill, { width: `${kpiData.stats.behavioralScore}%`, backgroundColor: '#F59E0B' }]} />
+                                            <View style={[styles.kpiBarFill, { width: `${kpiData.stats.behavioralScore || 0}%`, backgroundColor: '#F59E0B' }]} />
                                         </View>
                                         {/* Behavior Metrics Breakdown */}
                                         {kpiData.stats.metrics && kpiData.stats.metrics.length > 0 && (
@@ -217,6 +217,7 @@ const EmployeeDataAnalyze = () => {
                                 </View>
                             </View>
                         )}
+
 
                         <View style={styles.statsGrid}>
                             <View style={{ flex: 1, marginRight: 10 }}>

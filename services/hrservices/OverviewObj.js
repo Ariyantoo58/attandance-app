@@ -69,11 +69,11 @@ export const OverviewAllSections = [
         count: 0,
         link: "PerformanceManagement"
     },
-    {
-        id: 10,
-        title: 'Analytics',
-        icon: <MaterialCommunityIcons name="chart-areaspline" size={31} color="white" />,
-        count: 0,
-        link: "HrAnalytics"
-    },
+    // {
+    //     id: 10,
+    //     title: 'Analytics',
+    //     icon: <MaterialCommunityIcons name="chart-areaspline" size={31} color="white" />,
+    //     count: 0,
+    //     link: "HrAnalytics"
+    // },
 ];

@@ -5,7 +5,8 @@ import { NavigationContainer, DrawerActions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+
 import { StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import StartingScreen from './screens/employee_screens/StartingScreen';
@@ -53,7 +54,12 @@ import OvertimeManagement from './screens/hr_screens/overviewscreens/OvertimeMan
 import PerformanceManagement from './screens/hr_screens/overviewscreens/PerformanceManagement';
 import KpiDetailReview from './screens/hr_screens/overviewscreens/KpiDetailReview';
 import GlobalKpiSettings from './screens/hr_screens/overviewscreens/GlobalKpiSettings';
+import ReimbursementRequest from './screens/employee_screens/reimbursement/ReimbursementRequest';
+import ReimbursementHistory from './screens/employee_screens/reimbursement/ReimbursementHistory';
+import ReimbursementManagement from './screens/hr_screens/overviewscreens/ReimbursementManagement';
 import { SocketProvider } from './context/SocketContext';
+
+
 import { registerForPushNotificationsAsync, saveTokenToBackend, setupNotificationListeners } from './services/NotificationManager';
 import { useSocket } from './context/SocketContext';
 import { useDispatch } from 'react-redux';
@@ -196,7 +202,17 @@ function DrawerNavigator() {
                     ),
                 }}
             />
+            <Drawer.Screen
+                name="Reimbursements"
+                component={ReimbursementHistory}
+                options={{
+                    drawerIcon: ({ focused, color, size }) => (
+                        <MaterialCommunityIcons name="finance" size={size} color={color} />
+                    ),
+                }}
+            />
         </Drawer.Navigator>
+
     );
 }
 
@@ -320,7 +336,18 @@ function ManagerDrawer() {
                 component={Teams}
                 options={{ drawerItemStyle: { display: 'none' } }}
             />
+            <Drawer.Screen
+                name="ReimbursementManagement"
+                component={ReimbursementManagement}
+                options={{
+                    drawerLabel: 'Reimbursements',
+                    drawerIcon: ({ color, size }) => (
+                        <MaterialCommunityIcons name="finance" size={size} color={color} />
+                    ),
+                }}
+            />
         </Drawer.Navigator>
+
     );
 }
 
@@ -341,7 +368,10 @@ function EmployeeStackNavigator() {
             <Stack.Screen name="TeamDetail" component={TeamDetail} />
             <Stack.Screen name="OvertimeRequest" component={OvertimeRequest} />
             <Stack.Screen name="OvertimeHistory" component={OvertimeHistory} />
+            <Stack.Screen name="ReimbursementRequest" component={ReimbursementRequest} />
+            <Stack.Screen name="ReimbursementHistory" component={ReimbursementHistory} />
         </Stack.Navigator>
+
     );
 }
 
@@ -363,7 +393,9 @@ function ManagerStackNavigator() {
             <Stack.Screen name="OvertimeManagement" component={OvertimeManagement} />
             <Stack.Screen name="KpiDetailReview" component={KpiDetailReview} />
             <Stack.Screen name="GlobalKpiSettings" component={GlobalKpiSettings} />
+            <Stack.Screen name="ReimbursementManagement" component={ReimbursementManagement} />
         </Stack.Navigator>
+
     );
 }
 

@@ -5,9 +5,11 @@ import { useNavigation } from '@react-navigation/native';
 import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
 import { apiService } from '../../../services/api';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchNotifications } from '@/auth/dataSlice';
+import { fetchNotifications, setNotifications } from '@/auth/dataSlice';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSocket } from '../../../context/SocketContext';
+import moment from 'moment';
+
 
 const Notification = () => {
   const navigation = useNavigation();
@@ -18,6 +20,12 @@ const Notification = () => {
   const dispatch = useDispatch();
 
   const { socket } = useSocket();
+
+  useEffect(() => {
+    if (employeeId) {
+      loadNotifications();
+    }
+  }, [employeeId]);
 
   const loadNotifications = () => {
     dispatch(fetchNotifications(employeeId));
@@ -30,9 +38,9 @@ const Notification = () => {
     if (!notif.isRead) {
       try {
         await apiService.markNotificationRead(id);
-        setNotifications(prev => prev.map(n => 
+        dispatch(setNotifications(notifications.map(n => 
           n.id === id ? { ...n, isRead: true } : n
-        ));
+        )));
       } catch (error) {
         console.error('Failed to mark as read:', error);
       }

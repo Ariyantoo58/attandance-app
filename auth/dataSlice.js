@@ -63,6 +63,38 @@ export const fetchEmployeeAttendance = createAsyncThunk('data/fetchEmployeeAtten
   }
 });
 
+export const fetchMyReimbursements = createAsyncThunk('data/fetchMyReimbursements', async (_, { rejectWithValue }) => {
+  try {
+    const reimbursements = await apiService.getMyReimbursements();
+    return reimbursements;
+  } catch (error) {
+    return rejectWithValue(error.message);
+  }
+});
+
+export const editReimbursement = createAsyncThunk(
+    'data/editReimbursement',
+    async ({ id, formData }, { rejectWithValue }) => {
+        try {
+            const response = await apiService.updateReimbursement(id, formData);
+            return response;
+        } catch (error) {
+            return rejectWithValue(error.response.data);
+        }
+    }
+);
+
+export const fetchAllReimbursements = createAsyncThunk(
+'data/fetchAllReimbursements', async (_, { rejectWithValue }) => {
+  try {
+    const reimbursements = await apiService.getAllReimbursements();
+    return reimbursements;
+  } catch (error) {
+    return rejectWithValue(error.message);
+  }
+});
+
+
 const initialState = {
   hrDashboard: {
     summary: null,
@@ -71,6 +103,7 @@ const initialState = {
     allTasks: [],
     allTeams: [],
     pendingOvertime: [],
+    allReimbursements: [],
     loading: false,
     error: null,
   },
@@ -79,6 +112,7 @@ const initialState = {
     timeOff: [],
     overtime: [],
     attendanceHistory: [],
+    reimbursements: [],
     loading: false,
     error: null,
   },
@@ -178,6 +212,24 @@ const dataSlice = createSlice({
             }
         }
     },
+    setAllReimbursements(state, action) {
+      state.hrDashboard.allReimbursements = action.payload;
+    },
+    updateReimbursement(state, action) {
+        const index = state.employeeData.reimbursements.findIndex(r => r.id === action.payload.id);
+        if (index !== -1) {
+            state.employeeData.reimbursements[index] = action.payload;
+        } else {
+            state.employeeData.reimbursements.unshift(action.payload);
+        }
+    },
+    updatePendingReimbursement(state, action) {
+        const index = state.hrDashboard.allReimbursements.findIndex(r => r.id === action.payload.id);
+        if (index !== -1) {
+            state.hrDashboard.allReimbursements[index] = action.payload;
+        }
+    },
+
     clearData(state) {
       return initialState;
     }
@@ -221,7 +273,21 @@ const dataSlice = createSlice({
       // Employee Overtime
       .addCase(fetchMyOvertime.fulfilled, (state, action) => {
         state.employeeData.overtime = action.payload;
+      })
+      // Reimbursements
+      .addCase(fetchMyReimbursements.fulfilled, (state, action) => {
+        state.employeeData.reimbursements = action.payload;
+      })
+      .addCase(editReimbursement.fulfilled, (state, action) => {
+        const index = state.employeeData.reimbursements.findIndex(r => r.id === action.payload.id);
+        if (index !== -1) {
+            state.employeeData.reimbursements[index] = action.payload;
+        }
+      })
+      .addCase(fetchAllReimbursements.fulfilled, (state, action) => {
+        state.hrDashboard.allReimbursements = action.payload;
       });
+
   },
 });
 
@@ -239,7 +305,11 @@ export const {
     setEmployeeAttendance, 
     updateOvertime,
     updatePendingOvertime,
+    setAllReimbursements,
+    updateReimbursement,
+    updatePendingReimbursement,
     clearData 
+
 } = dataSlice.actions;
 
 export default dataSlice.reducer;

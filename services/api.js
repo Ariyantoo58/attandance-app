@@ -336,7 +336,34 @@ export const apiService = {
     const response = await apiClient.post(`/kpi/delete-criteria/${id}`);
     return response.data;
   },
+
+  // Reimbursement
+  submitReimbursement: async (formData) => {
+    const response = await apiClient.post('/reimbursement', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+  getMyReimbursements: async () => {
+    const response = await apiClient.get('/reimbursement/my');
+    return response.data;
+  },
+  updateReimbursement: async (id, formData) => {
+    const response = await apiClient.patch(`/reimbursement/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+  getAllReimbursements: async () => {
+    const response = await apiClient.get('/reimbursement/all');
+    return response.data;
+  },
+  updateReimbursementStatus: async (id, status, adminNote) => {
+    const response = await apiClient.patch(`/reimbursement/${id}/status`, { status, adminNote });
+    return response.data;
+  },
 };
+
 
 
 
