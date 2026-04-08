@@ -1,210 +1,266 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    FlatList,
-    TouchableOpacity,
-    RefreshControl,
-    ActivityIndicator,
-    Alert,
-    Modal,
-    TextInput
+import { 
+    View, 
+    Text, 
+    StyleSheet, 
+    Image, 
+    TouchableOpacity, 
+    ScrollView, 
+    ActivityIndicator, 
+    Alert, 
+    TextInput, 
+    Modal, 
+    StatusBar, 
+    Platform,
+    RefreshControl
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { AntDesign, MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import moment from 'moment';
 import { apiService } from '../../../services/api';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useSocket } from '../../../context/SocketContext';
+import { useDispatch } from 'react-redux';
+import { fetchHrDashboard } from '@/auth/dataSlice';
 
-const OvertimeManagement = ({ navigation }) => {
+const OvertimeManagement = () => {
+    const navigation = useNavigation();
+    const dispatch = useDispatch();
     const [overtimes, setOvertimes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [modalVisible, setModalVisible] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
-    const [actionType, setActionType] = useState(''); // 'APPROVE' or 'REJECT'
     const [adminNote, setAdminNote] = useState('');
+    const [showNoteModal, setShowNoteModal] = useState(false);
+    const [actionType, setActionType] = useState(''); // 'APPROVE' or 'REJECT'
     const [processing, setProcessing] = useState(false);
 
-    const fetchPendingOvertimes = useCallback(async () => {
+    const { socket } = useSocket();
+
+    const fetchPendingOvertimes = async (silent = false) => {
         try {
+            if (!silent) setLoading(true);
             const data = await apiService.getAllPendingOvertime();
             setOvertimes(data);
         } catch (error) {
             console.error('Fetch pending overtime error:', error);
+            if (!silent) Alert.alert('Error', 'Failed to load overtime requests');
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, []);
-
-    useEffect(() => {
-        fetchPendingOvertimes();
-    }, [fetchPendingOvertimes]);
-
-    const onRefresh = () => {
-        setRefreshing(true);
-        fetchPendingOvertimes();
     };
 
-    const handleAction = async () => {
-        if (!selectedItem) return;
+    // Initial load and focus-based refresh
+    useFocusEffect(
+        useCallback(() => {
+            fetchPendingOvertimes(overtimes.length > 0);
+        }, [overtimes.length])
+    );
 
+    // Socket real-time updates
+    useEffect(() => {
+        if (socket) {
+            const handleUpdate = () => {
+                console.log('Overtime update detected via socket, refreshing list...');
+                fetchPendingOvertimes(true);
+                dispatch(fetchHrDashboard());
+            };
+
+            socket.on('overtime:requested', handleUpdate);
+            socket.on('overtime:changed', handleUpdate);
+
+            return () => {
+                socket.off('overtime:requested', handleUpdate);
+                socket.off('overtime:changed', handleUpdate);
+            };
+        }
+    }, [socket, dispatch]);
+
+    const handleAction = (item, type) => {
+        setSelectedItem(item);
+        setActionType(type);
+        setShowNoteModal(true);
+    };
+
+    const submitAction = async () => {
+        if (!selectedItem) return;
+        
         setProcessing(true);
         try {
             const status = actionType === 'APPROVE' ? 'APPROVED' : 'REJECTED';
             await apiService.approveOvertime(selectedItem.id, status, adminNote);
-            
-            Alert.alert('Sukses', `Pengajuan lembur telah ${status.toLowerCase()}.`);
-            setModalVisible(false);
+            Alert.alert('Success', `Overtime request has been ${status.toLowerCase()}`);
+            setShowNoteModal(false);
             setAdminNote('');
             fetchPendingOvertimes();
+            dispatch(fetchHrDashboard());
         } catch (error) {
-            console.error('Approve overtime error:', error);
-            Alert.alert('Error', 'Gagal memproses pengajuan lembur.');
+            console.error('Action error:', error);
+            Alert.alert('Error', 'Failed to update overtime request');
         } finally {
             setProcessing(false);
         }
     };
 
-    const openModal = (item, type) => {
-        setSelectedItem(item);
-        setActionType(type);
-        setModalVisible(true);
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchPendingOvertimes(true);
     };
-
-    const renderItem = ({ item }) => (
-        <View style={styles.card}>
-            <View style={styles.cardHeader}>
-                <View style={styles.avatarContainer}>
-                    <Text style={styles.avatarText}>{item.employee.name.charAt(0).toUpperCase()}</Text>
-                </View>
-                <View style={styles.headerInfo}>
-                    <Text style={styles.employeeName}>{item.employee.name}</Text>
-                    <Text style={styles.employeeRole}>{item.employee.designation || 'Staff'}</Text>
-                </View>
-                <View style={styles.dateInfo}>
-                    <Text style={styles.dateText}>{moment(item.date).format('DD MMM')}</Text>
-                </View>
-            </View>
-
-            <View style={styles.cardBody}>
-                <View style={styles.timeInfo}>
-                    <Ionicons name="time-outline" size={18} color="#718096" />
-                    <Text style={styles.timeText}>
-                        {moment(item.startTime).format('HH:mm')} - {moment(item.endTime).format('HH:mm')}
-                    </Text>
-                </View>
-                <View style={styles.reasonInfo}>
-                    <Text style={styles.reasonLabel}>Alasan:</Text>
-                    <Text style={styles.reasonText}>{item.reason}</Text>
-                </View>
-            </View>
-
-            <View style={styles.actionRow}>
-                <TouchableOpacity 
-                    style={[styles.actionButton, styles.rejectButton]}
-                    onPress={() => openModal(item, 'REJECT')}
-                >
-                    <Ionicons name="close-circle-outline" size={20} color="#F56565" />
-                    <Text style={styles.rejectButtonText}>Tolak</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                    style={[styles.actionButton, styles.approveButton]}
-                    onPress={() => openModal(item, 'APPROVE')}
-                >
-                    <Ionicons name="checkmark-circle-outline" size={20} color="white" />
-                    <Text style={styles.approveButtonText}>Setujui</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
-
-    if (loading && !refreshing) {
-        return (
-            <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color="#2D3748" />
-            </View>
-        );
-    }
 
     return (
         <View style={styles.container}>
-            <LinearGradient
-                colors={['#2D3748', '#1A202C']}
-                style={styles.header}
-            >
+            <StatusBar barStyle="dark-content" />
+            <View style={styles.header}>
                 <TouchableOpacity 
                     style={styles.backButton} 
                     onPress={() => navigation.goBack()}
                 >
-                    <Ionicons name="arrow-back" size={24} color="white" />
+                    <AntDesign name="left" size={20} color="#1E293B" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Manajemen Lembur</Text>
-                <View style={styles.badgeCount}>
-                    <Text style={styles.badgeText}>{overtimes.length} Pending</Text>
-                </View>
-            </LinearGradient>
+                <Text style={styles.headerTitle}>Overtime Management</Text>
+                <TouchableOpacity onPress={() => fetchPendingOvertimes(true)} style={styles.refreshButton}>
+                    <Ionicons name="refresh" size={20} color="#3B82F6" />
+                </TouchableOpacity>
+            </View>
 
-            <FlatList
-                data={overtimes}
-                renderItem={renderItem}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.listContainer}
+            <ScrollView 
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                 }
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="checkmark-done-circle-outline" size={80} color="#CBD5E0" />
-                        <Text style={styles.emptyText}>Tidak ada pengajuan lembur pending</Text>
-                    </View>
-                }
-            />
+            >
+                <View style={styles.introSection}>
+                    <Text style={styles.introTitle}>Pending Requests</Text>
+                    <Text style={styles.introSubtitle}>Review and manage employee overtime applications</Text>
+                </View>
 
+                {loading && overtimes.length === 0 ? (
+                    <View style={styles.centerBox}>
+                        <ActivityIndicator size="large" color="#3B82F6" />
+                        <Text style={styles.loadingText}>Fetching overtime requests...</Text>
+                    </View>
+                ) : overtimes.length > 0 ? (
+                    overtimes.map((item) => (
+                        <View style={styles.requestCard} key={item.id}>
+                            <View style={styles.cardHeader}>
+                                <Image
+                                    source={{ uri: item.employee?.avatarUrl || 'https://img.freepik.com/free-photo/front-view-man-posing_23-2148364843.jpg' }}
+                                    style={styles.avatar}
+                                />
+                                <View style={styles.headerText}>
+                                    <Text style={styles.employeeName}>{item.employee?.name}</Text>
+                                    <View style={styles.dateRow}>
+                                        <Feather name="calendar" size={12} color="#64748B" />
+                                        <Text style={styles.dateText}>{moment(item.date).format('ddd, DD MMM YYYY')}</Text>
+                                    </View>
+                                </View>
+                                <View style={styles.badgeLabel}>
+                                    <Text style={styles.badgeLabelText}>PENDING</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.contentSection}>
+                                <View style={styles.infoGrid}>
+                                    <View style={styles.infoItem}>
+                                        <Text style={styles.infoLabel}>START TIME</Text>
+                                        <View style={styles.timeRow}>
+                                            <Ionicons name="time-outline" size={14} color="#3B82F6" />
+                                            <Text style={styles.infoValue}>{moment(item.startTime).format('HH:mm')}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.infoItem}>
+                                        <Text style={styles.infoLabel}>END TIME</Text>
+                                        <View style={styles.timeRow}>
+                                            <Ionicons name="time-outline" size={14} color="#3B82F6" />
+                                            <Text style={styles.infoValue}>{moment(item.endTime).format('HH:mm')}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.infoItem}>
+                                        <Text style={styles.infoLabel}>DURATION</Text>
+                                        <Text style={styles.durationValue}>{item.duration?.toFixed(1) || '0'} hrs</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.reasonBox}>
+                                    <View style={styles.reasonHeader}>
+                                        <Ionicons name="chatbubble-ellipses-outline" size={14} color="#3B82F6" />
+                                        <Text style={styles.reasonLabel}>Reason</Text>
+                                    </View>
+                                    <Text style={styles.reasonText}>{item.reason || "No reason provided."}</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.buttonRow}>
+                                <TouchableOpacity 
+                                    style={[styles.actionBtn, styles.rejectBtn]} 
+                                    onPress={() => handleAction(item, 'REJECT')}
+                                >
+                                    <Text style={styles.rejectBtnText}>Reject</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[styles.actionBtn, styles.approveBtn]} 
+                                    onPress={() => handleAction(item, 'APPROVE')}
+                                >
+                                    <Text style={styles.approveBtnText}>Approve</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    ))
+                ) : (
+                    <View style={styles.centerBox}>
+                        <View style={styles.emptyCircle}>
+                            <Feather name="check-circle" size={40} color="#CBD5E0" />
+                        </View>
+                        <Text style={styles.emptyTitle}>All Caught Up!</Text>
+                        <Text style={styles.emptySubtitle}>No pending overtime requests to review.</Text>
+                    </View>
+                )}
+                <View style={{ height: 60 }} />
+            </ScrollView>
+
+            {/* Note Modal */}
             <Modal
-                animationType="slide"
+                visible={showNoteModal}
                 transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
+                animationType="fade"
             >
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>
-                            {actionType === 'APPROVE' ? 'Setujui Lembur' : 'Tolak Lembur'}
+                    <View style={styles.modalBody}>
+                        <Text style={styles.modalHeaderTitle}>
+                            {actionType === 'APPROVE' ? 'Approve Overtime' : 'Reject Overtime'}
                         </Text>
-                        <Text style={styles.modalSubtitle}>
-                            {selectedItem?.employee.name} - {moment(selectedItem?.date).format('DD MMMM')}
-                        </Text>
+                        <Text style={styles.modalSubtitle}>Add a note for the employee (optional)</Text>
                         
                         <TextInput
-                            style={styles.modalInput}
-                            placeholder="Tambahkan catatan (opsional)..."
+                            style={styles.noteInput}
+                            placeholder="Reason for approval/rejection..."
                             multiline
-                            numberOfLines={3}
+                            placeholderTextColor="#94A3B8"
                             value={adminNote}
                             onChangeText={setAdminNote}
                         />
-
+                        
                         <View style={styles.modalActions}>
                             <TouchableOpacity 
-                                style={[styles.modalButton, styles.cancelButton]}
-                                onPress={() => setModalVisible(false)}
+                                style={styles.modalCancel} 
+                                onPress={() => setShowNoteModal(false)}
+                                disabled={processing}
                             >
-                                <Text style={styles.cancelButtonText}>Batal</Text>
+                                <Text style={styles.modalCancelText}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity 
                                 style={[
-                                    styles.modalButton, 
-                                    actionType === 'APPROVE' ? styles.confirmApprove : styles.confirmReject
-                                ]}
-                                onPress={handleAction}
+                                    styles.modalSubmit,
+                                    { backgroundColor: actionType === 'APPROVE' ? '#10B981' : '#EF4444' }
+                                ]} 
+                                onPress={submitAction}
                                 disabled={processing}
                             >
                                 {processing ? (
-                                    <ActivityIndicator color="white" />
+                                    <ActivityIndicator size="small" color="white" />
                                 ) : (
-                                    <Text style={styles.confirmButtonText}>Konfirmasi</Text>
+                                    <Text style={styles.modalSubmitText}>Confirm Action</Text>
                                 )}
                             </TouchableOpacity>
                         </View>
@@ -216,237 +272,93 @@ const OvertimeManagement = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#F7FAFC',
-    },
-    centerContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'white',
-    },
-    header: {
-        paddingTop: 60,
-        paddingBottom: 30,
+    container: { flex: 1, backgroundColor: '#F8FAFC' },
+    header: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
         paddingHorizontal: 20,
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    backButton: {
-        marginRight: 15,
-    },
-    headerTitle: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: 'white',
-        flex: 1,
-    },
-    badgeCount: {
-        backgroundColor: '#E53E3E',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 12,
-    },
-    badgeText: {
-        color: 'white',
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    listContainer: {
-        padding: 20,
-    },
-    card: {
+        paddingTop: Platform.OS === 'ios' ? 60 : 20,
+        paddingBottom: 20,
         backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 15,
-        marginBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9'
+    },
+    backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B' },
+    refreshButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#F0F9FF', justifyContent: 'center', alignItems: 'center' },
+    scrollContent: { padding: 20 },
+    introSection: { marginBottom: 25 },
+    introTitle: { fontSize: 24, fontWeight: '900', color: '#1E293B' },
+    introSubtitle: { fontSize: 13, color: '#64748B', marginTop: 4, fontWeight: '500' },
+    requestCard: { 
+        backgroundColor: 'white', 
+        borderRadius: 24, 
+        padding: 16, 
+        marginBottom: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
+        shadowOpacity: 0.04,
+        shadowRadius: 10,
         elevation: 3,
+        borderWidth: 1,
+        borderColor: '#F1F5F9'
     },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    avatarContainer: {
-        width: 45,
-        height: 45,
-        borderRadius: 22.5,
-        backgroundColor: '#EDF2F7',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    avatarText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#2D3748',
-    },
-    headerInfo: {
-        flex: 1,
-    },
-    employeeName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#2D3748',
-    },
-    employeeRole: {
-        fontSize: 12,
-        color: '#718096',
-    },
-    dateInfo: {
-        backgroundColor: '#F7FAFC',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
+    cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
+    avatar: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#F1F5F9' },
+    headerText: { marginLeft: 12, flex: 1 },
+    employeeName: { fontSize: 16, fontWeight: '800', color: '#1E293B' },
+    dateRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+    dateText: { fontSize: 12, color: '#64748B', marginLeft: 4, fontWeight: '600' },
+    badgeLabel: {
+        backgroundColor: '#FEF3C7',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
         borderRadius: 8,
     },
-    dateText: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#4A5568',
+    badgeLabelText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#D97706',
     },
-    cardBody: {
-        backgroundColor: '#F8FAFC',
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 15,
+    contentSection: { marginBottom: 16 },
+    infoGrid: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        backgroundColor: '#F8FAFC', 
+        borderRadius: 16, 
+        padding: 12, 
+        marginBottom: 12 
     },
-    timeInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    timeText: {
-        fontSize: 14,
-        color: '#2D3748',
-        fontWeight: '600',
-        marginLeft: 8,
-    },
-    reasonInfo: {
-        borderTopWidth: 1,
-        borderTopColor: '#E2E8F0',
-        paddingTop: 8,
-    },
-    reasonLabel: {
-        fontSize: 11,
-        fontWeight: 'bold',
-        color: '#718096',
-        marginBottom: 2,
-    },
-    reasonText: {
-        fontSize: 13,
-        color: '#4A5568',
-    },
-    actionRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    actionButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 10,
-        borderRadius: 12,
-        flex: 1,
-    },
-    rejectButton: {
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderColor: '#FED7D7',
-        marginRight: 10,
-    },
-    approveButton: {
-        backgroundColor: '#38A169',
-    },
-    rejectButtonText: {
-        color: '#E53E3E',
-        fontSize: 14,
-        fontWeight: 'bold',
-        marginLeft: 5,
-    },
-    approveButtonText: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: 'bold',
-        marginLeft: 5,
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 100,
-    },
-    emptyText: {
-        marginTop: 20,
-        fontSize: 16,
-        color: '#A0AEC0',
-        textAlign: 'center',
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        padding: 20,
-    },
-    modalContent: {
-        backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 25,
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#2D3748',
-        marginBottom: 5,
-    },
-    modalSubtitle: {
-        fontSize: 14,
-        color: '#718096',
-        marginBottom: 20,
-    },
-    modalInput: {
-        backgroundColor: '#F7FAFC',
-        borderRadius: 12,
-        padding: 15,
-        height: 100,
-        textAlignVertical: 'top',
-        marginBottom: 25,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-    },
-    modalActions: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    modalButton: {
-        paddingVertical: 12,
-        borderRadius: 12,
-        flex: 1,
-        alignItems: 'center',
-    },
-    cancelButton: {
-        backgroundColor: '#EDF2F7',
-        marginRight: 10,
-    },
-    cancelButtonText: {
-        color: '#4A5568',
-        fontWeight: 'bold',
-    },
-    confirmApprove: {
-        backgroundColor: '#38A169',
-    },
-    confirmReject: {
-        backgroundColor: '#E53E3E',
-    },
-    confirmButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-    },
+    infoItem: { flex: 1, alignItems: 'center' },
+    infoLabel: { fontSize: 9, fontWeight: '900', color: '#94A3B8', marginBottom: 4 },
+    timeRow: { flexDirection: 'row', alignItems: 'center' },
+    infoValue: { fontSize: 13, fontWeight: '800', color: '#1E293B', marginLeft: 4 },
+    durationValue: { fontSize: 13, fontWeight: '800', color: '#3B82F6' },
+    reasonBox: { backgroundColor: '#F0F9FF', borderRadius: 16, padding: 12 },
+    reasonHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+    reasonLabel: { fontSize: 11, fontWeight: '800', color: '#3B82F6', marginLeft: 6, textTransform: 'uppercase' },
+    reasonText: { fontSize: 13, color: '#1E293B', lineHeight: 20, fontWeight: '500' },
+    buttonRow: { flexDirection: 'row', gap: 12 },
+    actionBtn: { flex: 1, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+    approveBtn: { backgroundColor: '#10B981' },
+    rejectBtn: { backgroundColor: '#F1F5F9' },
+    approveBtnText: { color: 'white', fontWeight: '800', fontSize: 14 },
+    rejectBtnText: { color: '#EF4444', fontWeight: '800', fontSize: 14 },
+    centerBox: { alignItems: 'center', marginTop: 80, paddingHorizontal: 40 },
+    loadingText: { marginTop: 12, color: '#64748B', fontWeight: '600' },
+    emptyCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    emptyTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B', marginBottom: 8 },
+    emptySubtitle: { fontSize: 13, color: '#94A3B8', textAlign: 'center', lineHeight: 20 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 25 },
+    modalBody: { backgroundColor: 'white', borderRadius: 28, padding: 25, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 },
+    modalHeaderTitle: { fontSize: 20, fontWeight: '900', color: '#1E293B' },
+    modalSubtitle: { fontSize: 13, color: '#64748B', marginTop: 6, marginBottom: 20, fontWeight: '500' },
+    noteInput: { height: 120, backgroundColor: '#F8FAFC', borderRadius: 18, padding: 16, fontSize: 14, color: '#1E293B', textAlignVertical: 'top', borderWidth: 1, borderColor: '#F1F5F9' },
+    modalActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 25, gap: 12 },
+    modalCancel: { paddingHorizontal: 20, justifyContent: 'center' },
+    modalCancelText: { color: '#64748B', fontWeight: '700' },
+    modalSubmit: { paddingHorizontal: 22, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+    modalSubmitText: { color: 'white', fontWeight: '800' },
 });
 
 export default OvertimeManagement;

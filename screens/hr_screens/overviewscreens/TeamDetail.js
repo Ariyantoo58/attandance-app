@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, SafeAreaPlatform, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { apiService } from '../../../services/api';
+import { useSelector } from 'react-redux';
 
 const TeamDetail = ({ route, navigation }) => {
     const { teamId } = route.params;
     const [team, setTeam] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { user } = useSelector(state => state.auth);
+    const isManager = ['HR', 'ADMIN', 'MANAGER'].includes(user?.user?.role || user?.role);
 
     useEffect(() => {
         fetchTeamDetail();
@@ -21,6 +24,35 @@ const TeamDetail = ({ route, navigation }) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDeleteTeam = () => {
+        Alert.alert(
+            'Delete Team',
+            'Are you sure you want to delete this team?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                    text: 'Delete', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            await apiService.deleteTeam(teamId);
+                            navigation.navigate('ManagerDrawer', { screen: 'Teams' });
+                        } catch (error) {
+                            Alert.alert('Error', 'Failed to delete team');
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleEditPress = () => {
+        navigation.navigate('TeamEdit', { teamId });
     };
 
     if (loading) {
@@ -58,9 +90,18 @@ const TeamDetail = ({ route, navigation }) => {
                     <Ionicons name="arrow-back" size={24} color="#2D3748" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Team Detail</Text>
-                <TouchableOpacity style={styles.settingsButton}>
-                    <Ionicons name="settings-outline" size={24} color="#2D3748" />
-                </TouchableOpacity>
+                <View style={styles.headerActions}>
+                    {isManager && (
+                        <>
+                            <TouchableOpacity onPress={handleDeleteTeam} style={styles.headerActionBtn}>
+                                <Ionicons name="trash-outline" size={22} color="#E53E3E" />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={handleEditPress} style={styles.headerActionBtn}>
+                                <Ionicons name="create-outline" size={22} color="#3182CE" />
+                            </TouchableOpacity>
+                        </>
+                    )}
+                </View>
             </View>
 
             <View style={styles.heroSection}>
@@ -127,8 +168,13 @@ const styles = StyleSheet.create({
     backButton: {
         padding: 5,
     },
-    settingsButton: {
+    headerActionBtn: {
         padding: 5,
+        marginLeft: 10,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     heroSection: {
         backgroundColor: 'white',

@@ -43,10 +43,10 @@ export const OverviewAllSections = [
     },
     {
         id: 6,
-        title: 'Team',
-        icon: <MaterialIcons name="groups" size={34} color="white" />,
-        count: 11,
-        link: "Teams"
+        title: 'Reimbursement',
+        icon: <MaterialIcons name="receipt-long" size={34} color="white" />,
+        count: 0,
+        link: "ReimbursementManagement"
     },
     {
         id: 7,

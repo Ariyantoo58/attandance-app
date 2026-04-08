@@ -5,7 +5,7 @@ import { NavigationContainer, DrawerActions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 
 import { StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -43,6 +43,7 @@ import EmployeeDetails from './screens/hr_screens/employeedetails/EmployeeDetail
 import FaceRecognitionScreen from './screens/employee_screens/FaceRecognitionScreen';
 import ManagerCustomDrawerContent from './screens/hr_screens/drawescreens/ManagerCustomDrawerContent';
 import EmployeeEdit from './screens/hr_screens/add_new_employee/EmployeeEdit';
+import TeamEdit from './screens/hr_screens/overviewscreens/TeamEdit';
 import TaskDetail from './screens/common/TaskDetail';
 import MyCorrectionList from './screens/employee_screens/attendance_correction/MyCorrectionList';
 import AttendanceCorrectionManager from './screens/hr_screens/overviewscreens/AttendanceCorrectionManager';
@@ -291,6 +292,15 @@ function ManagerDrawer() {
                 }}
             />
             <Drawer.Screen
+                name="Teams"
+                component={Teams}
+                options={{
+                    drawerIcon: ({ color, size }) => (
+                        <MaterialIcons name="groups" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Drawer.Screen
                 name="Settings"
                 component={ProfileSetting}
                 options={{
@@ -332,19 +342,9 @@ function ManagerDrawer() {
                 options={{ drawerItemStyle: { display: 'none' } }}
             />
             <Drawer.Screen
-                name="Teams"
-                component={Teams}
-                options={{ drawerItemStyle: { display: 'none' } }}
-            />
-            <Drawer.Screen
                 name="ReimbursementManagement"
                 component={ReimbursementManagement}
-                options={{
-                    drawerLabel: 'Reimbursements',
-                    drawerIcon: ({ color, size }) => (
-                        <MaterialCommunityIcons name="finance" size={size} color={color} />
-                    ),
-                }}
+                options={{ drawerItemStyle: { display: 'none' } }}
             />
         </Drawer.Navigator>
 
@@ -389,6 +389,7 @@ function ManagerStackNavigator() {
             <Stack.Screen name="FaceRecognition" component={FaceRecognitionScreen} />
             <Stack.Screen name="TaskDetail" component={TaskDetail} />
             <Stack.Screen name="TeamDetail" component={TeamDetail} />
+            <Stack.Screen name="TeamEdit" component={TeamEdit} />
             <Stack.Screen name="AttendanceCorrectionManager" component={AttendanceCorrectionManager} />
             <Stack.Screen name="OvertimeManagement" component={OvertimeManagement} />
             <Stack.Screen name="KpiDetailReview" component={KpiDetailReview} />

@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Image, FlatList, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Image, FlatList, StyleSheet, ScrollView, ActivityIndicator, Dimensions, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, DrawerActions, useFocusEffect } from '@react-navigation/native';
@@ -20,8 +20,45 @@ const ManagerHomeScreen = () => {
   const { summary, recentLeaves, loading } = useSelector(state => state.data.hrDashboard);
   const { socket } = useSocket();
 
-  const loadDashboard = () => {
-    dispatch(fetchHrDashboard());
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadDashboard = useCallback(async () => {
+    await dispatch(fetchHrDashboard());
+    setRefreshing(false);
+  }, [dispatch]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboard();
+    }, [loadDashboard])
+  );
+
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleUpdate = () => {
+      console.log('Real-time update received, refreshing dashboard...');
+      dispatch(fetchHrDashboard());
+    };
+
+    socket.on('attendance_updated', handleUpdate);
+    socket.on('time_off:requested', handleUpdate);
+    socket.on('time_off:changed', handleUpdate);
+    socket.on('task:created', handleUpdate);
+    socket.on('task:updated', handleUpdate);
+    
+    return () => {
+      socket.off('attendance_updated', handleUpdate);
+      socket.off('time_off:requested', handleUpdate);
+      socket.off('time_off:changed', handleUpdate);
+      socket.off('task:created', handleUpdate);
+      socket.off('task:updated', handleUpdate);
+    };
+  }, [socket, dispatch]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadDashboard();
   };
 
   const overviewItems = StaticOverview.map(item => {
@@ -31,7 +68,7 @@ const ManagerHomeScreen = () => {
     if (item.title === 'Leave Requests') count = summary.pendingLeaves;
     if (item.title === 'Attendance') count = summary.todayAttendance;
     if (item.title === 'Project Task') count = summary.activeTasks;
-    if (item.title === 'Team') count = summary.teamCount;
+    if (item.title === 'Reimbursement') count = summary.pendingReimbursements || 0;
     if (item.title === 'PaySlip') count = summary.pendingPayroll;
     if (item.title === 'Correction') count = summary.pendingCorrections;
     if (item.title === 'Overtime') count = summary.pendingOvertime;
@@ -111,7 +148,13 @@ const ManagerHomeScreen = () => {
         </View>
       </View>
 
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.contentContainer}>
           <View style={styles.overviewHeader}>
             <Text style={styles.sectionTitle}>Overview</Text>
