@@ -5,18 +5,20 @@ import { useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../../auth/authSlice';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function ManagerCustomDrawerContent(props) {
     const navigate = useNavigation();
     const dispatch = useDispatch();
+    const insets = useSafeAreaInsets();
     const { user } = useSelector(state => state.auth);
     const profile = user?.user?.employee || user?.user || {};
     const name = profile.name || 'Admin User';
     const initials = name && typeof name === 'string' ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : '??';
 
     return (
-        <DrawerContentScrollView {...props} style={styles.container}>
-            <View style={styles.headerContainer}>
+        <DrawerContentScrollView {...props} style={styles.container} contentContainerStyle={{ paddingTop: 0 }}>
+            <View style={[styles.headerContainer, { paddingTop: insets.top + 15 }]}>
                 <TouchableOpacity 
                     style={styles.profileSection} 
                     onPress={() => {
@@ -27,27 +29,41 @@ function ManagerCustomDrawerContent(props) {
                         }
                     }}
                 >
-                    {profile.avatarUrl ? (
-                        <Image
-                            source={{ uri: profile.avatarUrl }}
-                            style={styles.profilePic}
-                        />
-                    ) : (
-                        <View style={[styles.profilePic, styles.initialsContainer]}>
-                            <Text style={styles.initialsText}>{initials}</Text>
-                        </View>
-                    )}
+                    <View style={styles.avatarWrapper}>
+                        {profile.avatarUrl ? (
+                            <Image
+                                source={{ uri: profile.avatarUrl }}
+                                style={styles.profilePic}
+                            />
+                        ) : (
+                            <View style={[styles.profilePic, styles.initialsContainer]}>
+                                <Text style={styles.initialsText}>{initials}</Text>
+                            </View>
+                        )}
+                        <View style={styles.activeIndicator} />
+                    </View>
+
                     <View style={styles.profileTextContainer}>
-                        <Text style={styles.username}>
+                        <Text style={styles.username} numberOfLines={1}>
                             {name}
                         </Text>
-                        <View style={styles.roleBadge}>
-                            <MaterialCommunityIcons name="shield-check" size={12} color="white" />
-                            <Text style={styles.roleText}>
-                                {user?.user?.role || 'Admin'}
-                            </Text>
+                        <Text style={styles.designation} numberOfLines={1}>
+                            {profile.designation || 'Internal Staff'}
+                        </Text>
+                        
+                        <View style={styles.badgeRow}>
+                            <View style={[styles.badge, { backgroundColor: '#3B82F6' }]}>
+                                <Text style={styles.badgeText}>{user?.user?.role || 'Admin'}</Text>
+                            </View>
+                            {profile.employeeNumber && (
+                                <View style={[styles.badge, { backgroundColor: '#F1F5F9', marginLeft: 6 }]}>
+                                    <Text style={[styles.badgeText, { color: '#475569' }]}>#{profile.employeeNumber}</Text>
+                                </View>
+                            )}
                         </View>
                     </View>
+                    
+                    <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
                 </TouchableOpacity>
             </View>
 
@@ -59,7 +75,7 @@ function ManagerCustomDrawerContent(props) {
                 style={styles.logoutButton} 
                 onPress={() => dispatch(logout())}
             >
-                <Ionicons name="log-out-outline" size={24} color="#FF6B6B" />
+                <Ionicons name="log-out-outline" size={24} color="#F87171" />
                 <Text style={styles.logoutText}>Sign Out</Text>
             </TouchableOpacity>
         </DrawerContentScrollView>
@@ -71,27 +87,36 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
     },
     headerContainer: {
-        paddingTop: 60,
         paddingBottom: 25,
         paddingHorizontal: 20,
-        backgroundColor: '#EFF6FF',
-        borderBottomLeftRadius: 0,
-        borderBottomRightRadius: 40,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F8FAFC',
     },
     profileSection: {
         flexDirection: 'row',
         alignItems: 'center',
+        paddingVertical: 5,
+    },
+    avatarWrapper: {
+        position: 'relative',
     },
     profilePic: {
-        width: 64,
-        height: 64,
-        borderRadius: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 16,
+        backgroundColor: '#F1F5F9',
+    },
+    activeIndicator: {
+        position: 'absolute',
+        bottom: -2,
+        right: -2,
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: '#10B981',
         borderWidth: 2,
-        borderColor: 'white',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        borderColor: '#FFFFFF',
     },
     initialsContainer: {
         backgroundColor: '#3B82F6',
@@ -100,48 +125,53 @@ const styles = StyleSheet.create({
     },
     initialsText: {
         color: 'white',
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: 'bold',
     },
     profileTextContainer: {
-        marginLeft: 15,
+        marginLeft: 16,
         flex: 1,
     },
     username: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '700',
-        color: '#0F172A',
+        color: '#1E293B',
+        marginBottom: 2,
     },
-    roleBadge: {
+    designation: {
+        fontSize: 13,
+        color: '#64748B',
+        marginBottom: 8,
+        fontWeight: '500',
+    },
+    badgeRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 8,
-        marginTop: 4,
-        alignSelf: 'flex-start',
     },
-    roleText: {
-        color: '#3B82F6',
-        fontSize: 11,
-        fontWeight: '700',
-        marginLeft: 4,
+    badge: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    badgeText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: '800',
         textTransform: 'uppercase',
     },
     drawerItemsContainer: {
-        paddingTop: 20,
-        paddingHorizontal: 10,
+        paddingTop: 15,
+        paddingHorizontal: 12,
     },
     logoutButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 20,
-        marginHorizontal: 20,
+        padding: 16,
+        marginHorizontal: 16,
         marginTop: 20,
-        marginBottom: 30,
-        backgroundColor: '#FEF2F2',
-        borderRadius: 16,
+        marginBottom: 40,
+        backgroundColor: '#FFF1F2',
+        borderRadius: 12,
     },
     logoutText: {
         marginLeft: 12,

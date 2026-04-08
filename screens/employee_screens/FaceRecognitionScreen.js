@@ -7,6 +7,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiService } from '../../services/api';
+import { Modal } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -22,6 +24,10 @@ export default function FaceRecognitionScreen() {
     const cameraRef = useRef(null);
     const scanAnim = useRef(new Animated.Value(0)).current;
     const guideAnim = useRef(new Animated.Value(0)).current;
+
+    // Result Modal State
+    const [resultVisible, setResultVisible] = useState(false);
+    const [resultData, setResultData] = useState({ success: false, title: '', message: '', name: '' });
 
     useEffect(() => {
         (async () => {
@@ -139,6 +145,20 @@ export default function FaceRecognitionScreen() {
         }
     };
 
+    const getDistance = (lat1, lon1, lat2, lon2) => {
+        const R = 6371e3; // metres
+        const dLat = (lat2 - lat1) * (Math.PI / 180);
+        const dLon = (lon2 - lon1) * (Math.PI / 180);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1 * (Math.PI / 180)) *
+            Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
+
     const processPhotos = async (capturedPhotos) => {
         setIsProcessing(true);
         try {
@@ -153,7 +173,7 @@ export default function FaceRecognitionScreen() {
                         name: 'photo.jpg',
                         type: 'image/jpeg',
                     });
-                    formData.append('employeeId', employeeId || user?.employeeId || user?.id);
+                    formData.append('employeeId', employeeId || user?.user?.employeeId || user?.user?.id);
                     
                     const data = await apiService.registerFace(formData);
                     if (data.status === 'success') {
@@ -170,49 +190,107 @@ export default function FaceRecognitionScreen() {
                 }
                 
                 if (successCount > 0) {
-                    Alert.alert("Sukses!", "Pendaftaran Wajah Berhasil.", [
-                        { text: "OK", onPress: () => navigation.goBack() }
-                    ]);
+                    setResultData({
+                        success: true,
+                        title: 'Registrasi Sukses!',
+                        message: 'Data wajah Anda telah berhasil didaftarkan ke sistem.',
+                        name: user?.user?.name
+                    });
+                    setResultVisible(true);
                 } else {
-                    Alert.alert("Gagal Registrasi", lastErrorMessage);
+                    setResultData({
+                        success: false,
+                        title: 'Registrasi Gagal',
+                        message: lastErrorMessage,
+                    });
+                    setResultVisible(true);
                 }
             } else {
+                // Get Location First
+                let latitude = null;
+                let longitude = null;
+                try {
+                    const location = await Location.getCurrentPositionAsync({ 
+                        accuracy: Location.Accuracy.High 
+                    });
+                    latitude = location.coords.latitude;
+                    longitude = location.coords.longitude;
+                } catch (locError) {
+                    setResultData({
+                        success: false,
+                        title: 'Error Lokasi',
+                        message: 'Gagal mendapatkan lokasi GPS. Pastikan izin lokasi diberikan dan GPS aktif.',
+                    });
+                    setResultVisible(true);
+                    setIsProcessing(false);
+                    setPhotos([]);
+                    return;
+                }
+
+                // Check Geofence if branch is assigned
+                const employeeProfile = user?.user?.employee || user?.user || {};
+                const branch = employeeProfile.branch;
+
+                if (branch && branch.latitude && branch.longitude) {
+                    const distance = getDistance(
+                        latitude,
+                        longitude,
+                        branch.latitude,
+                        branch.longitude
+                    );
+
+                    if (distance > (branch.radius || 50)) {
+                        setResultData({
+                            success: false,
+                            title: 'Di Luar Jangkauan',
+                            message: `Anda berada ${Math.round(distance)}m dari lokasi kantor. Maksimal jarak yang diizinkan adalah ${branch.radius || 50}m.`,
+                        });
+                        setResultVisible(true);
+                        setIsProcessing(false);
+                        setPhotos([]);
+                        return;
+                    }
+                }
+
                 const formData = new FormData();
                 formData.append('file', {
                     uri: capturedPhotos[0],
                     name: 'photo.jpg',
                     type: 'image/jpeg',
                 });
-                const currentEmployeeId = user?.employeeId || user?.id;
+                const currentEmployeeId = user?.user?.employeeId || user?.user?.id;
                 if (currentEmployeeId) formData.append('employeeId', currentEmployeeId);
 
-                // Get Location
-                let latitude = null;
-                let longitude = null;
-                try {
-                    const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-                    latitude = location.coords.latitude;
-                    longitude = location.coords.longitude;
+                if (latitude && longitude) {
                     formData.append('latitude', latitude.toString());
                     formData.append('longitude', longitude.toString());
-                } catch (locError) {
-                    console.log("Location Error:", locError);
-                    // Continue without location if it fails, or maybe enforce it?
-                    // User said "merekam lokasi", so we should ideally have it.
                 }
 
                 const data = await apiService.recognizeFace(formData);
                 if (data.recognized) {
-                    Alert.alert("Berhasil!", data.message || `Halo, ${data.name}! Absensi telah dicatat.`, [
-                        { text: "OK", onPress: () => navigation.goBack() }
-                    ]);
+                    setResultData({
+                        success: true,
+                        title: 'Berhasil!',
+                        message: data.message || `Presensi Anda telah berhasil dicatat pada ${new Date().toLocaleTimeString()}.`,
+                        name: data.name
+                    });
                 } else {
-                    Alert.alert("Info", data.message || "Wajah tidak cocok.");
+                    setResultData({
+                        success: false,
+                        title: 'Gagal!',
+                        message: data.message || "Wajah tidak dikenali atau kondisi tidak terpenuhi.",
+                    });
                 }
+                setResultVisible(true);
             }
         } catch (error) {
             console.error("API Error:", error);
-            Alert.alert("Gagal", "Koneksi ke server gagal atau sesi berakhir.");
+            setResultData({
+                success: false,
+                title: 'Koneksi Gagal',
+                message: 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
+            });
+            setResultVisible(true);
         } finally {
             setIsProcessing(false);
             setPhotos([]);
@@ -293,11 +371,169 @@ export default function FaceRecognitionScreen() {
                     {mode === 'registration' ? 'Ambil 5 sampel posisi wajah' : 'Posisikan wajah Anda di dalam kotak'}
                 </Text>
             </View>
+
+            {/* Modern Status Modal */}
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={resultVisible}
+                onRequestClose={() => setResultVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <LinearGradient
+                            colors={resultData.success ? ['#F0FDF4', '#FFFFFF'] : ['#FEF2F2', '#FFFFFF']}
+                            style={styles.modalGradient}
+                        >
+                            <View style={[styles.iconOuter, { backgroundColor: resultData.success ? '#DCFCE7' : '#FEE2E2' }]}>
+                                <View style={[styles.iconInner, { backgroundColor: resultData.success ? '#10B981' : '#EF4444' }]}>
+                                    <Ionicons 
+                                        name={resultData.success ? "checkmark-sharp" : "close-sharp"} 
+                                        size={40} 
+                                        color="white" 
+                                    />
+                                </View>
+                            </View>
+
+                            <Text style={[styles.modalStatus, { color: resultData.success ? '#059669' : '#DC2626' }]}>
+                                {resultData.success ? 'ABSENSI BERHASIL' : 'ABSENSI GAGAL'}
+                            </Text>
+
+                            <View style={styles.divider} />
+
+                            <Text style={styles.modalTitle}>{resultData.title}</Text>
+                            
+                            {resultData.name && (
+                                <View style={styles.userBadge}>
+                                    <Ionicons name="person-circle" size={16} color="#64748B" />
+                                    <Text style={styles.userNameText}>{resultData.name}</Text>
+                                </View>
+                            )}
+
+                            <Text style={styles.modalMessage}>{resultData.message}</Text>
+
+                            <TouchableOpacity 
+                                style={[styles.modalButton, { backgroundColor: resultData.success ? '#10B981' : '#1E293B' }]}
+                                onPress={() => {
+                                    setResultVisible(false);
+                                    if (resultData.success) navigation.goBack();
+                                }}
+                            >
+                                <Text style={styles.modalButtonText}>
+                                    {resultData.success ? 'Selesai' : 'Coba Lagi'}
+                                </Text>
+                            </TouchableOpacity>
+                        </LinearGradient>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(15, 23, 42, 0.75)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    modalContent: {
+        width: '100%',
+        maxWidth: 340,
+        backgroundColor: 'white',
+        borderRadius: 32,
+        overflow: 'hidden',
+        elevation: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+    },
+    modalGradient: {
+        padding: 30,
+        alignItems: 'center',
+    },
+    iconOuter: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    iconInner: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+    },
+    modalStatus: {
+        fontSize: 12,
+        fontWeight: '900',
+        letterSpacing: 2,
+        marginBottom: 8,
+    },
+    divider: {
+        width: 40,
+        height: 3,
+        backgroundColor: '#E2E8F0',
+        borderRadius: 2,
+        marginBottom: 16,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#1E293B',
+        textAlign: 'center',
+        marginBottom: 12,
+    },
+    userBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 10,
+        marginBottom: 16,
+    },
+    userNameText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#475569',
+        marginLeft: 6,
+    },
+    modalMessage: {
+        fontSize: 14,
+        color: '#64748B',
+        lineHeight: 22,
+        textAlign: 'center',
+        marginBottom: 30,
+    },
+    modalButton: {
+        width: '100%',
+        height: 56,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+    },
+    modalButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '700',
+    },
     container: {
         flex: 1,
         backgroundColor: '#F9FAFB',

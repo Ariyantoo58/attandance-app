@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { apiService } from '../../../services/api';
 
 const { width, height } = Dimensions.get('window');
@@ -31,6 +32,8 @@ const AddNewEmployee = () => {
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('EMPLOYEE');
     const [ptkpStatus, setPtkpStatus] = useState('TK0');
+    const [branches, setBranches] = useState([]);
+    const [selectedBranchId, setSelectedBranchId] = useState(null);
 
     // UI States
     const [loading, setLoading] = useState(false);
@@ -58,6 +61,18 @@ const AddNewEmployee = () => {
         { id: 'ADMIN', name: 'Administrator' },
     ];
 
+    React.useEffect(() => {
+        const fetchBranches = async () => {
+            try {
+                const data = await apiService.getBranches();
+                if (Array.isArray(data)) setBranches(data);
+            } catch (error) {
+                console.error('Failed to fetch branches:', error);
+            }
+        };
+        fetchBranches();
+    }, []);
+
     const handleSubmit = async () => {
         if (!employeeName || !username || !password || !email) {
             return Alert.alert('Eror', 'Nama Lengkap, Email, Username & Password wajib diisi.');
@@ -74,6 +89,7 @@ const AddNewEmployee = () => {
                 status: 'ACTIVE',
                 employeeNumber: `EMP${Math.floor(1000 + Math.random() * 9000)}`,
                 ptkpStatus,
+                branchId: selectedBranchId,
             };
 
             const response = await apiService.createEmployee(employeeData);
@@ -118,12 +134,14 @@ const AddNewEmployee = () => {
     const handleSelect = (item) => {
         if (pickerType === 'ptkp') setPtkpStatus(item.id);
         if (pickerType === 'role') setRole(item.id);
+        if (pickerType === 'branch') setSelectedBranchId(item.id);
         setPickerVisible(false);
     };
 
     const getSelectedLabel = (type) => {
         if (type === 'ptkp') return TAX_OPTIONS.find(t => t.id === ptkpStatus)?.name || 'Pilih Status...';
         if (type === 'role') return ROLE_OPTIONS.find(r => r.id === role)?.name || 'Pilih Role...';
+        if (type === 'branch') return branches.find(b => b.id === selectedBranchId)?.name || 'Pilih Lokasi Kerja (Default: Mana Saja)...';
         return '';
     };
 
@@ -131,10 +149,13 @@ const AddNewEmployee = () => {
         <SafeAreaView style={styles.container} edges={['top']}>
             <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity 
+                    onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('EmployeeList')} 
+                    style={styles.backButton}
+                >
                     <Ionicons name="arrow-back" size={24} color="#1E293B" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Pendaftaran Akun</Text>
+                <Text style={styles.headerTitle}>Tambah Karyawan</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -211,6 +232,14 @@ const AddNewEmployee = () => {
                         </View>
                         <Ionicons name="document-text-outline" size={20} color="#3B82F6" />
                     </TouchableOpacity>
+
+                    <TouchableOpacity onPress={() => openPicker('branch', 'Pilih Lokasi Kerja Cabang')} style={styles.selector}>
+                        <View>
+                            <Text style={styles.selectorLabel}>Penempatan Lokasi Kerja (Branch)</Text>
+                            <Text style={styles.selectorVal}>{getSelectedLabel('branch')}</Text>
+                        </View>
+                        <Ionicons name="location-outline" size={20} color="#3B82F6" />
+                    </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity 
@@ -218,11 +247,14 @@ const AddNewEmployee = () => {
                     onPress={handleSubmit} 
                     disabled={loading}
                 >
-                    {loading ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <Text style={styles.finalBtnText}>DAFTARKAN AKUN SEKARANG</Text>
-                    )}
+                    <LinearGradient
+                        colors={['#2563EB', '#1E40AF']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.gradientBtn}
+                    >
+                        {loading ? <ActivityIndicator color="white" /> : <Text style={styles.finalBtnText}>DAFTARKAN AKUN</Text>}
+                    </LinearGradient>
                 </TouchableOpacity>
 
                 <View style={{ height: 60 }} />
@@ -238,15 +270,15 @@ const AddNewEmployee = () => {
                             </TouchableOpacity>
                         </View>
                         <FlatList
-                            data={pickerType === 'ptkp' ? TAX_OPTIONS : ROLE_OPTIONS}
-                            keyExtractor={(item) => (item.id).toString()}
+                            data={pickerType === 'ptkp' ? TAX_OPTIONS : (pickerType === 'role' ? ROLE_OPTIONS : [{id: null, name: 'Bebas / Mana Saja'}, ...branches])}
+                            keyExtractor={(item) => (item.id || 'null').toString()}
                             renderItem={({ item }) => (
                                 <TouchableOpacity style={styles.optionItem} onPress={() => handleSelect(item)}>
                                     <View>
                                         <Text style={styles.optionLabel}>{item.name}</Text>
                                         {item.id === 'ADMIN' && <Text style={styles.optionSub}>Akses penuh sistem</Text>}
                                     </View>
-                                    {(ptkpStatus === item.id || role === item.id) && (
+                                    {(ptkpStatus === item.id || role === item.id || selectedBranchId === item.id) && (
                                         <Ionicons name="checkmark-circle" size={20} color="#3B82F6" />
                                     )}
                                 </TouchableOpacity>
@@ -278,25 +310,22 @@ const styles = StyleSheet.create({
     selectorLabel: { fontSize: 11, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' },
     selectorVal: { fontSize: 15, color: '#1E293B', fontWeight: '700', marginTop: 4 },
     finalBtn: { 
-        backgroundColor: '#1E293B', 
-        height: 60, 
-        borderRadius: 20, 
-        flexDirection: 'row', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        shadowColor: '#1E293B', 
-        shadowOffset: { width:0, height:8 }, 
-        shadowOpacity: 0.2, 
-        shadowRadius: 15, 
-        elevation: 8, 
-        marginTop: 10 
+        height: 58, 
+        borderRadius: 18, 
+        marginTop: 20,
+        overflow: 'hidden',
+        elevation: 6,
+        shadowColor: '#2563EB',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
     },
-    finalBtnText: { 
-        color: 'white', 
-        fontSize: 16, 
-        fontWeight: '900', 
-        letterSpacing: 1 
+    gradientBtn: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
+    finalBtnText: { color: 'white', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'flex-end' },
     modalBody: { backgroundColor: 'white', borderTopLeftRadius: 35, borderTopRightRadius: 35, paddingBottom: 40, maxHeight: height * 0.7 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },

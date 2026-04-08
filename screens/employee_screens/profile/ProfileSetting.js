@@ -70,7 +70,7 @@ const ProfileSetting = () => {
             setFetching(true);
             const [profile, status] = await Promise.all([
                 apiService.getEmployeeProfile(employeeId),
-                apiService.checkFaceStatus(employeeId)
+                apiService.checkFaceStatus(employeeId),
             ]);
 
             setFaceStatus(status);

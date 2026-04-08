@@ -58,6 +58,8 @@ import GlobalKpiSettings from './screens/hr_screens/overviewscreens/GlobalKpiSet
 import ReimbursementRequest from './screens/employee_screens/reimbursement/ReimbursementRequest';
 import ReimbursementHistory from './screens/employee_screens/reimbursement/ReimbursementHistory';
 import ReimbursementManagement from './screens/hr_screens/overviewscreens/ReimbursementManagement';
+import BranchList from './screens/hr_screens/branches/BranchList';
+import BranchAddEdit from './screens/hr_screens/branches/BranchAddEdit';
 import { SocketProvider } from './context/SocketContext';
 
 
@@ -301,6 +303,15 @@ function ManagerDrawer() {
                 }}
             />
             <Drawer.Screen
+                name="Branches"
+                component={BranchList}
+                options={{
+                    drawerIcon: ({ color, size }) => (
+                        <MaterialIcons name="business" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Drawer.Screen
                 name="Settings"
                 component={ProfileSetting}
                 options={{
@@ -395,6 +406,8 @@ function ManagerStackNavigator() {
             <Stack.Screen name="KpiDetailReview" component={KpiDetailReview} />
             <Stack.Screen name="GlobalKpiSettings" component={GlobalKpiSettings} />
             <Stack.Screen name="ReimbursementManagement" component={ReimbursementManagement} />
+            <Stack.Screen name="BranchList" component={BranchList} />
+            <Stack.Screen name="BranchAddEdit" component={BranchAddEdit} />
         </Stack.Navigator>
 
     );

@@ -59,6 +59,8 @@ const EmployeeEdit = () => {
     const [ptkpStatus, setPtkpStatus] = useState(employee.ptkpStatus || 'TK0');
     const [gender, setGender] = useState(employee.gender || 'MALE');
     const [activeEmployee, setActiveEmployee] = useState(employee.status === 'ACTIVE');
+    const [branches, setBranches] = useState([]);
+    const [selectedBranchId, setSelectedBranchId] = useState(employee.branchId || null);
     const [number, setNumber] = useState(employee.phoneNumber || '');
     const [address, setAddress] = useState(employee.address || '');
     const [employeeNumber, setEmployeeNumber] = useState(employee.employeeNumber || '');
@@ -98,14 +100,16 @@ const EmployeeEdit = () => {
             const fetchData = async () => {
                 setFetching(true);
                 try {
-                    const [depts, posts, status] = await Promise.all([
+                    const [depts, posts, status, brs] = await Promise.all([
                         apiService.getDepartments(),
                         apiService.getPositions(),
-                        apiService.checkFaceStatus(employee.id)
+                        apiService.checkFaceStatus(employee.id),
+                        apiService.getBranches()
                     ]);
                     if (Array.isArray(depts)) setDepartments(depts);
                     if (Array.isArray(posts)) setPositions(posts);
                     if (status) setFaceStatus(status);
+                    if (Array.isArray(brs)) setBranches(brs);
                 } catch (error) {
                     console.error('Failed to fetch screen data:', error);
                 } finally {
@@ -131,6 +135,7 @@ const EmployeeEdit = () => {
                 designation: designation,
                 departmentId: selectedDepartmentId,
                 positionId: selectedPositionId,
+                branchId: selectedBranchId,
                 gender: gender,
                 employeeNumber: employeeNumber,
                 avatarUrl: avatarUrl,
@@ -165,6 +170,7 @@ const EmployeeEdit = () => {
         if (pickerType === 'dept') setSelectedDepartmentId(item.id);
         if (pickerType === 'pos') setSelectedPositionId(item.id);
         if (pickerType === 'ptkp') setPtkpStatus(item.id);
+        if (pickerType === 'branch') setSelectedBranchId(item.id);
         setPickerVisible(false);
     };
 
@@ -172,6 +178,7 @@ const EmployeeEdit = () => {
         if (type === 'dept') return departments.find(d => d.id === selectedDepartmentId)?.name || 'Pilih Departemen...';
         if (type === 'pos') return positions.find(p => p.id === selectedPositionId)?.title || 'Pilih Jabatan...';
         if (type === 'ptkp') return TAX_OPTIONS.find(t => t.id === ptkpStatus)?.name || 'Pilih Status...';
+        if (type === 'branch') return branches.find(b => b.id === selectedBranchId)?.name || 'Pilih Lokasi Kerja (Default: Mana Saja)...';
         return '';
     };
 
@@ -283,6 +290,14 @@ const EmployeeEdit = () => {
                             <Text style={styles.selectorVal}>{getSelectedLabel('pos')}</Text>
                         </View>
                         <Ionicons name="briefcase-outline" size={20} color="#2563EB" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity onPress={() => openPicker('branch', 'Pilih Lokasi Kerja Cabang')} style={styles.selector}>
+                        <View>
+                            <Text style={styles.selectorLabel}>Penempatan Lokasi Kerja (Branch)</Text>
+                            <Text style={styles.selectorVal}>{getSelectedLabel('branch')}</Text>
+                        </View>
+                        <Ionicons name="location-outline" size={20} color="#2563EB" />
                     </TouchableOpacity>
 
                     <View style={styles.field}>
@@ -441,12 +456,12 @@ const EmployeeEdit = () => {
                             />
                         ) : (
                             <FlatList
-                                data={pickerType === 'dept' ? departments : (pickerType === 'pos' ? positions : TAX_OPTIONS)}
-                                keyExtractor={(item) => (item.id || item.value).toString()}
+                                data={pickerType === 'dept' ? departments : (pickerType === 'pos' ? positions : (pickerType === 'branch' ? [{id: null, name: 'Bebas / Mana Saja'}, ...branches] : TAX_OPTIONS))}
+                                keyExtractor={(item) => (item.id || item.value || 'null').toString()}
                                 renderItem={({ item }) => (
                                     <TouchableOpacity style={styles.optionItem} onPress={() => handleSelect(item)}>
                                         <Text style={styles.optionLabel}>{item.name || item.title || item.label}</Text>
-                                        {(selectedDepartmentId === item.id || selectedPositionId === item.id || ptkpStatus === item.id) && (
+                                        {(selectedDepartmentId === item.id || selectedPositionId === item.id || ptkpStatus === item.id || selectedBranchId === item.id) && (
                                             <Ionicons name="checkmark-circle" size={20} color="#2563EB" />
                                         )}
                                     </TouchableOpacity>

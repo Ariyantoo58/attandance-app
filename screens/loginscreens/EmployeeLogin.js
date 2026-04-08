@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -51,8 +52,11 @@ const EmployeeLogin = ({ setRole, navigation }) => {
             <View style={styles.circleSmall}></View>
           </View>
           <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.navigate('Welcome')} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="#333333" />
+            <TouchableOpacity 
+              onPress={() => navigate.canGoBack() ? navigate.goBack() : navigate.navigate('Welcome')} 
+              style={styles.backButton}
+            >
+              <Ionicons name="arrow-back" size={24} color="#1E293B" />
             </TouchableOpacity>
           </View>
           <View style={styles.formContainer}>
@@ -100,12 +104,19 @@ const EmployeeLogin = ({ setRole, navigation }) => {
                 )}
               />
               {error ? <Text className="py-1.5 text-center text-red-500 text-[15px] font-medium">{error}</Text> : null}
-              <TouchableOpacity style={[styles.button, loading && {opacity: 0.7}]} onPress={handleSubmit(onSubmit)} disabled={loading}>
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={styles.buttonText}>Login</Text>
-                )}
+               <TouchableOpacity style={[styles.button, loading && {opacity: 0.7}]} onPress={handleSubmit(onSubmit)} disabled={loading}>
+                <LinearGradient
+                    colors={['#1E293B', '#0F172A']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.gradientButton}
+                >
+                    {loading ? (
+                    <ActivityIndicator color="white" />
+                    ) : (
+                    <Text style={styles.buttonText}>Sign In</Text>
+                    )}
+                </LinearGradient>
               </TouchableOpacity>
               <TouchableOpacity style={styles.goSwitchButton} onPress={() => navigate.navigate('ManagerLogin')}>
                 <Text style={styles.goSwitchButtonText}>Switch to Manager Login</Text>
@@ -208,17 +219,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    height: 50,
-    backgroundColor: '#333333',
-    borderRadius: 8,
+    height: 56,
+    borderRadius: 16,
+    marginBottom: 15,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  gradientButton: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
   },
   buttonText: {
     color: '#ffffff',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   goSwitchButton: {
     height: 50,

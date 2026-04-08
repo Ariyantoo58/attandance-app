@@ -362,6 +362,28 @@ export const apiService = {
     const response = await apiClient.patch(`/reimbursement/${id}/status`, { status, adminNote });
     return response.data;
   },
+
+  // Branches
+  getBranches: async () => {
+    const response = await apiClient.get('/branches');
+    return response.data;
+  },
+  getBranchById: async (id) => {
+    const response = await apiClient.get(`/branches/${id}`);
+    return response.data;
+  },
+  createBranch: async (data) => {
+    const response = await apiClient.post('/branches', data);
+    return response.data;
+  },
+  updateBranch: async (id, data) => {
+    const response = await apiClient.patch(`/branches/${id}`, data);
+    return response.data;
+  },
+  removeBranch: async (id) => {
+    const response = await apiClient.delete(`/branches/${id}`);
+    return response.data;
+  },
 };
 
 
