@@ -197,15 +197,6 @@ function DrawerNavigator() {
                 }}
             />
             <Drawer.Screen
-                name="Setting"
-                component={ProfileSetting}
-                options={{
-                    drawerIcon: ({ focused, color, size }) => (
-                        <Ionicons name="settings" size={size} color={color} />
-                    ),
-                }}
-            />
-            <Drawer.Screen
                 name="Reimbursements"
                 component={ReimbursementHistory}
                 options={{
@@ -214,6 +205,16 @@ function DrawerNavigator() {
                     ),
                 }}
             />
+            <Drawer.Screen
+                name="Setting"
+                component={ProfileSetting}
+                options={{
+                    drawerIcon: ({ focused, color, size }) => (
+                        <Ionicons name="settings" size={size} color={color} />
+                    ),
+                }}
+            />
+
         </Drawer.Navigator>
 
     );

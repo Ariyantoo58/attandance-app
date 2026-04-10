@@ -17,6 +17,8 @@ const schema = yup.object().shape({
 });
 
 const ManagerLogin = ({ setRole }) => {
+  const [showPassword, setShowPassword] = React.useState(false);
+
   const { control, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
   });
@@ -81,7 +83,9 @@ const ManagerLogin = ({ setRole }) => {
                     <TextInput
                       style={[styles.input, errors.username && { borderColor: 'red' }]}
                       placeholder="Username"
+                      placeholderTextColor="#94A3B8"
                       // keyboardType="em"
+
                       autoCapitalize="none"
                       onBlur={onBlur}
                       onChangeText={onChange}
@@ -96,14 +100,29 @@ const ManagerLogin = ({ setRole }) => {
                 name="password"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <>
-                    <TextInput
-                      style={[styles.input, errors.password && { borderColor: 'red' }]}
-                      placeholder="Password"
-                      secureTextEntry
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      value={value}
-                    />
+                    <View style={[styles.passwordContainer, errors.password && { borderColor: 'red' }]}>
+                      <TextInput
+                        style={[styles.input, { flex: 1, marginBottom: 0, borderWidth: 0 }]}
+                        placeholder="Password"
+                        placeholderTextColor="#94A3B8"
+                        secureTextEntry={!showPassword}
+
+                        onBlur={onBlur}
+                        onChangeText={onChange}
+                        value={value}
+                      />
+                      <TouchableOpacity 
+                        style={styles.eyeIcon} 
+                        onPress={() => setShowPassword(!showPassword)}
+                      >
+                        <Ionicons 
+                          name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                          size={24} 
+                          color="#64748B" 
+                        />
+                      </TouchableOpacity>
+                    </View>
+
                     {errors.password && <Text className="text-red-500 -mt-4 mb-4">{errors.password.message}</Text>}
                   </>
                 )}
@@ -221,7 +240,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 20,
     fontSize: 16,
+    color: '#000000',
+    backgroundColor: '#F1F5F9',
   },
+
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderColor: '#cccccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 20,
+    backgroundColor: '#F1F5F9',
+  },
+
+  eyeIcon: {
+    padding: 10,
+  },
+
   button: {
     height: 56,
     borderRadius: 16,
